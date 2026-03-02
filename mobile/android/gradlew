@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if command -v gradle >/dev/null 2>&1; then
+  exec gradle "$@"
+fi
+
+echo "gradle executable not found in PATH" >&2
+exit 127

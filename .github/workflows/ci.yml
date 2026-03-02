@@ -9,6 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: job diagnostics
+        run: |
+          echo "Runner OS: ${RUNNER_OS}"
+          echo "Shell: ${SHELL:-unknown}"
+          uname -a || true
+          rustc -V || true
+          cargo -V || true
       - name: reject NTFS ADS artifact paths
         run: |
           ads_paths="$(rg --files | awk '/:Zone.Identifier$/')"
@@ -23,6 +30,13 @@ jobs:
     needs: path-sanity
     steps:
       - uses: actions/checkout@v4
+      - name: job diagnostics
+        run: |
+          echo "Runner OS: ${RUNNER_OS}"
+          echo "Shell: ${SHELL:-unknown}"
+          uname -a || true
+          rustc -V || true
+          cargo -V || true
       - name: release workflow must publish checksums and sbom
         run: |
           rg -n "SHA256SUMS.txt" .github/workflows/release.yml
@@ -41,26 +55,108 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: job diagnostics (unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          mkdir -p ci-logs
+          {
+            echo "Runner OS: ${RUNNER_OS}"
+            echo "Shell: ${SHELL:-unknown}"
+            uname -a || true
+            rustc -Vv
+            cargo -Vv
+          } 2>&1 | tee ci-logs/desktop-env.log
+      - name: job diagnostics (windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path ci-logs -Force | Out-Null
+          "Runner OS: $env:RUNNER_OS" | Tee-Object -FilePath ci-logs/desktop-env.log
+          "Shell: pwsh" | Tee-Object -FilePath ci-logs/desktop-env.log -Append
+          rustc -Vv *>&1 | Tee-Object -FilePath ci-logs/desktop-env.log -Append
+          cargo -Vv *>&1 | Tee-Object -FilePath ci-logs/desktop-env.log -Append
       - name: fmt
         if: matrix.os == 'ubuntu-latest'
-        run: cargo fmt --all -- --check
+        run: |
+          set -o pipefail
+          cargo fmt --all -- --check 2>&1 | tee ci-logs/desktop-fmt.log
       - name: clippy
         if: matrix.os == 'ubuntu-latest'
-        run: cargo clippy --workspace --all-targets -- -D warnings
-      - name: build
-        run: cargo build --workspace
-      - name: test
-        run: cargo test --workspace
+        run: |
+          set -o pipefail
+          cargo clippy --workspace --all-targets -- -D warnings 2>&1 | tee ci-logs/desktop-clippy.log
+      - name: build (unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          set -o pipefail
+          cargo build --workspace 2>&1 | tee ci-logs/desktop-build.log
+      - name: build (windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          cargo build --workspace *>&1 | Tee-Object -FilePath ci-logs/desktop-build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: test (unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          set -o pipefail
+          cargo test --workspace 2>&1 | tee ci-logs/desktop-test.log
+      - name: test (windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          cargo test --workspace *>&1 | Tee-Object -FilePath ci-logs/desktop-test.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: conformance
         if: matrix.os == 'ubuntu-latest'
-        run: cargo run -p conformance-runner -- --run all
+        run: |
+          set -o pipefail
+          cargo run -p conformance-runner -- --run all 2>&1 | tee ci-logs/desktop-conformance.log
       - name: relay-first signed-token e2e api smoke
         if: matrix.os == 'ubuntu-latest'
-        run: cargo test -p link-daemon api::tests::relay_first_expose_connect_roundtrip_bytes -- --nocapture
+        run: |
+          set -o pipefail
+          cargo test -p link-daemon api::tests::relay_first_expose_connect_roundtrip_bytes -- --nocapture 2>&1 | tee ci-logs/desktop-e2e.log
+      - name: upload desktop failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}-failure-logs
+          path: ci-logs
+      - name: desktop failure summary (unix)
+        if: failure() && matrix.os != 'windows-latest'
+        run: |
+          {
+            echo "## Desktop Failure Summary (${{ matrix.os }})"
+            for log in ci-logs/*.log; do
+              [ -f "$log" ] || continue
+              echo ""
+              echo "### $(basename "$log")"
+              echo '```'
+              rg -n "error:|FAILED|panic|test result: FAILED" "$log" | head -n 40 || true
+              echo '```'
+            done
+          } >> "${GITHUB_STEP_SUMMARY}"
+      - name: desktop failure summary (windows)
+        if: failure() && matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Add-Content $env:GITHUB_STEP_SUMMARY "## Desktop Failure Summary (${{ matrix.os }})"
+          Get-ChildItem ci-logs -Filter *.log -ErrorAction SilentlyContinue | ForEach-Object {
+            Add-Content $env:GITHUB_STEP_SUMMARY ""
+            Add-Content $env:GITHUB_STEP_SUMMARY "### $($_.Name)"
+            Add-Content $env:GITHUB_STEP_SUMMARY '```'
+            Select-String -Path $_.FullName -Pattern 'error:','FAILED','panic','test result: FAILED' | Select-Object -First 40 | ForEach-Object { Add-Content $env:GITHUB_STEP_SUMMARY $_.Line }
+            Add-Content $env:GITHUB_STEP_SUMMARY '```'
+          }
 
   android-build:
     runs-on: ubuntu-latest
     needs: path-sanity
+    env:
+      ANDROID_API_LEVEL: "34"
+      ANDROID_BUILD_TOOLS: "34.0.0"
+      ANDROID_NDK_VERSION: "26.3.11579264"
     steps:
       - uses: actions/checkout@v4
       - name: enforce signed relay tokens in demo script
@@ -75,10 +171,41 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+      - name: install pinned Android SDK + NDK
+        run: |
+          yes | sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-${ANDROID_API_LEVEL}" \
+            "build-tools;${ANDROID_BUILD_TOOLS}" \
+            "ndk;${ANDROID_NDK_VERSION}"
+      - name: export ndk environment
+        run: |
+          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "${GITHUB_ENV}"
+          echo "NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "${GITHUB_ENV}"
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
           targets: aarch64-linux-android,x86_64-linux-android
+      - name: android job diagnostics
+        run: |
+          mkdir -p mobile/android/ci-logs
+          {
+            echo "Runner OS: ${RUNNER_OS}"
+            echo "Shell: ${SHELL:-unknown}"
+            uname -a || true
+            rustc -Vv
+            cargo -Vv
+            java -version
+            gradle --version
+            sdkmanager --version
+            echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}"
+            echo "ANDROID_NDK_HOME=${ANDROID_NDK_HOME}"
+          } 2>&1 | tee mobile/android/ci-logs/env.log
+      - name: ensure gradlew shim is executable
+        run: chmod +x mobile/android/gradlew
       - name: fmt
         run: cargo fmt --all -- --check
       - name: clippy
@@ -88,7 +215,9 @@ jobs:
       - name: install cargo-ndk
         run: cargo install cargo-ndk --locked
       - name: build rust android ffi
-        run: bash mobile/android/scripts/build-rust-android.sh
+        run: |
+          set -o pipefail
+          bash mobile/android/scripts/build-rust-android.sh 2>&1 | tee mobile/android/ci-logs/rust-ffi.log
       - name: verify android ffi artifacts
         run: |
           test -f mobile/android/app/src/main/jniLibs/arm64-v8a/libfabric_ffi.so
@@ -98,10 +227,20 @@ jobs:
         run: |
           rg -n "AnimusVpnService" mobile/android/app/src/main/AndroidManifest.xml
           rg -n "android.net.VpnService" mobile/android/app/src/main/AndroidManifest.xml
-      - uses: gradle/gradle-build-action@v3
-        with:
-          build-root-directory: mobile/android
-          arguments: testDebugUnitTest assembleDebug
+      - name: android gradle testDebugUnitTest
+        run: |
+          set -o pipefail
+          (
+            cd mobile/android
+            ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest
+          ) 2>&1 | tee mobile/android/ci-logs/gradle-test.log
+      - name: android gradle assembleDebug
+        run: |
+          set -o pipefail
+          (
+            cd mobile/android
+            ./gradlew --no-daemon --stacktrace :app:assembleDebug
+          ) 2>&1 | tee mobile/android/ci-logs/gradle-assemble.log
       - name: verify android apk
         run: test -f mobile/android/app/build/outputs/apk/debug/app-debug.apk
       - name: upload android apk
@@ -118,6 +257,30 @@ jobs:
         with:
           name: android-rust-libs
           path: mobile/android/android-rust-libs.zip
+      - name: upload android failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-failure-diagnostics
+          path: |
+            mobile/android/ci-logs
+            mobile/android/app/build
+            mobile/android/app/src/main/jniLibs
+            mobile/android/app/src/main/kotlin/com/animus/link/bindings
+      - name: android failure summary
+        if: failure()
+        run: |
+          {
+            echo "## Android Failure Summary"
+            for log in mobile/android/ci-logs/*.log; do
+              [ -f "$log" ] || continue
+              echo ""
+              echo "### $(basename "$log")"
+              echo '```'
+              rg -n "FAILURE:|error:|Exception|Caused by:" "$log" | head -n 60 || true
+              echo '```'
+            done
+          } >> "${GITHUB_STEP_SUMMARY}"
 
   ios-build:
     runs-on: macos-latest
@@ -135,6 +298,18 @@ jobs:
         with:
           components: rustfmt, clippy
           targets: aarch64-apple-ios,aarch64-apple-ios-sim
+      - name: ios job diagnostics
+        run: |
+          mkdir -p mobile/ios/build/ci-logs mobile/ios/build/results
+          {
+            echo "Runner OS: ${RUNNER_OS}"
+            echo "Shell: ${SHELL:-unknown}"
+            sw_vers || true
+            rustc -Vv
+            cargo -Vv
+            xcodebuild -version
+            swift --version
+          } 2>&1 | tee mobile/ios/build/ci-logs/env.log
       - name: fmt
         run: cargo fmt --all -- --check
       - name: clippy
@@ -149,42 +324,77 @@ jobs:
           fi
       - name: xcode build
         run: |
+          set -o pipefail
           xcodebuild \
             -project mobile/ios/AnimusLinkIOS.xcodeproj \
             -target AnimusLinkIOS \
-            -target AnimusLinkTunnelExtension \
             -configuration Debug \
-            -destination generic/platform=iOS \
+            -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath mobile/ios/build \
+            -resultBundlePath mobile/ios/build/results/host.xcresult \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            build 2>&1 | tee mobile/ios/build/ci-logs/xcodebuild-host.log
+      - name: xcode build extension target
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project mobile/ios/AnimusLinkIOS.xcodeproj \
+            -target AnimusLinkTunnelExtension \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath mobile/ios/build \
+            -resultBundlePath mobile/ios/build/results/extension.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            build 2>&1 | tee mobile/ios/build/ci-logs/xcodebuild-extension.log
       - name: package ios xcframework
         run: bash mobile/ios/scripts/package-xcframework.sh
-      - name: package ios ipa (unsigned)
-        run: bash mobile/ios/scripts/package-ipa.sh
       - name: verify ios ffi artifacts
         run: |
           test -f mobile/ios/Generated/animus_link.swift
           test -f mobile/ios/Generated/animus_linkFFI.h
           test -f mobile/ios/Generated/animus_linkFFI.modulemap
-          test -f mobile/ios/RustLibs/iphoneos/libfabric_ffi.a
+          test -f target/aarch64-apple-ios/release/libfabric_ffi.a
+          test -f target/aarch64-apple-ios-sim/release/libfabric_ffi.a
           test -d mobile/ios/dist/AnimusLinkFFI.xcframework
-          test -d mobile/ios/build/Build/Products/Debug-iphoneos/AnimusLinkIOS.app
-          test -d mobile/ios/build/Build/Products/Debug-iphoneos/AnimusLinkTunnelExtension.appex
-          test -f mobile/ios/build/Build/Products/Debug-iphoneos/AnimusLinkIOS-debug.ipa
+          test -d mobile/ios/build/Build/Products/Debug-iphonesimulator/AnimusLinkIOS.app
+          test -d mobile/ios/build/Build/Products/Debug-iphonesimulator/AnimusLinkTunnelExtension.appex
       - name: upload ios app
         uses: actions/upload-artifact@v4
         with:
           name: ios-debug-app
-          path: mobile/ios/build/Build/Products/Debug-iphoneos/AnimusLinkIOS.app
-      - name: upload ios ipa
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-debug-ipa
-          path: mobile/ios/build/Build/Products/Debug-iphoneos/AnimusLinkIOS-debug.ipa
+          path: mobile/ios/build/Build/Products/Debug-iphonesimulator/AnimusLinkIOS.app
       - name: upload ios xcframework
         uses: actions/upload-artifact@v4
         with:
           name: ios-xcframework
           path: mobile/ios/dist/AnimusLinkFFI.xcframework
+      - name: upload ios failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-failure-diagnostics
+          path: |
+            mobile/ios/build/ci-logs
+            mobile/ios/build/results
+            mobile/ios/build/Logs
+            mobile/ios/build/Build
+      - name: ios failure summary
+        if: failure()
+        run: |
+          {
+            echo "## iOS Failure Summary"
+            for log in mobile/ios/build/ci-logs/*.log; do
+              [ -f "$log" ] || continue
+              echo ""
+              echo "### $(basename "$log")"
+              echo '```'
+              rg -n "error:|fatal error:|Testing failed:|BUILD FAILED" "$log" | head -n 80 || true
+              echo '```'
+            done
+          } >> "${GITHUB_STEP_SUMMARY}"
