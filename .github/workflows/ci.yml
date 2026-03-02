@@ -5,8 +5,22 @@ on:
   pull_request:
 
 jobs:
+  path-sanity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: reject NTFS ADS artifact paths
+        run: |
+          ads_paths="$(rg --files | awk '/:Zone.Identifier$/')"
+          if [ -n "${ads_paths}" ]; then
+            echo "Found forbidden ADS-like paths:"
+            echo "${ads_paths}"
+            exit 1
+          fi
+
   release-integrity-config:
     runs-on: ubuntu-latest
+    needs: path-sanity
     steps:
       - uses: actions/checkout@v4
       - name: release workflow must publish checksums and sbom
@@ -16,6 +30,7 @@ jobs:
           rg -n "sbom.cdx.json" .github/workflows/release.yml
 
   desktop:
+    needs: path-sanity
     strategy:
       fail-fast: false
       matrix:
@@ -45,6 +60,7 @@ jobs:
 
   android-build:
     runs-on: ubuntu-latest
+    needs: path-sanity
     steps:
       - uses: actions/checkout@v4
       - name: enforce signed relay tokens in demo script
@@ -105,6 +121,7 @@ jobs:
 
   ios-build:
     runs-on: macos-latest
+    needs: path-sanity
     steps:
       - uses: actions/checkout@v4
       - name: enforce signed relay tokens in demo script

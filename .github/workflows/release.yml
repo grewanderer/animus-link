@@ -9,7 +9,21 @@ permissions:
   contents: write
 
 jobs:
+  path-sanity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: reject NTFS ADS artifact paths
+        run: |
+          ads_paths="$(rg --files | awk '/:Zone.Identifier$/')"
+          if [ -n "${ads_paths}" ]; then
+            echo "Found forbidden ADS-like paths:"
+            echo "${ads_paths}"
+            exit 1
+          fi
+
   desktop-artifacts:
+    needs: path-sanity
     strategy:
       fail-fast: false
       matrix:
@@ -54,6 +68,7 @@ jobs:
 
   android-artifact:
     runs-on: ubuntu-latest
+    needs: path-sanity
     steps:
       - uses: actions/checkout@v4
       - name: enforce signed relay tokens in demo script
@@ -114,6 +129,7 @@ jobs:
 
   ios-artifact:
     runs-on: macos-latest
+    needs: path-sanity
     steps:
       - uses: actions/checkout@v4
       - name: enforce signed relay tokens in demo script
@@ -190,6 +206,7 @@ jobs:
 
   publish-release:
     needs:
+      - path-sanity
       - desktop-artifacts
       - android-artifact
       - ios-artifact
