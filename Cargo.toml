@@ -1,0 +1,25 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/fabric-wire",
+  "crates/fabric-crypto",
+  "crates/fabric-identity",
+  "crates/fabric-transport",
+  "crates/fabric-session",
+  "crates/fabric-discovery",
+  "crates/fabric-nat",
+  "crates/fabric-relay-proto",
+  "crates/fabric-relay-client",
+  "crates/fabric-service",
+  "crates/fabric-security",
+  "crates/fabric-tunnel-proto",
+  "crates/link-gateway",
+  "crates/link-tunnel-client",
+  "crates/fabric-ffi",
+  "crates/fabric",
+  "apps/fabric-cli",
+  "apps/relay-server",
+  "apps/link-daemon",
+  "apps/link-cli",
+  "apps/conformance-runner",
+]

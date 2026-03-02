@@ -1,0 +1,173 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  release-integrity-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: release workflow must publish checksums and sbom
+        run: |
+          rg -n "SHA256SUMS.txt" .github/workflows/release.yml
+          rg -n "cargo install cargo-cyclonedx --version 0.5.7 --locked" .github/workflows/release.yml
+          rg -n "sbom.cdx.json" .github/workflows/release.yml
+
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: fmt
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo fmt --all -- --check
+      - name: clippy
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: build
+        run: cargo build --workspace
+      - name: test
+        run: cargo test --workspace
+      - name: conformance
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo run -p conformance-runner -- --run all
+      - name: relay-first signed-token e2e api smoke
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo test -p link-daemon api::tests::relay_first_expose_connect_roundtrip_bytes -- --nocapture
+
+  android-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: enforce signed relay tokens in demo script
+        run: |
+          grep -F -- '--token-issuer-pubkey-hex' scripts/demo-relay-first-e2e.sh
+          if grep -F -- '--dev-allow-unsigned-tokens' scripts/demo-relay-first-e2e.sh; then
+            echo "unsigned relay token flag must not be used in demo script"
+            exit 1
+          fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: aarch64-linux-android,x86_64-linux-android
+      - name: fmt
+        run: cargo fmt --all -- --check
+      - name: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: test
+        run: cargo test --workspace
+      - name: install cargo-ndk
+        run: cargo install cargo-ndk --locked
+      - name: build rust android ffi
+        run: bash mobile/android/scripts/build-rust-android.sh
+      - name: verify android ffi artifacts
+        run: |
+          test -f mobile/android/app/src/main/jniLibs/arm64-v8a/libfabric_ffi.so
+          test -f mobile/android/app/src/main/jniLibs/x86_64/libfabric_ffi.so
+          test -f mobile/android/app/src/main/kotlin/com/animus/link/bindings/animus_link.kt
+      - name: verify android vpn service wiring
+        run: |
+          rg -n "AnimusVpnService" mobile/android/app/src/main/AndroidManifest.xml
+          rg -n "android.net.VpnService" mobile/android/app/src/main/AndroidManifest.xml
+      - uses: gradle/gradle-build-action@v3
+        with:
+          build-root-directory: mobile/android
+          arguments: testDebugUnitTest assembleDebug
+      - name: verify android apk
+        run: test -f mobile/android/app/build/outputs/apk/debug/app-debug.apk
+      - name: upload android apk
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+      - name: package android rust shared libraries
+        run: |
+          cd mobile/android/app/src/main/jniLibs
+          zip -q -r ../../../../android-rust-libs.zip arm64-v8a x86_64
+      - name: upload android rust shared libraries
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-rust-libs
+          path: mobile/android/android-rust-libs.zip
+
+  ios-build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: enforce signed relay tokens in demo script
+        run: |
+          grep -F -- '--token-issuer-pubkey-hex' scripts/demo-relay-first-e2e.sh
+          if grep -F -- '--dev-allow-unsigned-tokens' scripts/demo-relay-first-e2e.sh; then
+            echo "unsigned relay token flag must not be used in demo script"
+            exit 1
+          fi
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
+      - name: fmt
+        run: cargo fmt --all -- --check
+      - name: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: test
+        run: cargo test --workspace
+      - name: verify committed swift bindings are up-to-date
+        run: |
+          if [ -f mobile/ios/Generated/animus_link.swift ]; then
+            cargo run --quiet -p fabric-ffi --bin generate-bindings -- swift mobile/ios/Generated
+            git diff --exit-code -- mobile/ios/Generated/animus_link.swift
+          fi
+      - name: xcode build
+        run: |
+          xcodebuild \
+            -project mobile/ios/AnimusLinkIOS.xcodeproj \
+            -target AnimusLinkIOS \
+            -target AnimusLinkTunnelExtension \
+            -configuration Debug \
+            -destination generic/platform=iOS \
+            -derivedDataPath mobile/ios/build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+      - name: package ios xcframework
+        run: bash mobile/ios/scripts/package-xcframework.sh
+      - name: package ios ipa (unsigned)
+        run: bash mobile/ios/scripts/package-ipa.sh
+      - name: verify ios ffi artifacts
+        run: |
+          test -f mobile/ios/Generated/animus_link.swift
+          test -f mobile/ios/Generated/animus_linkFFI.h
+          test -f mobile/ios/Generated/animus_linkFFI.modulemap
+          test -f mobile/ios/RustLibs/iphoneos/libfabric_ffi.a
+          test -d mobile/ios/dist/AnimusLinkFFI.xcframework
+          test -d mobile/ios/build/Build/Products/Debug-iphoneos/AnimusLinkIOS.app
+          test -d mobile/ios/build/Build/Products/Debug-iphoneos/AnimusLinkTunnelExtension.appex
+          test -f mobile/ios/build/Build/Products/Debug-iphoneos/AnimusLinkIOS-debug.ipa
+      - name: upload ios app
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-debug-app
+          path: mobile/ios/build/Build/Products/Debug-iphoneos/AnimusLinkIOS.app
+      - name: upload ios ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-debug-ipa
+          path: mobile/ios/build/Build/Products/Debug-iphoneos/AnimusLinkIOS-debug.ipa
+      - name: upload ios xcframework
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-xcframework
+          path: mobile/ios/dist/AnimusLinkFFI.xcframework

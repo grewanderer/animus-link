@@ -1,0 +1,25 @@
+services:
+  relay:
+    build:
+      context: ./relay
+    command:
+      - "--bind"
+      - "0.0.0.0:7777"
+      - "--relay-name"
+      - "${ANIMUS_RELAY_NAME:-default-relay}"
+      - "--token-issuer-pubkey-hex"
+      - "${ANIMUS_RELAY_TOKEN_ISSUER_PUBKEY_HEX:?set ANIMUS_RELAY_TOKEN_ISSUER_PUBKEY_HEX}"
+      - "--max-allocations-per-issuer"
+      - "${ANIMUS_RELAY_MAX_ALLOC_PER_ISSUER:-256}"
+      - "--max-allocations-per-subject"
+      - "${ANIMUS_RELAY_MAX_ALLOC_PER_SUBJECT:-64}"
+      - "--max-bindings-per-allocation"
+      - "${ANIMUS_RELAY_MAX_BINDINGS_PER_ALLOC:-16}"
+      - "--max-token-payload-bytes"
+      - "${ANIMUS_RELAY_MAX_TOKEN_PAYLOAD_BYTES:-1024}"
+      - "--max-packet-size-bytes"
+      - "${ANIMUS_RELAY_MAX_PACKET_SIZE_BYTES:-2048}"
+    ports:
+      - "7777:7777/udp"
+    environment:
+      - RUST_LOG=info

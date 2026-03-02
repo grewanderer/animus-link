@@ -1,0 +1,29 @@
+[package]
+name = "link-daemon"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+fabric = { path = "../../crates/fabric" }
+fabric-crypto = { path = "../../crates/fabric-crypto" }
+fabric-identity = { path = "../../crates/fabric-identity" }
+fabric-relay-client = { path = "../../crates/fabric-relay-client" }
+fabric-relay-proto = { path = "../../crates/fabric-relay-proto" }
+fabric-security = { path = "../../crates/fabric-security" }
+fabric-session = { path = "../../crates/fabric-session" }
+fabric-tunnel-proto = { path = "../../crates/fabric-tunnel-proto" }
+link-gateway = { path = "../../crates/link-gateway" }
+link-tunnel-client = { path = "../../crates/link-tunnel-client" }
+rand_core = "0.6"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+zeroize = "1"
+
+[dev-dependencies]
+relay-server = { path = "../relay-server" }

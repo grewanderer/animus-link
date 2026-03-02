@@ -1,0 +1,41 @@
+{
+  "name": "framing_aead",
+  "vectors": [
+    {
+      "id": "header_roundtrip_data_le",
+      "kind": "roundtrip",
+      "header": {
+        "conn_id": 72623859790382856,
+        "pn": 1230066625199609624,
+        "stream_id": 168496141,
+        "msg_type": "data",
+        "len": 8755
+      },
+      "encoded_hex": "080706050403020118171615141312110d0c0b0a103322"
+    },
+    {
+      "id": "header_roundtrip_relay_ctrl",
+      "kind": "roundtrip",
+      "header": {
+        "conn_id": 18446744073709551615,
+        "pn": 0,
+        "stream_id": 287454020,
+        "msg_type": "relay_ctrl",
+        "len": 1
+      },
+      "encoded_hex": "ffffffffffffffff000000000000000044332211200100"
+    },
+    {
+      "id": "header_decode_truncated_22_bytes",
+      "kind": "decode_error",
+      "encoded_hex": "00000000000000000000000000000000000000000000",
+      "error": "truncated"
+    },
+    {
+      "id": "header_decode_unknown_type",
+      "kind": "decode_error",
+      "encoded_hex": "0000000000000000000000000000000000000000ff0000",
+      "error": "unknown_type"
+    }
+  ]
+}

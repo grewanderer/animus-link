@@ -1,0 +1,18 @@
+# Default owners (edit to match your team)
+* @rewanderer
+
+# Spec + conformance
+/spec/ @rewanderer
+/conformance/ @rewanderer
+
+# Core crates ownership buckets
+/crates/fabric-wire/ @rewanderer
+/crates/fabric-crypto/ @rewanderer
+/crates/fabric-identity/ @rewanderer
+/crates/fabric-session/ @rewanderer
+/crates/fabric-relay-*/ @rewanderer
+
+# Apps
+/apps/relay-server/ @rewanderer
+/apps/link-daemon/ @rewanderer
+/apps/link-cli/ @rewanderer

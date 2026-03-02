@@ -1,0 +1,17 @@
+[package]
+name = "conformance-runner"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
+anyhow = "1"
+bytes = "1"
+clap = { version = "4", features = ["derive"] }
+fabric-crypto = { path = "../../crates/fabric-crypto" }
+fabric-discovery = { path = "../../crates/fabric-discovery" }
+fabric-relay-proto = { path = "../../crates/fabric-relay-proto" }
+fabric-session = { path = "../../crates/fabric-session" }
+fabric-wire = { path = "../../crates/fabric-wire" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

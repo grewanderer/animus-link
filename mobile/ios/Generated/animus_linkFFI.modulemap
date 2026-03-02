@@ -1,0 +1,4 @@
+module animus_linkFFI {
+    header "animus_linkFFI.h"
+    export *
+}

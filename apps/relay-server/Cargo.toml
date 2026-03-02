@@ -1,0 +1,15 @@
+[package]
+name = "relay-server"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+fabric-relay-proto = { path = "../../crates/fabric-relay-proto" }
+fabric-security = { path = "../../crates/fabric-security" }
+fabric-session = { path = "../../crates/fabric-session" }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "macros", "io-util", "sync"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

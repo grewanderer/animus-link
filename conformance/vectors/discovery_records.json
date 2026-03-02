@@ -1,0 +1,67 @@
+{
+  "name": "discovery_records",
+  "vectors": [
+    {
+      "id": "valid_record_accepts",
+      "kind": "seeded_verify",
+      "signing_seed_hex": "0909090909090909090909090909090909090909090909090909090909090909",
+      "record": {
+        "ver": 1,
+        "namespace_id": "namespace-123",
+        "node_id": "node-abc",
+        "endpoints": [
+          {
+            "transport": "udp",
+            "addr": "198.51.100.10:7000"
+          },
+          {
+            "transport": "relay",
+            "addr": "relay://default-relay"
+          }
+        ],
+        "expires_at": 1700000600
+      },
+      "canonical_json": "{\"ver\":1,\"namespace_id\":\"namespace-123\",\"node_id\":\"node-abc\",\"endpoints\":[{\"transport\":\"udp\",\"addr\":\"198.51.100.10:7000\"},{\"transport\":\"relay\",\"addr\":\"relay://default-relay\"}],\"expires_at\":1700000600}",
+      "expected_valid": true
+    },
+    {
+      "id": "modified_record_rejects",
+      "kind": "seeded_verify",
+      "signing_seed_hex": "0909090909090909090909090909090909090909090909090909090909090909",
+      "record": {
+        "ver": 1,
+        "namespace_id": "namespace-123",
+        "node_id": "node-abc",
+        "endpoints": [
+          {
+            "transport": "udp",
+            "addr": "198.51.100.10:7000"
+          },
+          {
+            "transport": "relay",
+            "addr": "relay://default-relay"
+          }
+        ],
+        "expires_at": 1700000600
+      },
+      "verify_record": {
+        "ver": 1,
+        "namespace_id": "namespace-123",
+        "node_id": "node-abc",
+        "endpoints": [
+          {
+            "transport": "udp",
+            "addr": "198.51.100.10:7001"
+          },
+          {
+            "transport": "relay",
+            "addr": "relay://default-relay"
+          }
+        ],
+        "expires_at": 1700000600
+      },
+      "canonical_json": "{\"ver\":1,\"namespace_id\":\"namespace-123\",\"node_id\":\"node-abc\",\"endpoints\":[{\"transport\":\"udp\",\"addr\":\"198.51.100.10:7000\"},{\"transport\":\"relay\",\"addr\":\"relay://default-relay\"}],\"expires_at\":1700000600}",
+      "expected_valid": false
+    }
+  ]
+}

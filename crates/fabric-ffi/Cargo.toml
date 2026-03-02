@@ -1,0 +1,24 @@
+[package]
+name = "fabric-ffi"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+build = "build.rs"
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+anyhow = "1"
+camino = "1"
+fabric = { path = "../fabric" }
+thiserror = "1"
+uniffi = "0.28.3"
+uniffi_bindgen = "0.28.3"
+
+[target.'cfg(target_os = "android")'.dependencies]
+link-tunnel-client = { path = "../link-tunnel-client" }
+tokio = { version = "1", features = ["rt-multi-thread", "time", "sync", "net"] }
+
+[build-dependencies]
+uniffi = { version = "0.28.3", features = ["build"] }

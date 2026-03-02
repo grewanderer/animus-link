@@ -1,0 +1,4 @@
+# NOTE: Codex ignore semantics may vary by version; do not rely on this for secrets.
+# Always keep secrets out of the repo and out of logs.
+target/
+.git/

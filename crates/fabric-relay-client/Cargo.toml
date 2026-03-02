@@ -1,0 +1,12 @@
+    [package]
+    name = "fabric-relay-client"
+    version = "0.1.0"
+    edition = "2021"
+    license = "Apache-2.0"
+
+    [lib]
+
+    [dependencies]
+    thiserror = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+fabric-relay-proto = { path = "../fabric-relay-proto" }

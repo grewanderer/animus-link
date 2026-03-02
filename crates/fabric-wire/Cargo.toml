@@ -1,0 +1,11 @@
+    [package]
+    name = "fabric-wire"
+    version = "0.1.0"
+    edition = "2021"
+    license = "Apache-2.0"
+
+    [lib]
+
+    [dependencies]
+    bytes = "1"
+thiserror = "1"

@@ -1,0 +1,12 @@
+[package]
+name = "link-gateway"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[lib]
+
+[dependencies]
+fabric-tunnel-proto = { path = "../fabric-tunnel-proto" }
+thiserror = "1"
+tokio = { version = "1", features = ["net", "io-util", "time", "sync", "rt-multi-thread", "macros"] }

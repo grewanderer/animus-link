@@ -1,0 +1,19 @@
+    [package]
+    name = "fabric-session"
+    version = "0.1.0"
+    edition = "2021"
+    license = "Apache-2.0"
+
+    [lib]
+
+[dependencies]
+thiserror = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
+fabric-wire = { path = "../fabric-wire" }
+fabric-crypto = { path = "../fabric-crypto" }
+fabric-relay-client = { path = "../fabric-relay-client" }
+fabric-relay-proto = { path = "../fabric-relay-proto" }
+bytes = "1"
+
+[dev-dependencies]
+relay-server = { path = "../../apps/relay-server" }

@@ -1,0 +1,24 @@
+{
+  "name": "handshake_noise_xx",
+  "vectors": [
+    {
+      "id": "roundtrip_relay_first_default",
+      "kind": "roundtrip",
+      "prologue": "animus/fabric/v1/relay-first",
+      "initiator_seed_hex": "0707070707070707070707070707070707070707070707070707070707070707",
+      "responder_seed_hex": "0909090909090909090909090909090909090909090909090909090909090909",
+      "msg1_payload": "hello",
+      "msg2_payload": "world",
+      "msg3_payload": "done"
+    },
+    {
+      "id": "prologue_mismatch_rejected",
+      "kind": "prologue_mismatch",
+      "initiator_prologue": "animus/fabric/v1/a",
+      "responder_prologue": "animus/fabric/v1/b",
+      "initiator_seed_hex": "0101010101010101010101010101010101010101010101010101010101010101",
+      "responder_seed_hex": "0202020202020202020202020202020202020202020202020202020202020202",
+      "msg1_payload": "mismatch"
+    }
+  ]
+}

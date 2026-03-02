@@ -1,0 +1,53 @@
+namespace animus_link {
+    string version();
+    Status status();
+    string invite_create();
+    [Throws=FabricError]
+    void invite_join(string invite);
+    [Throws=FabricError]
+    TunnelRuntimeStatus android_tunnel_enable(
+        i32 tun_fd,
+        string relay_addr,
+        string relay_token,
+        u32 relay_ttl_secs,
+        u64 conn_id,
+        string gateway_service,
+        string peer_id,
+        string fail_mode,
+        string dns_mode,
+        sequence<string> protected_endpoints,
+        sequence<string> exclude_cidrs,
+        boolean allow_lan,
+        u16 mtu,
+        u32 max_ip_packet_bytes
+    );
+    TunnelRuntimeStatus android_tunnel_status();
+    TunnelRuntimeStatus android_tunnel_disable();
+};
+
+dictionary Status {
+    boolean running;
+    u32 peer_count;
+    string path;
+};
+
+dictionary TunnelRuntimeStatus {
+    boolean enabled;
+    boolean connected;
+    string state;
+    string fail_mode;
+    string dns_mode;
+    string prewarm_state;
+    string last_error_code;
+    u64 bytes_in;
+    u64 bytes_out;
+    u32 reconnects;
+    u32 handshake_ms;
+};
+
+[Error]
+enum FabricError {
+    "InvalidInput",
+    "NotReady",
+    "Internal",
+};
