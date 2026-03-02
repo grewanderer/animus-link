@@ -18,7 +18,7 @@ jobs:
           cargo -V || true
       - name: reject NTFS ADS artifact paths
         run: |
-          ads_paths="$(rg --files | awk '/:Zone.Identifier$/')"
+          ads_paths="$(find . -type f -name '*:Zone.Identifier' -print)"
           if [ -n "${ads_paths}" ]; then
             echo "Found forbidden ADS-like paths:"
             echo "${ads_paths}"
@@ -39,9 +39,9 @@ jobs:
           cargo -V || true
       - name: release workflow must publish checksums and sbom
         run: |
-          rg -n "SHA256SUMS.txt" .github/workflows/release.yml
-          rg -n "cargo install cargo-cyclonedx --version 0.5.7 --locked" .github/workflows/release.yml
-          rg -n "sbom.cdx.json" .github/workflows/release.yml
+          grep -n "SHA256SUMS.txt" .github/workflows/release.yml
+          grep -n "cargo install cargo-cyclonedx --version 0.5.7 --locked" .github/workflows/release.yml
+          grep -n "sbom.cdx.json" .github/workflows/release.yml
 
   desktop:
     needs: path-sanity
@@ -133,7 +133,7 @@ jobs:
               echo ""
               echo "### $(basename "$log")"
               echo '```'
-              rg -n "error:|FAILED|panic|test result: FAILED" "$log" | head -n 40 || true
+              grep -nE "error:|FAILED|panic|test result: FAILED" "$log" | head -n 40 || true
               echo '```'
             done
           } >> "${GITHUB_STEP_SUMMARY}"
@@ -174,6 +174,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.7"
+      - name: accept Android licenses
+        run: yes | sdkmanager --licenses >/dev/null || true
       - name: install pinned Android SDK + NDK
         run: |
           yes | sdkmanager --install \
@@ -183,8 +185,14 @@ jobs:
             "ndk;${ANDROID_NDK_VERSION}"
       - name: export ndk environment
         run: |
-          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "${GITHUB_ENV}"
-          echo "NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "${GITHUB_ENV}"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [ -z "${SDK_ROOT}" ]; then
+            echo "ANDROID_SDK_ROOT/ANDROID_HOME is not set"
+            exit 1
+          fi
+          echo "ANDROID_SDK_ROOT=${SDK_ROOT}" >> "${GITHUB_ENV}"
+          echo "ANDROID_NDK_HOME=${SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "${GITHUB_ENV}"
+          echo "NDK_HOME=${SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "${GITHUB_ENV}"
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -225,8 +233,8 @@ jobs:
           test -f mobile/android/app/src/main/kotlin/com/animus/link/bindings/animus_link.kt
       - name: verify android vpn service wiring
         run: |
-          rg -n "AnimusVpnService" mobile/android/app/src/main/AndroidManifest.xml
-          rg -n "android.net.VpnService" mobile/android/app/src/main/AndroidManifest.xml
+          grep -n "AnimusVpnService" mobile/android/app/src/main/AndroidManifest.xml
+          grep -n "android.net.VpnService" mobile/android/app/src/main/AndroidManifest.xml
       - name: android gradle testDebugUnitTest
         run: |
           set -o pipefail
@@ -277,7 +285,7 @@ jobs:
               echo ""
               echo "### $(basename "$log")"
               echo '```'
-              rg -n "FAILURE:|error:|Exception|Caused by:" "$log" | head -n 60 || true
+              grep -nE "FAILURE:|error:|Exception|Caused by:" "$log" | head -n 60 || true
               echo '```'
             done
           } >> "${GITHUB_STEP_SUMMARY}"
@@ -394,7 +402,7 @@ jobs:
               echo ""
               echo "### $(basename "$log")"
               echo '```'
-              rg -n "error:|fatal error:|Testing failed:|BUILD FAILED" "$log" | head -n 80 || true
+              grep -nE "error:|fatal error:|Testing failed:|BUILD FAILED" "$log" | head -n 80 || true
               echo '```'
             done
           } >> "${GITHUB_STEP_SUMMARY}"
