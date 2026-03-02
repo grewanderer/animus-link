@@ -44,6 +44,13 @@ pub struct DnsCapabilitiesInfo {
     pub can_set_system_dns: bool,
 }
 
+#[derive(Debug, Clone, Copy, Serialize)]
+pub struct RuntimeCapabilitiesInfo {
+    pub tun_device_present: bool,
+    pub has_cap_net_admin: bool,
+    pub has_cap_bind_service: bool,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct SelfCheckItem {
     pub name: String,
@@ -60,6 +67,7 @@ pub struct SelfCheckResponse {
     pub platform: PlatformInfo,
     pub dns_mode: String,
     pub dns_capabilities: DnsCapabilitiesInfo,
+    pub runtime_capabilities: RuntimeCapabilitiesInfo,
     pub timestamp_unix: u64,
     pub checks: Vec<SelfCheckItem>,
 }
@@ -144,6 +152,7 @@ pub struct SelfCheckInputs {
     pub tunnel_dns_mode: String,
     pub tunnel_dns_capabilities: DnsCapabilitiesInfo,
     pub tunnel_dns_capability_detail: String,
+    pub runtime_capabilities: RuntimeCapabilitiesInfo,
     pub tunnel_config_ok: bool,
 }
 
@@ -183,6 +192,9 @@ pub async fn run_self_check(inputs: SelfCheckInputs) -> SelfCheckResponse {
     };
     let port_bind_check = check_port_bind_conflicts(inputs.api_bind);
     let tunnel_supported_check = check_tunnel_supported(inputs.tunnel_supported);
+    let tun_device_check = check_tun_device_present(inputs.runtime_capabilities);
+    let cap_net_admin_check = check_cap_net_admin(inputs.runtime_capabilities);
+    let cap_bind_service_check = check_cap_bind_service(inputs.runtime_capabilities);
     let tunnel_config_check = check_tunnel_config(inputs.tunnel_enabled, inputs.tunnel_config_ok);
     let dns_remote_strict_check = check_dns_remote_strict_support(
         inputs.tunnel_dns_capabilities,
@@ -197,6 +209,9 @@ pub async fn run_self_check(inputs: SelfCheckInputs) -> SelfCheckResponse {
         namespace_store_check,
         port_bind_check,
         tunnel_supported_check,
+        tun_device_check,
+        cap_net_admin_check,
+        cap_bind_service_check,
         dns_remote_strict_check,
         tunnel_config_check,
     ];
@@ -209,6 +224,7 @@ pub async fn run_self_check(inputs: SelfCheckInputs) -> SelfCheckResponse {
         platform: current_platform_info(),
         dns_mode: redaction_guard(inputs.tunnel_dns_mode.as_str()),
         dns_capabilities: inputs.tunnel_dns_capabilities,
+        runtime_capabilities: inputs.runtime_capabilities,
         timestamp_unix: now_unix_secs(),
         checks,
     }
@@ -470,6 +486,83 @@ fn check_tunnel_supported(supported: bool) -> SelfCheckItem {
         "platform_unsupported",
         "full-tunnel feature is not supported on this platform",
     )
+}
+
+fn check_tun_device_present(capabilities: RuntimeCapabilitiesInfo) -> SelfCheckItem {
+    #[cfg(target_os = "linux")]
+    {
+        if capabilities.tun_device_present {
+            return ok_check("tun_device_present", "ok", "linux tun device is available");
+        }
+        fail_check(
+            "tun_device_present",
+            "tun_missing",
+            "linux tun device is missing (/dev/net/tun)",
+        )
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = capabilities;
+        ok_check(
+            "tun_device_present",
+            "not_applicable",
+            "tun device presence check is linux-specific",
+        )
+    }
+}
+
+fn check_cap_net_admin(capabilities: RuntimeCapabilitiesInfo) -> SelfCheckItem {
+    #[cfg(target_os = "linux")]
+    {
+        if capabilities.has_cap_net_admin {
+            return ok_check(
+                "has_cap_net_admin",
+                "ok",
+                "linux CAP_NET_ADMIN capability is present",
+            );
+        }
+        fail_check(
+            "has_cap_net_admin",
+            "cap_net_admin_missing",
+            "linux CAP_NET_ADMIN capability is missing",
+        )
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = capabilities;
+        ok_check(
+            "has_cap_net_admin",
+            "not_applicable",
+            "linux capability check is not applicable on this platform",
+        )
+    }
+}
+
+fn check_cap_bind_service(capabilities: RuntimeCapabilitiesInfo) -> SelfCheckItem {
+    #[cfg(target_os = "linux")]
+    {
+        if capabilities.has_cap_bind_service {
+            return ok_check(
+                "has_cap_bind_service",
+                "ok",
+                "linux CAP_NET_BIND_SERVICE capability is present",
+            );
+        }
+        fail_check(
+            "has_cap_bind_service",
+            "bind53_missing",
+            "linux CAP_NET_BIND_SERVICE capability is missing for strict DNS mode",
+        )
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = capabilities;
+        ok_check(
+            "has_cap_bind_service",
+            "not_applicable",
+            "linux capability check is not applicable on this platform",
+        )
+    }
 }
 
 fn check_tunnel_config(enabled: bool, config_ok: bool) -> SelfCheckItem {

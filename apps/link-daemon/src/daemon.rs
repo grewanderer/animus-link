@@ -41,7 +41,7 @@ use tokio::{
 use crate::{
     diagnostics::{
         DiagnosticsCounters, DiagnosticsInput, DnsCapabilitiesInfo, MobilePolicy,
-        RecentErrorSummary, SelfCheckInputs,
+        RecentErrorSummary, RuntimeCapabilitiesInfo, SelfCheckInputs,
     },
     errors::{ApiError, ApiErrorCode},
     invite::{generate_invite, now_unix_secs, parse_invite},
@@ -178,6 +178,7 @@ pub struct TunnelStatusResponse {
     pub fail_mode: TunnelFailMode,
     pub dns_mode: TunnelDnsMode,
     pub dns_capabilities: TunnelDnsCapabilities,
+    pub runtime_capabilities: RuntimeCapabilitiesInfo,
     pub prewarm_state: PrewarmState,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prewarm_last_error_code: Option<String>,
@@ -276,7 +277,11 @@ impl Default for TunnelRuntime {
 }
 
 impl TunnelRuntime {
-    fn status(&self, dns_capabilities: TunnelDnsCapabilities) -> TunnelStatusResponse {
+    fn status(
+        &self,
+        dns_capabilities: TunnelDnsCapabilities,
+        runtime_capabilities: RuntimeCapabilitiesInfo,
+    ) -> TunnelStatusResponse {
         TunnelStatusResponse {
             enabled: self.enabled,
             state: self.state,
@@ -284,6 +289,7 @@ impl TunnelRuntime {
             fail_mode: self.fail_mode,
             dns_mode: self.dns_mode,
             dns_capabilities,
+            runtime_capabilities,
             prewarm_state: self.prewarm_state,
             prewarm_last_error_code: self.prewarm_last_error_code.clone(),
             connected: self.connected,
@@ -815,11 +821,16 @@ impl LinkDaemon {
         to_daemon_dns_capabilities(detect_dns_capabilities())
     }
 
+    fn current_runtime_capabilities(&self) -> RuntimeCapabilitiesInfo {
+        detect_tunnel_runtime_capabilities()
+    }
+
     pub fn self_check_inputs(&mut self) -> SelfCheckInputs {
         self.refresh_tunnel_from_client();
         self.refresh_prewarm_from_handle();
         let now = now_unix_secs();
         let dns_capabilities = self.current_dns_capabilities();
+        let runtime_capabilities = self.current_runtime_capabilities();
         let (namespace_store_rw_ok, namespace_count) = match self.namespace_store.health_check(now)
         {
             Ok(count) => (true, count),
@@ -841,6 +852,7 @@ impl LinkDaemon {
             tunnel_dns_mode: tunnel_dns_mode_label(self.tunnel.dns_mode).to_string(),
             tunnel_dns_capabilities: to_self_check_dns_capabilities(dns_capabilities),
             tunnel_dns_capability_detail: dns_capability_detail_safe(dns_capabilities),
+            runtime_capabilities,
             tunnel_config_ok: self.tunnel.config_ok()
                 && (!self.tunnel.enabled
                     || self
@@ -1067,7 +1079,21 @@ impl LinkDaemon {
         let Some(relay) = self.relay.clone() else {
             self.tunnel.last_error_code = Some("relay_not_configured".to_string());
             self.tunnel.state = TunnelState::Degraded;
-            return Ok(self.tunnel.status(self.current_dns_capabilities()));
+            return Ok(self.tunnel.status(
+                self.current_dns_capabilities(),
+                self.current_runtime_capabilities(),
+            ));
+        };
+
+        let runtime_capabilities = self.current_runtime_capabilities();
+        if let Some(error_code) = tunnel_runtime_error_code(request.dns_mode, runtime_capabilities)
+        {
+            self.tunnel.last_error_code = Some(error_code.to_string());
+            self.tunnel.state = TunnelState::Degraded;
+            self.record_error_code(error_code);
+            return Ok(self
+                .tunnel
+                .status(self.current_dns_capabilities(), runtime_capabilities));
         };
 
         let namespace_id = self.active_namespace_id();
@@ -1112,7 +1138,10 @@ impl LinkDaemon {
         }
         self.refresh_tunnel_from_client();
         self.refresh_prewarm_from_handle();
-        Ok(self.tunnel.status(self.current_dns_capabilities()))
+        Ok(self.tunnel.status(
+            self.current_dns_capabilities(),
+            self.current_runtime_capabilities(),
+        ))
     }
 
     pub fn tunnel_disable(&mut self) -> TunnelStatusResponse {
@@ -1134,13 +1163,19 @@ impl LinkDaemon {
         self.metrics
             .set_tunnel_counters(TunnelClientCounters::default());
         self.refresh_prewarm_from_handle();
-        self.tunnel.status(self.current_dns_capabilities())
+        self.tunnel.status(
+            self.current_dns_capabilities(),
+            self.current_runtime_capabilities(),
+        )
     }
 
     pub fn tunnel_status(&mut self) -> TunnelStatusResponse {
         self.refresh_tunnel_from_client();
         self.refresh_prewarm_from_handle();
-        self.tunnel.status(self.current_dns_capabilities())
+        self.tunnel.status(
+            self.current_dns_capabilities(),
+            self.current_runtime_capabilities(),
+        )
     }
 
     fn refresh_tunnel_from_client(&mut self) {
@@ -2103,6 +2138,63 @@ fn dns_capability_detail_safe(capabilities: TunnelDnsCapabilities) -> String {
     "strict DNS capability unavailable".to_string()
 }
 
+fn tunnel_runtime_error_code(
+    dns_mode: TunnelDnsMode,
+    runtime_capabilities: RuntimeCapabilitiesInfo,
+) -> Option<&'static str> {
+    #[cfg(target_os = "linux")]
+    {
+        if !runtime_capabilities.tun_device_present {
+            return Some("tun_missing");
+        }
+        if !runtime_capabilities.has_cap_net_admin {
+            return Some("cap_net_admin_missing");
+        }
+        if matches!(dns_mode, TunnelDnsMode::RemoteStrict)
+            && !runtime_capabilities.has_cap_bind_service
+        {
+            return Some("bind53_missing");
+        }
+    }
+    #[cfg(not(target_os = "linux"))]
+    let _ = (dns_mode, runtime_capabilities);
+
+    None
+}
+
+fn detect_tunnel_runtime_capabilities() -> RuntimeCapabilitiesInfo {
+    #[cfg(target_os = "linux")]
+    {
+        let cap_eff = linux_effective_capabilities();
+        RuntimeCapabilitiesInfo {
+            tun_device_present: std::path::Path::new("/dev/net/tun").exists(),
+            has_cap_net_admin: cap_eff.is_some_and(|bits| (bits & (1u64 << 12)) != 0),
+            has_cap_bind_service: cap_eff.is_some_and(|bits| (bits & (1u64 << 10)) != 0),
+        }
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        RuntimeCapabilitiesInfo {
+            tun_device_present: true,
+            has_cap_net_admin: true,
+            has_cap_bind_service: true,
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn linux_effective_capabilities() -> Option<u64> {
+    let status = std::fs::read_to_string("/proc/self/status").ok()?;
+    let hex = status
+        .lines()
+        .find_map(|line| {
+            line.strip_prefix("CapEff:\t")
+                .or_else(|| line.strip_prefix("CapEff:"))
+        })
+        .map(str::trim)?;
+    u64::from_str_radix(hex, 16).ok()
+}
+
 fn redact_error_code(value: &str) -> String {
     let compact = value
         .chars()
@@ -2187,8 +2279,9 @@ mod tests {
 
     use super::{
         ConnectRequest, ExposeRequest, GatewayExposeRequest, GatewayMode, LinkDaemon, RelayConfig,
-        TunnelEnableRequest, TunnelFailMode, TunnelState,
+        TunnelDnsMode, TunnelEnableRequest, TunnelFailMode, TunnelState,
     };
+    use crate::diagnostics::RuntimeCapabilitiesInfo;
     use crate::errors::ApiErrorCode;
     use crate::relay_token::{RelayTokenIssuer, RelayTokenIssuerConfig, DEFAULT_TOKEN_TTL_SECS};
 
@@ -2350,5 +2443,43 @@ mod tests {
         let status = daemon.tunnel_disable();
         assert!(!status.enabled);
         assert_eq!(status.state, TunnelState::Disabled);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn tunnel_runtime_error_codes_are_stable() {
+        let missing_tun = RuntimeCapabilitiesInfo {
+            tun_device_present: false,
+            has_cap_net_admin: true,
+            has_cap_bind_service: true,
+        };
+        assert_eq!(
+            super::tunnel_runtime_error_code(TunnelDnsMode::RemoteBestEffort, missing_tun),
+            Some("tun_missing")
+        );
+
+        let missing_admin = RuntimeCapabilitiesInfo {
+            tun_device_present: true,
+            has_cap_net_admin: false,
+            has_cap_bind_service: true,
+        };
+        assert_eq!(
+            super::tunnel_runtime_error_code(TunnelDnsMode::RemoteBestEffort, missing_admin),
+            Some("cap_net_admin_missing")
+        );
+
+        let missing_bind = RuntimeCapabilitiesInfo {
+            tun_device_present: true,
+            has_cap_net_admin: true,
+            has_cap_bind_service: false,
+        };
+        assert_eq!(
+            super::tunnel_runtime_error_code(TunnelDnsMode::RemoteStrict, missing_bind),
+            Some("bind53_missing")
+        );
+        assert_eq!(
+            super::tunnel_runtime_error_code(TunnelDnsMode::RemoteBestEffort, missing_bind),
+            None
+        );
     }
 }

@@ -106,12 +106,18 @@ Beta limitations:
 - Mobile runtime policy is `foreground_only` during public beta.
 - Android/iOS apps refresh status on resume/foreground.
 - Background service / always-on mobile connectivity is not enabled.
+- Linux full-tunnel runtime requires `/dev/net/tun` and network capabilities (`CAP_NET_ADMIN`; `CAP_NET_BIND_SERVICE` for strict DNS).
+- See [`docs/known-limitations.md`](docs/known-limitations.md).
 
 ## Public Beta Operators
 - Launch checklist and incident guidance:
   - [`docs/public-beta-runbook.md`](docs/public-beta-runbook.md)
 - Release integrity verification:
   - [`docs/how-to-verify-release.md`](docs/how-to-verify-release.md)
+- CI/debug root-cause matrix:
+  - [`docs/debug-matrix.md`](docs/debug-matrix.md)
+- Runtime constraints and manual device prerequisites:
+  - [`docs/known-limitations.md`](docs/known-limitations.md)
 - Product/GTM consistency docs:
   - [`docs/positioning.md`](docs/positioning.md)
   - [`docs/public-beta-faq.md`](docs/public-beta-faq.md)
@@ -120,6 +126,14 @@ Beta limitations:
   - `/v1/diagnostics`
 - Documentation index:
   - [`docs/README.md`](docs/README.md)
+
+Reproducible local verification scripts:
+- `bash scripts/launch-verify.sh`
+- `bash scripts/verify-desktop.sh`
+- `bash scripts/verify-android.sh`
+- `bash scripts/verify-ios-build.sh`
+- `bash scripts/verify-full-tunnel-linux.sh`
+- `bash scripts/verify-release-artifacts.sh dist`
 
 ## Repo layout
 - `spec/` — normative specs (wire, state machine, identity, relay, node security)

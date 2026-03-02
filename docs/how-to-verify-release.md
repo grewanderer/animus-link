@@ -23,6 +23,12 @@ Expected output:
 
 If any checksum fails, do not deploy or distribute that artifact.
 
+Optional automation helper:
+
+```bash
+bash scripts/verify-release-artifacts.sh dist
+```
+
 ## 3) Understand the SBOM
 
 `sbom.cdx.json` is a CycloneDX Software Bill of Materials for the Rust workspace in the release build pipeline.

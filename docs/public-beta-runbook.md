@@ -62,9 +62,16 @@ curl -fsS http://127.0.0.1:9780/metrics | awk '/quota_rejected_total\{reason="is
 ```bash
 bash scripts/demo-relay-first-e2e.sh
 ```
-14. Confirm no unsigned-token bypass in runtime config (`--dev-allow-unsigned-tokens` absent).
-15. Keep logs at `info` unless actively debugging a production incident.
-16. For full-tunnel gateway internal testing, set optional DNS upstream:
+14. Run reproducible local verification scripts:
+```bash
+bash scripts/verify-desktop.sh
+bash scripts/verify-android.sh
+bash scripts/verify-ios-build.sh
+bash scripts/verify-release-artifacts.sh dist
+```
+15. Confirm no unsigned-token bypass in runtime config (`--dev-allow-unsigned-tokens` absent).
+16. Keep logs at `info` unless actively debugging a production incident.
+17. For full-tunnel gateway internal testing, set optional DNS upstream:
 ```bash
 export ANIMUS_GATEWAY_DNS_UPSTREAM="127.0.0.1:53"
 ```
@@ -356,6 +363,9 @@ Common `/v1/self_check` codes:
 5. `token_*`: token mint/verify local roundtrip failed.
 6. `namespace_store_unavailable`: local namespace store read/write failed.
 7. `bind_check_failed` / `port_not_bound`: API bind verification issue.
+8. `tun_missing`: Linux TUN device missing (`/dev/net/tun`).
+9. `cap_net_admin_missing`: Linux process lacks route-control capability.
+10. `bind53_missing`: strict remote DNS requested but low-port bind capability missing.
 
 Diagnostics policy note:
 1. `config_summary.mobile_policy` is `foreground_only` for public beta on all platforms.
@@ -465,6 +475,27 @@ curl -fsS http://127.0.0.1:9999/v1/metrics | awk '/gateway_packets_in_total|gate
 2. Restore previous known-good relay public key set.
 3. Restart relay and daemons.
 4. Re-run smoke tests in section D.
+
+## Local Verification Scripts
+
+Use these scripts for repeatable operator checks:
+
+```bash
+# Desktop API/runtime smoke (non-privileged)
+bash scripts/verify-desktop.sh
+
+# Android build + unit tests + APK output checks
+bash scripts/verify-android.sh
+
+# iOS host+extension build checks (macOS/Xcode required)
+bash scripts/verify-ios-build.sh
+
+# Release integrity file checks in local dist/
+bash scripts/verify-release-artifacts.sh dist
+
+# Linux full-tunnel prerequisites and non-privileged tunnel tests
+bash scripts/verify-full-tunnel-linux.sh
+```
 
 ## G) Security Checklist (Launch Gate)
 

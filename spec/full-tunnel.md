@@ -75,6 +75,10 @@ Beta caps (defaults):
       - `remote_strict_supported`
       - `can_bind_low_port`
       - `can_set_system_dns`
+    - `runtime_capabilities`:
+      - `tun_device_present`
+      - `has_cap_net_admin`
+      - `has_cap_bind_service`
     - `prewarm_state` (`idle|warming|ready|error`)
     - `prewarm_last_error_code` (optional)
     - `connected`
@@ -93,7 +97,8 @@ Beta caps (defaults):
 - Implementations MUST expose deterministic state transitions in tunnel status.
 - `degraded` status MUST include safe `last_error_code` values
   (for example: `relay_not_configured`, `fail_open_fast`, `fail_closed_blocked`,
-  `dns_strict_bind_failed`, `dns_strict_config_failed`, `dns_best_effort_unavailable`).
+  `dns_strict_bind_failed`, `dns_strict_config_failed`, `dns_best_effort_unavailable`,
+  `tun_missing`, `cap_net_admin_missing`, `bind53_missing`).
 
 ## DNS and Routing Safety
 - `dns_mode=remote_best_effort` is the unprivileged default for beta and may degrade
@@ -141,6 +146,9 @@ Beta caps (defaults):
 ## Self-check Integration
 - `/v1/self_check` MUST include:
   - `tunnel_supported`
+  - `tun_device_present` (Linux runtime prerequisite)
+  - `has_cap_net_admin` (Linux capability prerequisite)
+  - `has_cap_bind_service` (Linux strict DNS prerequisite)
   - `tunnel_config_ok`
   - `dns_remote_strict_supported`
 - `/v1/self_check` response SHOULD surface:

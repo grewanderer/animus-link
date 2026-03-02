@@ -636,6 +636,10 @@ mod tests {
         assert_eq!(status_body["fail_mode"], "open_fast");
         assert_eq!(status_body["dns_mode"], "remote_best_effort");
         assert!(status_body["dns_capabilities"].is_object());
+        assert!(status_body["runtime_capabilities"].is_object());
+        assert!(status_body["runtime_capabilities"]["tun_device_present"].is_boolean());
+        assert!(status_body["runtime_capabilities"]["has_cap_net_admin"].is_boolean());
+        assert!(status_body["runtime_capabilities"]["has_cap_bind_service"].is_boolean());
         assert!(status_body["prewarm_state"].is_string());
 
         let gateway_payload =
@@ -742,12 +746,15 @@ mod tests {
             names,
             vec![
                 "dns_remote_strict_supported",
+                "has_cap_bind_service",
+                "has_cap_net_admin",
                 "keystore_ok",
                 "namespace_store_ok",
                 "port_bind_conflicts",
                 "relay_reachable",
                 "token_issuer_config_ok",
                 "token_mint_verify_ok",
+                "tun_device_present",
                 "tunnel_config_ok",
                 "tunnel_supported",
             ]
@@ -755,6 +762,9 @@ mod tests {
         assert!(parsed["dns_mode"].is_string());
         assert!(parsed["dns_capabilities"]["remote_best_effort_supported"].is_boolean());
         assert!(parsed["dns_capabilities"]["remote_strict_supported"].is_boolean());
+        assert!(parsed["runtime_capabilities"]["tun_device_present"].is_boolean());
+        assert!(parsed["runtime_capabilities"]["has_cap_net_admin"].is_boolean());
+        assert!(parsed["runtime_capabilities"]["has_cap_bind_service"].is_boolean());
         assert!(body.contains("\"relay_not_configured\""));
         assert!(!body.contains(invite.as_str()));
         assert!(!body.contains("animus://invite/"));

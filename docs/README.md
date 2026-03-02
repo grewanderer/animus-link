@@ -8,3 +8,7 @@
   - Operator checklist for signed-token deployment, smoke tests, mobile release handoff, and incident response.
 - [How To Verify Release](./how-to-verify-release.md)
   - Verify `SHA256SUMS.txt` and understand `sbom.cdx.json` for release integrity.
+- [Debug Matrix](./debug-matrix.md)
+  - Platform/job root-cause matrix with before/after status for CI stabilization.
+- [Known Limitations](./known-limitations.md)
+  - Runtime constraints for TUN privileges, mobile entitlements, and VPN prompts in public beta.

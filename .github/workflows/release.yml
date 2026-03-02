@@ -254,6 +254,9 @@ jobs:
           set -euo pipefail
           test -f dist/SHA256SUMS.txt
           test -f dist/sbom.cdx.json
+      - name: run release artifact verification script
+        shell: bash
+        run: bash scripts/verify-release-artifacts.sh dist
       - name: publish github release
         uses: softprops/action-gh-release@v2
         with:
