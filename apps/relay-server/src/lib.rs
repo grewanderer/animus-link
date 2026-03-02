@@ -1,9 +1,9 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use fabric_session::{limits::PreAuthLimits, ratelimit::SystemClock};
-use tokio::{net::UdpSocket, task::JoinHandle};
+use tokio::{net::UdpSocket, sync::oneshot, task::JoinHandle};
 
 pub mod observability;
 pub mod relay;
@@ -54,9 +54,34 @@ fn build_token_verifier(
 }
 
 pub async fn run_udp(config: RelayRuntimeConfig) -> anyhow::Result<()> {
-    let socket = UdpSocket::bind(config.bind)
-        .await
-        .with_context(|| format!("bind relay udp socket {}", config.bind))?;
+    run_udp_with_ready(config, None).await
+}
+
+pub async fn run_udp_with_ready(
+    config: RelayRuntimeConfig,
+    ready_tx: Option<oneshot::Sender<Result<SocketAddr, String>>>,
+) -> anyhow::Result<()> {
+    let socket = match UdpSocket::bind(config.bind).await {
+        Ok(socket) => socket,
+        Err(error) => {
+            if let Some(ready_tx) = ready_tx {
+                let _ = ready_tx.send(Err(error.to_string()));
+            }
+            return Err(anyhow!(error).context(format!("bind relay udp socket {}", config.bind)));
+        }
+    };
+    let bound_addr = match socket.local_addr() {
+        Ok(addr) => addr,
+        Err(error) => {
+            if let Some(ready_tx) = ready_tx {
+                let _ = ready_tx.send(Err(error.to_string()));
+            }
+            return Err(anyhow!(error).context("read relay udp local address"));
+        }
+    };
+    if let Some(ready_tx) = ready_tx {
+        let _ = ready_tx.send(Ok(bound_addr));
+    }
 
     let verifier = build_token_verifier(&config)?;
     let metrics = Arc::new(RelayMetrics::new());

@@ -1,8 +1,9 @@
+#[cfg(target_os = "linux")]
+use std::{collections::BTreeSet, net::IpAddr, process::Command};
 use std::{
-    collections::{BTreeSet, HashMap, VecDeque},
+    collections::{HashMap, VecDeque},
     io::{self, Read, Write},
-    net::{IpAddr, SocketAddr},
-    process::Command,
+    net::SocketAddr,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
