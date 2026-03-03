@@ -174,6 +174,20 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.7"
+      - name: resolve sdkmanager path
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [ -z "${SDK_ROOT}" ]; then
+            SDK_ROOT="${HOME}/android-sdk"
+          fi
+          if [ -x "${SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" ]; then
+            echo "${SDK_ROOT}/cmdline-tools/latest/bin" >> "${GITHUB_PATH}"
+          elif [ -x "${SDK_ROOT}/tools/bin/sdkmanager" ]; then
+            echo "${SDK_ROOT}/tools/bin" >> "${GITHUB_PATH}"
+          fi
+          echo "ANDROID_SDK_ROOT=${SDK_ROOT}" >> "${GITHUB_ENV}"
+          echo "ANDROID_HOME=${SDK_ROOT}" >> "${GITHUB_ENV}"
       - name: accept Android licenses
         run: yes | sdkmanager --licenses >/dev/null || true
       - name: install pinned Android SDK + NDK
@@ -318,6 +332,12 @@ jobs:
             xcodebuild -version
             swift --version
           } 2>&1 | tee mobile/ios/build/ci-logs/env.log
+      - name: verify ios project targets exist
+        run: |
+          set -o pipefail
+          xcodebuild -list -project mobile/ios/AnimusLinkIOS.xcodeproj 2>&1 | tee mobile/ios/build/ci-logs/xcodebuild-list.log
+          grep -n "AnimusLinkIOS" mobile/ios/build/ci-logs/xcodebuild-list.log
+          grep -n "AnimusLinkTunnelExtension" mobile/ios/build/ci-logs/xcodebuild-list.log
       - name: fmt
         run: cargo fmt --all -- --check
       - name: clippy
