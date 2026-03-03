@@ -135,7 +135,7 @@ Reproducible local verification scripts:
 - `bash scripts/verify-full-tunnel-linux.sh`
 - `bash scripts/verify-release-artifacts.sh dist`
 
-Python desktop chat app (GUI) on top of Link daemon:
+Python desktop messenger app (GUI) on top of Link daemon:
 - `apps/chat-gui-python/chat_gui.py`
 - Usage guide: `apps/chat-gui-python/README.md`
 - Dependency: `pip install -r apps/chat-gui-python/requirements.txt`

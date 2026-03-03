@@ -1,6 +1,6 @@
-# Animus Link Chat GUI (Python)
+# Animus Link Messenger GUI (Python)
 
-Desktop chat application for users in Animus Link network.
+Desktop messenger application for users in Animus Link network.
 
 The app uses existing `link-daemon` API:
 - `POST /v1/invite/create`
@@ -9,6 +9,16 @@ The app uses existing `link-daemon` API:
 - `POST /v1/connect`
 
 No Fabric wire/protocol changes are required.
+
+## Features (current foundation)
+
+- Multiple rooms (conversation list)
+- Per-room local message history
+- Persistent local state (`--state-file`)
+- Invite create/join
+- Host selected room (`/v1/expose`)
+- Join selected room (`/v1/connect`)
+- Per-room connection status and reconnect workflow
 
 ## Run
 
@@ -21,7 +31,9 @@ pip install -r apps/chat-gui-python/requirements.txt
 Then run:
 
 ```bash
-python3 apps/chat-gui-python/chat_gui.py --daemon-api http://127.0.0.1:9999
+python3 apps/chat-gui-python/chat_gui.py \
+  --daemon-api http://127.0.0.1:9999 \
+  --state-file .animus-link/chat/state.json
 ```
 
 ## Manual test with 2 users
@@ -35,23 +47,26 @@ Prerequisites:
 ### 1) User A (host side)
 
 1. Launch GUI pointing to daemon A.
-2. Click `Create Invite`.
-3. Copy invite string from `Invite` field and send to user B.
-4. Fill `Allowed peers (csv)` with peer IDs allowed to connect (for MVP, set what your daemon expects, e.g. `peer-b`).
-5. Click `Start Host`.
+2. Create/select room in left panel.
+3. Configure room `Service`, `Listen`, `Allowed peers (csv)`.
+4. Click `Create Invite`.
+5. Copy invite string and send to user B.
+6. Click `Start Host`.
 
 ### 2) User B (join side)
 
 1. Launch GUI pointing to daemon B.
-2. Paste invite and click `Join Invite`.
-3. Click `Join Chat`.
+2. Create/select room with matching `Service`.
+3. Paste invite and click `Join Invite`.
+4. Click `Join Room`.
 
 ### 3) Exchange messages
 
-- Both sides type messages in input box and click `Send`.
-- `Disconnect` ends current host/join session.
+- Both sides type messages and click `Send`.
+- History is persisted in local state file.
+- `Disconnect` ends current room connection.
 
 ## Notes
 
 - GUI is built with `PySide6` (Qt).
-- This is MVP chat transport and not production message persistence.
+- This is a foundation for a full messenger UX, with MVP transport semantics.
