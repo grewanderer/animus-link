@@ -12,6 +12,14 @@ No Fabric wire/protocol changes are required.
 
 ## Run
 
+Install dependency:
+
+```bash
+pip install -r apps/chat-gui-python/requirements.txt
+```
+
+Then run:
+
 ```bash
 python3 apps/chat-gui-python/chat_gui.py --daemon-api http://127.0.0.1:9999
 ```
@@ -45,5 +53,5 @@ Prerequisites:
 
 ## Notes
 
-- GUI is built with `tkinter` from Python stdlib (no extra pip deps).
+- GUI is built with `PySide6` (Qt).
 - This is MVP chat transport and not production message persistence.

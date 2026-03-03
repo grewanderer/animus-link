@@ -138,6 +138,7 @@ Reproducible local verification scripts:
 Python desktop chat app (GUI) on top of Link daemon:
 - `apps/chat-gui-python/chat_gui.py`
 - Usage guide: `apps/chat-gui-python/README.md`
+- Dependency: `pip install -r apps/chat-gui-python/requirements.txt`
 
 ## Repo layout
 - `spec/` — normative specs (wire, state machine, identity, relay, node security)
