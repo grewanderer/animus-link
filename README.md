@@ -135,6 +135,10 @@ Reproducible local verification scripts:
 - `bash scripts/verify-full-tunnel-linux.sh`
 - `bash scripts/verify-release-artifacts.sh dist`
 
+Python desktop chat app (GUI) on top of Link daemon:
+- `apps/chat-gui-python/chat_gui.py`
+- Usage guide: `apps/chat-gui-python/README.md`
+
 ## Repo layout
 - `spec/` — normative specs (wire, state machine, identity, relay, node security)
 - `conformance/` — vectors + harness
