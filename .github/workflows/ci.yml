@@ -312,7 +312,11 @@ jobs:
       - uses: android-actions/setup-android@v3
       - name: verify committed gradle wrapper files
         run: |
-          mkdir -p mobile/android/ci-logs
+          if [ "${RUNNER_OS}" = "Windows" ]; then
+            pwsh -NoLogo -NoProfile -Command 'New-Item -ItemType Directory -Force -Path "mobile/android/ci-logs" | Out-Null'
+          else
+            mkdir -p mobile/android/ci-logs
+          fi
           set -o pipefail
           {
             test -f mobile/android/gradlew
@@ -376,7 +380,11 @@ jobs:
           targets: aarch64-linux-android,x86_64-linux-android
       - name: android job diagnostics
         run: |
-          mkdir -p mobile/android/ci-logs
+          if [ "${RUNNER_OS}" = "Windows" ]; then
+            pwsh -NoLogo -NoProfile -Command 'New-Item -ItemType Directory -Force -Path "mobile/android/ci-logs" | Out-Null'
+          else
+            mkdir -p mobile/android/ci-logs
+          fi
           {
             echo "Runner OS: ${RUNNER_OS}"
             echo "Shell: ${SHELL:-unknown}"
@@ -598,10 +606,10 @@ jobs:
         run: |
           set -o pipefail
           {
-            rg -n "ContentView.swift in Sources" mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj
-            rg -n "Theme.swift in Sources" mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj
-            rg -n "PacketTunnelProvider.swift in Sources" mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj
-            rg -n "INFOPLIST_FILE = AnimusLinkTunnelExtension/Info.plist" mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj
+            grep -n --fixed-strings "ContentView.swift in Sources" mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj
+            grep -n --fixed-strings "Theme.swift in Sources" mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj
+            grep -n --fixed-strings "PacketTunnelProvider.swift in Sources" mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj
+            grep -n --fixed-strings "INFOPLIST_FILE = AnimusLinkTunnelExtension/Info.plist" mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj
           } 2>&1 | tee mobile/ios/build/ci-logs/ios-membership.log
       - name: fmt
         run: cargo fmt --all -- --check
@@ -701,7 +709,7 @@ jobs:
               case "$base" in
                 ios-membership.log)
                   failing_step="verify ios source target membership"
-                  failing_cmd="rg target-membership checks in mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj"
+                  failing_cmd="grep target-membership checks in mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj"
                   ;;
                 xcodebuild-host.log)
                   failing_step="xcode build host scheme"

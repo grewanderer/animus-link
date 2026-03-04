@@ -1,8 +1,10 @@
+#[cfg(any(target_os = "linux", target_os = "android"))]
+use std::io::{Read, Write};
 #[cfg(target_os = "linux")]
 use std::{collections::BTreeSet, net::IpAddr, process::Command};
 use std::{
     collections::{HashMap, VecDeque},
-    io::{self, Read, Write},
+    io,
     net::SocketAddr,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -27,11 +29,12 @@ use tokio::{
     time::sleep,
 };
 
+#[cfg(any(target_os = "linux", target_os = "android"))]
+use crate::state::SystemClock;
 use crate::{
     route::{RouteConfig, RouteManager},
     state::{
-        Clock, StateAction, SystemClock, TunnelFailMode as MachineFailMode, TunnelStateMachine,
-        TunnelTiming,
+        Clock, StateAction, TunnelFailMode as MachineFailMode, TunnelStateMachine, TunnelTiming,
     },
     tun::TunDevice,
 };
@@ -1894,11 +1897,11 @@ impl RouteManager for AndroidRouteManager {
     }
 }
 
-#[cfg(any(target_os = "macos", target_os = "windows"))]
+#[cfg(target_os = "windows")]
 #[derive(Default)]
 pub struct PlatformRouteManager;
 
-#[cfg(any(target_os = "macos", target_os = "windows"))]
+#[cfg(target_os = "windows")]
 impl RouteManager for PlatformRouteManager {
     fn apply_full_tunnel_routes(&mut self, _config: &RouteConfig) -> Result<(), TunnelClientError> {
         Err(TunnelClientError::Unsupported)

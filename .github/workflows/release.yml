@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: reject NTFS ADS artifact paths
         run: |
-          ads_paths="$(rg --files | awk '/:Zone.Identifier$/')"
+          ads_paths="$(find . -type f -print | grep -E ':Zone\.Identifier$' || true)"
           if [ -n "${ads_paths}" ]; then
             echo "Found forbidden ADS-like paths:"
             echo "${ads_paths}"
@@ -53,13 +53,22 @@ jobs:
         run: cargo test --workspace
       - name: build desktop binaries
         run: cargo build --release -p relay-server -p link-daemon -p link-cli -p fabric-cli -p conformance-runner
-      - name: collect desktop artifacts
+      - name: collect desktop artifacts (unix)
+        if: matrix.os != 'windows-latest'
         shell: bash
         run: |
           mkdir -p release/${{ matrix.target }}
           for bin in relay-server link-daemon link-cli fabric-cli conformance-runner; do
             cp "target/release/${bin}${{ matrix.exe_suffix }}" "release/${{ matrix.target }}/${bin}${{ matrix.exe_suffix }}"
           done
+      - name: collect desktop artifacts (windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "release/${{ matrix.target }}" | Out-Null
+          foreach ($bin in "relay-server","link-daemon","link-cli","fabric-cli","conformance-runner") {
+            Copy-Item "target/release/${bin}${{ matrix.exe_suffix }}" "release/${{ matrix.target }}/${bin}${{ matrix.exe_suffix }}"
+          }
       - name: upload desktop artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -157,8 +166,8 @@ jobs:
           test -f mobile/android/app/src/main/kotlin/com/animus/link/bindings/animus_link.kt
       - name: verify android vpn service wiring
         run: |
-          rg -n "AnimusVpnService" mobile/android/app/src/main/AndroidManifest.xml
-          rg -n "android.net.VpnService" mobile/android/app/src/main/AndroidManifest.xml
+          grep -n --fixed-strings "AnimusVpnService" mobile/android/app/src/main/AndroidManifest.xml
+          grep -n --fixed-strings "android.net.VpnService" mobile/android/app/src/main/AndroidManifest.xml
       - name: ensure gradlew is executable
         run: |
           chmod +x mobile/android/gradlew
