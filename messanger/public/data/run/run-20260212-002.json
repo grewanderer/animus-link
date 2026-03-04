@@ -1,0 +1,40 @@
+{
+  "run": {
+    "id": "run-20260212-002",
+    "commitSha": "d43c2b2d987cb95a3d4070954908dc23d8b4f451",
+    "environmentLockId": "envlock-20260211-b",
+    "policySnapshotId": "policy-20260212-01",
+    "status": "failed",
+    "tokens": 171920,
+    "bundlePath": "https://github.com/grewanderer/animus_coder/releases/download/run-snapshots-2026-02/run-20260212-002.bundle.json",
+    "createdAt": "2026-02-12T10:01:33Z",
+    "updatedAt": "2026-02-12T10:19:05Z",
+    "riskMarkers": [
+      "R-001"
+    ]
+  },
+  "timeline": [
+    {
+      "time": "2026-02-12T10:01:33Z",
+      "type": "RunCreated",
+      "detail": "Run context persisted with explicit DatasetVersion and EnvironmentLock references."
+    },
+    {
+      "time": "2026-02-12T10:02:07Z",
+      "type": "ExecutionStarted",
+      "detail": "Data Plane execution started in isolated container runtime."
+    },
+    {
+      "time": "2026-02-12T10:18:54Z",
+      "type": "RunFinished",
+      "detail": "Failure outcome with replay delta above tolerance; R-001 marker was attached."
+    }
+  ],
+  "replay": {
+    "href": "/runs?replayFrom=run-20260212-002",
+    "note": "Replay should be reviewed before production admission due to R-001 marker."
+  },
+  "warnings": [
+    "Replay deviation exceeded configured tolerance. Review deterministic dependencies before promotion."
+  ]
+}

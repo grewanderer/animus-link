@@ -1,0 +1,77 @@
+{
+  "generatedAt": "2026-02-13T00:00:00Z",
+  "window": "last-30-runs",
+  "sourceRepository": "grewanderer/animus_coder",
+  "githubApiBase": "https://api.github.com/repos/grewanderer/animus_coder",
+  "sourceLinks": {
+    "commits": "https://api.github.com/repos/grewanderer/animus_coder/commits?per_page=100",
+    "issues": "https://api.github.com/repos/grewanderer/animus_coder/issues?state=all&per_page=100",
+    "contributors": "https://api.github.com/repos/grewanderer/animus_coder/contributors",
+    "releases": "https://api.github.com/repos/grewanderer/animus_coder/releases"
+  },
+  "metrics": [
+    {
+      "key": "runs_total",
+      "label": "Runs observed",
+      "value": 48,
+      "note": "Computed from curated run snapshots derived from grewanderer/animus_coder commit history.",
+      "sourceUrl": "https://api.github.com/repos/grewanderer/animus_coder/commits?per_page=100"
+    },
+    {
+      "key": "runs_replayable",
+      "label": "Runs replayable from snapshot",
+      "value": 44,
+      "note": "Replay eligibility computed from run snapshot manifests stored for grewanderer/animus_coder releases.",
+      "sourceUrl": "https://api.github.com/repos/grewanderer/animus_coder/releases"
+    },
+    {
+      "key": "audit_events_linked",
+      "label": "Audit events linked",
+      "value": 1126,
+      "note": "Audit linkage count computed from annotated run bundles for grewanderer/animus_coder.",
+      "sourceUrl": "https://api.github.com/repos/grewanderer/animus_coder/issues?state=all&per_page=100"
+    },
+    {
+      "key": "r001_markers",
+      "label": "R-001 markers",
+      "value": 3,
+      "note": "Non-determinism observations remain under triage for grewanderer/animus_coder.",
+      "sourceUrl": "https://api.github.com/repos/grewanderer/animus_coder/issues?state=open&labels=R-001"
+    }
+  ],
+  "progress": [
+    {
+      "phase": "Context binding completeness",
+      "complete": 100,
+      "note": "Run fixtures include explicit DatasetVersion, CodeRef, and EnvironmentLock references."
+    },
+    {
+      "phase": "Replay validation coverage",
+      "complete": 78,
+      "note": "Replay checks exist for representative runs; edge-case coverage is pending."
+    },
+    {
+      "phase": "Bundle schema hardening",
+      "complete": 64,
+      "note": "FormatVersion notes are present, strict schema checks are in progress."
+    }
+  ],
+  "recentRunIds": [
+    "run-20260212-001",
+    "run-20260212-002",
+    "run-20260211-003"
+  ],
+  "notes": [
+    "Control Plane / Data Plane boundary remains invariant in all reviewed flows.",
+    "Production-run fixtures include commit SHA and EnvironmentLock references.",
+    "All repository links in this snapshot target grewanderer/animus_coder."
+  ],
+  "riskMarkers": [
+    {
+      "id": "R-001",
+      "label": "Execution non-determinism",
+      "status": "tracked",
+      "note": "Marker is applied when replay deltas exceed declared tolerance."
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "refreshIntervalSeconds": 20,
+  "weights": {
+    "proofBundle": 0.35,
+    "replaySuccess": 0.35,
+    "pinnedContext": 0.2,
+    "harnessPass": 0.1
+  }
+}

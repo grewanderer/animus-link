@@ -1,0 +1,38 @@
+{
+  "run": {
+    "id": "run-20260210-010",
+    "timestamp": "2026-02-10T14:12:00Z",
+    "model": "gpt-4.1",
+    "branch": "main-work",
+    "commitSha": "1d7ecf6d557d1f848f2a2519dbf214ab5b5595f7",
+    "tokens": 78814,
+    "status": "failed",
+    "replayStatus": "not_replayed",
+    "proofBundleSizeBytes": 0,
+    "reproducible": false,
+    "pinnedContext": false,
+    "harnessPassed": false,
+    "module": "M1",
+    "detailPath": "/runs/run-20260210-010"
+  },
+  "timeline": [
+    {
+      "time": "2026-02-10T14:12:00Z",
+      "type": "RunCreated",
+      "detail": "Run recorded with explicit context and policy snapshot.",
+      "source": "EventLog"
+    },
+    {
+      "time": "2026-02-10T14:12:00Z",
+      "type": "RunObserved",
+      "detail": "Status failed with replay state not_replayed.",
+      "source": "Ledger"
+    }
+  ],
+  "artifacts": [],
+  "replay": {
+    "href": "/runs?replayFrom=run-20260210-010",
+    "note": "Replay creates a new run with lineage to this source run."
+  },
+  "warnings": []
+}

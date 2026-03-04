@@ -1,0 +1,854 @@
+{
+  "en": {
+    "nav": [
+      {
+        "label": "Overview",
+        "slug": "overview"
+      },
+      {
+        "label": "System Definition",
+        "slug": "system-definition"
+      },
+      {
+        "label": "Architecture",
+        "slug": "architecture"
+      },
+      {
+        "label": "Domain Model",
+        "slug": "domain-model"
+      },
+      {
+        "label": "Execution Model",
+        "slug": "execution-model"
+      },
+      {
+        "label": "Interfaces",
+        "slug": "interfaces"
+      },
+      {
+        "label": "Security",
+        "slug": "security"
+      },
+      {
+        "label": "Operations",
+        "slug": "operations"
+      },
+      {
+        "label": "Governance",
+        "slug": "governance"
+      },
+      {
+        "label": "Acceptance Criteria",
+        "slug": "acceptance-criteria"
+      },
+      {
+        "label": "ADRs",
+        "slug": "adrs"
+      },
+      {
+        "label": "Glossary",
+        "slug": "glossary"
+      }
+    ],
+    "pages": [
+      {
+        "slug": "overview",
+        "title": "Overview",
+        "sections": [
+          {
+            "id": "definition",
+            "title": "System definition"
+          },
+          {
+            "id": "objectives",
+            "title": "Platform objectives"
+          },
+          {
+            "id": "boundaries",
+            "title": "System boundaries"
+          }
+        ]
+      },
+      {
+        "slug": "system-definition",
+        "title": "System Definition",
+        "sections": [
+          {
+            "id": "formal-definition",
+            "title": "Formal definition"
+          },
+          {
+            "id": "invariants",
+            "title": "Architectural invariants"
+          },
+          {
+            "id": "explicit-context",
+            "title": "Explicit context requirement"
+          },
+          {
+            "id": "non-goals",
+            "title": "Non-goals"
+          }
+        ]
+      },
+      {
+        "slug": "architecture",
+        "title": "Architecture",
+        "sections": [
+          {
+            "id": "overview",
+            "title": "Architectural overview"
+          },
+          {
+            "id": "control-plane",
+            "title": "Control Plane"
+          },
+          {
+            "id": "data-plane",
+            "title": "Data Plane"
+          },
+          {
+            "id": "trust-boundaries",
+            "title": "Trust boundaries"
+          },
+          {
+            "id": "failure-model",
+            "title": "Principled failure model"
+          },
+          {
+            "id": "diagram",
+            "title": "Control Plane and Data Plane separation"
+          }
+        ]
+      },
+      {
+        "slug": "domain-model",
+        "title": "Domain Model",
+        "sections": [
+          {
+            "id": "project",
+            "title": "Project"
+          },
+          {
+            "id": "datasets",
+            "title": "Dataset and DatasetVersion"
+          },
+          {
+            "id": "coderef",
+            "title": "CodeRef"
+          },
+          {
+            "id": "environment",
+            "title": "EnvironmentDefinition and EnvironmentLock"
+          },
+          {
+            "id": "run",
+            "title": "Run and PipelineRun"
+          },
+          {
+            "id": "artifact",
+            "title": "Artifact"
+          },
+          {
+            "id": "model",
+            "title": "Model and ModelVersion"
+          },
+          {
+            "id": "audit",
+            "title": "AuditEvent"
+          },
+          {
+            "id": "graph",
+            "title": "Domain graph"
+          }
+        ]
+      },
+      {
+        "slug": "execution-model",
+        "title": "Execution Model",
+        "sections": [
+          {
+            "id": "principles",
+            "title": "Execution principles"
+          },
+          {
+            "id": "lifecycle",
+            "title": "Run lifecycle"
+          },
+          {
+            "id": "pipeline",
+            "title": "Pipeline execution"
+          },
+          {
+            "id": "retries",
+            "title": "Retry, rerun, replay"
+          },
+          {
+            "id": "idempotency",
+            "title": "Idempotency"
+          },
+          {
+            "id": "isolation",
+            "title": "Isolation and resources"
+          },
+          {
+            "id": "errors",
+            "title": "Errors and degradation"
+          },
+          {
+            "id": "observability",
+            "title": "Observability"
+          },
+          {
+            "id": "audit",
+            "title": "Audit linkage"
+          }
+        ]
+      },
+      {
+        "slug": "interfaces",
+        "title": "Interfaces",
+        "sections": [
+          {
+            "id": "principles",
+            "title": "Interface principles"
+          },
+          {
+            "id": "resource-model",
+            "title": "API resource model"
+          },
+          {
+            "id": "pipeline-spec",
+            "title": "Pipeline specification"
+          },
+          {
+            "id": "events",
+            "title": "Events and integrations"
+          },
+          {
+            "id": "cli-sdk",
+            "title": "CLI and SDK"
+          },
+          {
+            "id": "ui",
+            "title": "UI role"
+          },
+          {
+            "id": "security-linkage",
+            "title": "Interfaces and security"
+          }
+        ]
+      },
+      {
+        "slug": "security",
+        "title": "Security",
+        "sections": [
+          {
+            "id": "objectives",
+            "title": "Security objectives"
+          },
+          {
+            "id": "threat-model",
+            "title": "Threat model and assumptions"
+          },
+          {
+            "id": "authentication",
+            "title": "Authentication"
+          },
+          {
+            "id": "authorization",
+            "title": "Authorization"
+          },
+          {
+            "id": "secrets",
+            "title": "Secrets management"
+          },
+          {
+            "id": "isolation",
+            "title": "Execution isolation and network controls"
+          },
+          {
+            "id": "data-artifacts",
+            "title": "Data and artifact access"
+          },
+          {
+            "id": "audit",
+            "title": "Audit and export"
+          },
+          {
+            "id": "updates",
+            "title": "Updates and vulnerabilities"
+          }
+        ]
+      },
+      {
+        "slug": "operations",
+        "title": "Operations",
+        "sections": [
+          {
+            "id": "principles",
+            "title": "Operational principles"
+          },
+          {
+            "id": "deployment",
+            "title": "Deployment models"
+          },
+          {
+            "id": "artifacts",
+            "title": "Installation artifacts and dependencies"
+          },
+          {
+            "id": "scaling",
+            "title": "Scaling and reliability"
+          },
+          {
+            "id": "observability",
+            "title": "Observability"
+          },
+          {
+            "id": "backup-dr",
+            "title": "Backup and disaster recovery"
+          },
+          {
+            "id": "updates",
+            "title": "Updates and migrations"
+          },
+          {
+            "id": "air-gapped",
+            "title": "Air-gapped mode"
+          },
+          {
+            "id": "roles",
+            "title": "Operational roles"
+          },
+          {
+            "id": "runbooks",
+            "title": "Operational runbooks"
+          }
+        ]
+      },
+      {
+        "slug": "governance",
+        "title": "Governance",
+        "sections": [
+          {
+            "id": "rbac-principles",
+            "title": "RBAC model"
+          },
+          {
+            "id": "roles",
+            "title": "Roles"
+          },
+          {
+            "id": "service-accounts",
+            "title": "Service accounts"
+          },
+          {
+            "id": "policy-enforcement",
+            "title": "Policy enforcement"
+          },
+          {
+            "id": "audit",
+            "title": "Audit"
+          },
+          {
+            "id": "retention",
+            "title": "Retention and legal hold"
+          }
+        ]
+      },
+      {
+        "slug": "acceptance-criteria",
+        "title": "Acceptance Criteria",
+        "sections": [
+          {
+            "id": "purpose",
+            "title": "Purpose"
+          },
+          {
+            "id": "general",
+            "title": "General requirements"
+          },
+          {
+            "id": "e2e",
+            "title": "End-to-end scenarios"
+          },
+          {
+            "id": "security",
+            "title": "Security and access"
+          },
+          {
+            "id": "audit",
+            "title": "Audit and traceability"
+          },
+          {
+            "id": "operations",
+            "title": "Operational readiness"
+          },
+          {
+            "id": "observability",
+            "title": "Observability"
+          },
+          {
+            "id": "dx",
+            "title": "Developer environment"
+          },
+          {
+            "id": "production-grade",
+            "title": "Production-grade definition"
+          }
+        ]
+      },
+      {
+        "slug": "adrs",
+        "title": "Architectural Decision Records",
+        "sections": [
+          {
+            "id": "decisions",
+            "title": "Accepted ADRs"
+          }
+        ]
+      },
+      {
+        "slug": "glossary",
+        "title": "Glossary",
+        "sections": [
+          {
+            "id": "core-terms",
+            "title": "Core terms"
+          },
+          {
+            "id": "domain-terms",
+            "title": "Domain entities"
+          }
+        ]
+      }
+    ]
+  },
+  "ru": {
+    "nav": [
+      {
+        "label": "Обзор",
+        "slug": "overview"
+      },
+      {
+        "label": "Определение системы",
+        "slug": "system-definition"
+      },
+      {
+        "label": "Архитектура",
+        "slug": "architecture"
+      },
+      {
+        "label": "Доменная модель",
+        "slug": "domain-model"
+      },
+      {
+        "label": "Модель исполнения",
+        "slug": "execution-model"
+      },
+      {
+        "label": "Интерфейсы",
+        "slug": "interfaces"
+      },
+      {
+        "label": "Безопасность",
+        "slug": "security"
+      },
+      {
+        "label": "Эксплуатация",
+        "slug": "operations"
+      },
+      {
+        "label": "Управление (Governance)",
+        "slug": "governance"
+      },
+      {
+        "label": "Критерии готовности",
+        "slug": "acceptance-criteria"
+      },
+      {
+        "label": "ADR",
+        "slug": "adrs"
+      },
+      {
+        "label": "Глоссарий",
+        "slug": "glossary"
+      }
+    ],
+    "pages": [
+      {
+        "slug": "overview",
+        "title": "Обзор",
+        "sections": [
+          {
+            "id": "definition",
+            "title": "Определение системы"
+          },
+          {
+            "id": "objectives",
+            "title": "Цели платформы"
+          },
+          {
+            "id": "boundaries",
+            "title": "Границы системы"
+          }
+        ]
+      },
+      {
+        "slug": "system-definition",
+        "title": "Определение системы",
+        "sections": [
+          {
+            "id": "formal-definition",
+            "title": "Формальное определение"
+          },
+          {
+            "id": "invariants",
+            "title": "Архитектурные инварианты"
+          },
+          {
+            "id": "explicit-context",
+            "title": "Требование явного контекста"
+          },
+          {
+            "id": "non-goals",
+            "title": "Нецели"
+          }
+        ]
+      },
+      {
+        "slug": "architecture",
+        "title": "Архитектура",
+        "sections": [
+          {
+            "id": "overview",
+            "title": "Архитектурный обзор"
+          },
+          {
+            "id": "control-plane",
+            "title": "Control Plane"
+          },
+          {
+            "id": "data-plane",
+            "title": "Data Plane"
+          },
+          {
+            "id": "trust-boundaries",
+            "title": "Границы доверия"
+          },
+          {
+            "id": "failure-model",
+            "title": "Модель отказов"
+          },
+          {
+            "id": "diagram",
+            "title": "Разделение Control Plane и Data Plane"
+          }
+        ]
+      },
+      {
+        "slug": "domain-model",
+        "title": "Доменная модель",
+        "sections": [
+          {
+            "id": "project",
+            "title": "Project"
+          },
+          {
+            "id": "datasets",
+            "title": "Dataset и DatasetVersion"
+          },
+          {
+            "id": "coderef",
+            "title": "CodeRef"
+          },
+          {
+            "id": "environment",
+            "title": "EnvironmentDefinition и EnvironmentLock"
+          },
+          {
+            "id": "run",
+            "title": "Run и PipelineRun"
+          },
+          {
+            "id": "artifact",
+            "title": "Artifact"
+          },
+          {
+            "id": "model",
+            "title": "Model и ModelVersion"
+          },
+          {
+            "id": "audit",
+            "title": "AuditEvent"
+          },
+          {
+            "id": "graph",
+            "title": "Связность доменной модели"
+          }
+        ]
+      },
+      {
+        "slug": "execution-model",
+        "title": "Модель исполнения",
+        "sections": [
+          {
+            "id": "principles",
+            "title": "Принципы исполнения"
+          },
+          {
+            "id": "lifecycle",
+            "title": "Жизненный цикл Run"
+          },
+          {
+            "id": "pipeline",
+            "title": "Pipeline execution"
+          },
+          {
+            "id": "retries",
+            "title": "Повторы, rerun и replay"
+          },
+          {
+            "id": "idempotency",
+            "title": "Идемпотентность"
+          },
+          {
+            "id": "isolation",
+            "title": "Изоляция и ресурсы"
+          },
+          {
+            "id": "errors",
+            "title": "Ошибки и деградация"
+          },
+          {
+            "id": "observability",
+            "title": "Наблюдаемость"
+          },
+          {
+            "id": "audit",
+            "title": "Связь с аудитом"
+          }
+        ]
+      },
+      {
+        "slug": "interfaces",
+        "title": "Интерфейсы",
+        "sections": [
+          {
+            "id": "principles",
+            "title": "Принципы интерфейсов"
+          },
+          {
+            "id": "resource-model",
+            "title": "Ресурсная модель API"
+          },
+          {
+            "id": "pipeline-spec",
+            "title": "Pipeline specification"
+          },
+          {
+            "id": "events",
+            "title": "События и интеграции"
+          },
+          {
+            "id": "cli-sdk",
+            "title": "CLI и SDK"
+          },
+          {
+            "id": "ui",
+            "title": "Роль UI"
+          },
+          {
+            "id": "security-linkage",
+            "title": "Интерфейсы и безопасность"
+          }
+        ]
+      },
+      {
+        "slug": "security",
+        "title": "Безопасность",
+        "sections": [
+          {
+            "id": "objectives",
+            "title": "Цели модели безопасности"
+          },
+          {
+            "id": "threat-model",
+            "title": "Модель угроз и допущения"
+          },
+          {
+            "id": "authentication",
+            "title": "Аутентификация"
+          },
+          {
+            "id": "authorization",
+            "title": "Авторизация"
+          },
+          {
+            "id": "secrets",
+            "title": "Управление секретами"
+          },
+          {
+            "id": "isolation",
+            "title": "Изоляция и сетевые ограничения"
+          },
+          {
+            "id": "data-artifacts",
+            "title": "Безопасность данных и артефактов"
+          },
+          {
+            "id": "audit",
+            "title": "Аудит и экспорт"
+          },
+          {
+            "id": "updates",
+            "title": "Обновления и уязвимости"
+          }
+        ]
+      },
+      {
+        "slug": "operations",
+        "title": "Эксплуатация",
+        "sections": [
+          {
+            "id": "principles",
+            "title": "Принципы эксплуатации"
+          },
+          {
+            "id": "deployment",
+            "title": "Модели развёртывания"
+          },
+          {
+            "id": "artifacts",
+            "title": "Установочные артефакты и зависимости"
+          },
+          {
+            "id": "scaling",
+            "title": "Масштабирование и надёжность"
+          },
+          {
+            "id": "observability",
+            "title": "Наблюдаемость"
+          },
+          {
+            "id": "backup-dr",
+            "title": "Backup и DR"
+          },
+          {
+            "id": "updates",
+            "title": "Обновления и миграции"
+          },
+          {
+            "id": "air-gapped",
+            "title": "Air-gapped режим"
+          },
+          {
+            "id": "roles",
+            "title": "Эксплуатационные роли"
+          },
+          {
+            "id": "runbooks",
+            "title": "Runbooks"
+          }
+        ]
+      },
+      {
+        "slug": "governance",
+        "title": "Управление (Governance)",
+        "sections": [
+          {
+            "id": "rbac-principles",
+            "title": "RBAC принципы"
+          },
+          {
+            "id": "roles",
+            "title": "Роли"
+          },
+          {
+            "id": "service-accounts",
+            "title": "Service Accounts"
+          },
+          {
+            "id": "policy-enforcement",
+            "title": "Применение политик"
+          },
+          {
+            "id": "audit",
+            "title": "Аудит"
+          },
+          {
+            "id": "retention",
+            "title": "Retention и legal hold"
+          }
+        ]
+      },
+      {
+        "slug": "acceptance-criteria",
+        "title": "Критерии готовности",
+        "sections": [
+          {
+            "id": "purpose",
+            "title": "Назначение"
+          },
+          {
+            "id": "general",
+            "title": "Общие требования"
+          },
+          {
+            "id": "e2e",
+            "title": "Сквозные сценарии"
+          },
+          {
+            "id": "security",
+            "title": "Безопасность и доступ"
+          },
+          {
+            "id": "audit",
+            "title": "Аудит и трассируемость"
+          },
+          {
+            "id": "operations",
+            "title": "Эксплуатационная готовность"
+          },
+          {
+            "id": "observability",
+            "title": "Наблюдаемость"
+          },
+          {
+            "id": "dx",
+            "title": "Developer environment"
+          },
+          {
+            "id": "production-grade",
+            "title": "Определение production-grade"
+          }
+        ]
+      },
+      {
+        "slug": "adrs",
+        "title": "ADR",
+        "sections": [
+          {
+            "id": "decisions",
+            "title": "Принятые ADR"
+          }
+        ]
+      },
+      {
+        "slug": "glossary",
+        "title": "Глоссарий",
+        "sections": [
+          {
+            "id": "core-terms",
+            "title": "Ключевые термины"
+          },
+          {
+            "id": "domain-terms",
+            "title": "Доменные сущности"
+          }
+        ]
+      }
+    ]
+  }
+}

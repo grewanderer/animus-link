@@ -1,0 +1,63 @@
+{
+  "run": {
+    "id": "run-20260213-004",
+    "timestamp": "2026-02-13T11:42:00Z",
+    "model": "gpt-5-codex",
+    "branch": "main-work",
+    "commitSha": "c8f1ec4358f09b94e1f0b057a913715dfb8a8612",
+    "tokens": 198440,
+    "status": "succeeded",
+    "replayStatus": "replayed",
+    "proofHash": "sha256:84f9f1be8e1b3fb53cbe13f714e13d4d7e17943f8f3011f9a6a6d39f8eaa0042",
+    "proofBundleUrl": "https://example.com/proof/run-20260213-004.bundle.json",
+    "proofBundleSizeBytes": 188420,
+    "reproducible": true,
+    "pinnedContext": true,
+    "envLockId": "envlock-20260213-a",
+    "harnessPassed": true,
+    "module": "M3",
+    "detailPath": "/runs/run-20260213-004"
+  },
+  "timeline": [
+    {
+      "time": "2026-02-13T11:42:00Z",
+      "type": "RunCreated",
+      "detail": "Control-plane request validated with commit pin and env lock.",
+      "source": "EventLog"
+    },
+    {
+      "time": "2026-02-13T11:43:09Z",
+      "type": "DataPlaneStart",
+      "detail": "Isolated execution container started in local sandbox.",
+      "source": "EventLog"
+    },
+    {
+      "time": "2026-02-13T11:49:31Z",
+      "type": "RegressionHarnessPassed",
+      "detail": "Regression harness checks passed for updated modules.",
+      "source": "RegressionHarness"
+    },
+    {
+      "time": "2026-02-13T11:53:44Z",
+      "type": "RunFinished",
+      "detail": "Proof bundle, replay instruction, and audit artifacts emitted.",
+      "source": "EventLog"
+    }
+  ],
+  "artifacts": [
+    {
+      "label": "Proof bundle",
+      "href": "https://example.com/proof/run-20260213-004.bundle.json",
+      "hash": "sha256:84f9f1be8e1b3fb53cbe13f714e13d4d7e17943f8f3011f9a6a6d39f8eaa0042"
+    },
+    {
+      "label": "Replay transcript",
+      "href": "https://example.com/proof/run-20260213-004.replay.log"
+    }
+  ],
+  "replay": {
+    "href": "/runs?replayFrom=run-20260213-004",
+    "note": "Replay reproduces the run using commit SHA and environment lock from this record."
+  },
+  "warnings": []
+}

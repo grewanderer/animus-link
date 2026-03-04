@@ -1,0 +1,1402 @@
+{
+  "version": "v1-1bxay2n",
+  "locale": "en",
+  "generatedAt": "2026-02-01T18:57:37.373Z",
+  "entries": [
+    {
+      "docId": "overview",
+      "slug": "overview",
+      "title": "Overview",
+      "section": "Overview",
+      "heading": "Overview",
+      "headingId": null,
+      "content": "System scope, purpose, and boundaries. Animus Datalab is a corporate digital laboratory for machine learning designed to organize the full ML development lifecycle in a governed and reproducible form. It unifies data work, experiments, model training and evaluation, and preparation for industrial use within a single operational contour with common rules of execution, security, and audit. Ensure reproducibility of ML experiments and results. Represent the full development context (data, code, environment, parameters, decisions) as explicit, connected entities. Provide a developer working environment without violating corporate requirements. Ensure manageability, audit, and security by default without external overlays. Not a source control system for code. Not an IDE or code editor as a product. Not a full inference platform. May integrate with external SCM (Git), IDEs (VS Code, JetBrains) as managed environments, and external deployment/serving systems. Cross-references See System Definition for invariants and explicit context, Domain Model for canonical entities, and Architecture for plane separation.",
+      "keywords": [
+        "definition",
+        "scope",
+        "boundaries"
+      ],
+      "url": "/en/docs/overview"
+    },
+    {
+      "docId": "overview#definition",
+      "slug": "overview",
+      "title": "Overview",
+      "section": "Overview",
+      "heading": "System definition",
+      "headingId": "definition",
+      "content": "System scope, purpose, and boundaries. Animus Datalab is a corporate digital laboratory for machine learning designed to organize the full ML development lifecycle in a governed and reproducible form. It unifies data work, experiments, model training and evaluation, and preparation for industrial use within a single operational contour with common rules of execution, security, and audit.",
+      "keywords": [
+        "definition",
+        "scope",
+        "boundaries"
+      ],
+      "url": "/en/docs/overview#definition"
+    },
+    {
+      "docId": "overview#objectives",
+      "slug": "overview",
+      "title": "Overview",
+      "section": "Overview",
+      "heading": "Platform objectives",
+      "headingId": "objectives",
+      "content": "System scope, purpose, and boundaries. Ensure reproducibility of ML experiments and results. Represent the full development context (data, code, environment, parameters, decisions) as explicit, connected entities. Provide a developer working environment without violating corporate requirements. Ensure manageability, audit, and security by default without external overlays.",
+      "keywords": [
+        "definition",
+        "scope",
+        "boundaries"
+      ],
+      "url": "/en/docs/overview#objectives"
+    },
+    {
+      "docId": "overview#boundaries",
+      "slug": "overview",
+      "title": "Overview",
+      "section": "Overview",
+      "heading": "System boundaries",
+      "headingId": "boundaries",
+      "content": "System scope, purpose, and boundaries. Not a source control system for code. Not an IDE or code editor as a product. Not a full inference platform. May integrate with external SCM (Git), IDEs (VS Code, JetBrains) as managed environments, and external deployment/serving systems. Cross-references See System Definition for invariants and explicit context, Domain Model for canonical entities, and Architecture for plane separation.",
+      "keywords": [
+        "definition",
+        "scope",
+        "boundaries"
+      ],
+      "url": "/en/docs/overview#boundaries"
+    },
+    {
+      "docId": "system-definition",
+      "slug": "system-definition",
+      "title": "System Definition",
+      "section": "System Definition",
+      "heading": "System Definition",
+      "headingId": null,
+      "content": "Formal definition, invariants, and explicit context requirements. Animus Datalab is a corporate digital laboratory for machine learning intended to organize the full ML development lifecycle in a controlled and reproducible form. The laboratory operates as a single operational contour with shared rules for execution, security, and audit. The Control Plane never executes user code. Any production-run is uniquely defined by DatasetVersion, CodeRef (commit SHA), and EnvironmentLock. All significant actions are recorded as AuditEvent. Data, code, environments, and results are explicit, versioned entities. Hidden state that affects execution results is disallowed. Everything that affects an execution result must be represented in the system as an explicit entity or reference to an entity. Actions that cannot be bound to explicit context are treated as design errors and must be eliminated or formalized. Animus does not replace SCM systems, IDEs, or inference platforms. External SCM, IDE tooling, and serving systems are integrated through explicit interfaces.",
+      "keywords": [
+        "invariants",
+        "definition",
+        "context"
+      ],
+      "url": "/en/docs/system-definition"
+    },
+    {
+      "docId": "system-definition#formal-definition",
+      "slug": "system-definition",
+      "title": "System Definition",
+      "section": "System Definition",
+      "heading": "Formal definition",
+      "headingId": "formal-definition",
+      "content": "Formal definition, invariants, and explicit context requirements. Animus Datalab is a corporate digital laboratory for machine learning intended to organize the full ML development lifecycle in a controlled and reproducible form. The laboratory operates as a single operational contour with shared rules for execution, security, and audit.",
+      "keywords": [
+        "invariants",
+        "definition",
+        "context"
+      ],
+      "url": "/en/docs/system-definition#formal-definition"
+    },
+    {
+      "docId": "system-definition#invariants",
+      "slug": "system-definition",
+      "title": "System Definition",
+      "section": "System Definition",
+      "heading": "Architectural invariants",
+      "headingId": "invariants",
+      "content": "Formal definition, invariants, and explicit context requirements. The Control Plane never executes user code. Any production-run is uniquely defined by DatasetVersion, CodeRef (commit SHA), and EnvironmentLock. All significant actions are recorded as AuditEvent. Data, code, environments, and results are explicit, versioned entities. Hidden state that affects execution results is disallowed.",
+      "keywords": [
+        "invariants",
+        "definition",
+        "context"
+      ],
+      "url": "/en/docs/system-definition#invariants"
+    },
+    {
+      "docId": "system-definition#explicit-context",
+      "slug": "system-definition",
+      "title": "System Definition",
+      "section": "System Definition",
+      "heading": "Explicit context requirement",
+      "headingId": "explicit-context",
+      "content": "Formal definition, invariants, and explicit context requirements. Everything that affects an execution result must be represented in the system as an explicit entity or reference to an entity. Actions that cannot be bound to explicit context are treated as design errors and must be eliminated or formalized.",
+      "keywords": [
+        "invariants",
+        "definition",
+        "context"
+      ],
+      "url": "/en/docs/system-definition#explicit-context"
+    },
+    {
+      "docId": "system-definition#non-goals",
+      "slug": "system-definition",
+      "title": "System Definition",
+      "section": "System Definition",
+      "heading": "Non-goals",
+      "headingId": "non-goals",
+      "content": "Formal definition, invariants, and explicit context requirements. Animus does not replace SCM systems, IDEs, or inference platforms. External SCM, IDE tooling, and serving systems are integrated through explicit interfaces.",
+      "keywords": [
+        "invariants",
+        "definition",
+        "context"
+      ],
+      "url": "/en/docs/system-definition#non-goals"
+    },
+    {
+      "docId": "architecture",
+      "slug": "architecture",
+      "title": "Architecture",
+      "section": "Architecture",
+      "heading": "Architecture",
+      "headingId": null,
+      "content": "Control Plane, Data Plane, trust boundaries, and failure model. Animus is a distributed system with a strict separation between Control Plane and Data Plane responsibilities. The separation is a core invariant intended to isolate untrusted execution from governance and audit. Provides UI, CLI/SDK, and API interfaces; API is the primary interface. Stores metadata for Project, Dataset/DatasetVersion, Run/PipelineRun, Artifact, Model/ModelVersion, and policies. Orchestrates execution: validates inputs, builds the Execution Plan, and schedules work. Applies policies for access, production-run constraints, environments, network controls, retention, and governance. Generates AuditEvent for administrative actions, state transitions, and data/artifact access. Never executes user code and does not require direct access to execution data. Executes user code in containerized, isolated environments with explicit resource limits. Provides controlled access to DatasetVersion and Artifact storage interfaces. Collects logs, metrics, and traces for each Run and PipelineRun. Receives secrets temporarily and minimally, with access attempts recorded. Uses Kubernetes as the mandatory baseline execution environment. User clients (UI/CLI/SDK) are untrusted environments requiring strict authentication and authorization. Control Plane is a trusted management boundary that does not execute user code. Data Plane runs untrusted user code and isolates it by design. External systems (SCM, registry, vault, storage, SIEM) have independent trust boundaries and integrate via contracts. Control Plane operations are idempotent where possible. Run statuses must transition to consistent diagnostic states during partial outages. Reconciliation mechanisms restore observable state after temporary component loss. Failure scenarios must be observable via metrics, logs, and traces. Data Plane outages must not corrupt metadata, audit, or artifact references. The diagram illustrates the separation between management and execution planes. Cross-references See Execution Model for Run lifecycle and pipeline semantics; see Security for trust boundaries and isolation requirements.",
+      "keywords": [
+        "control plane",
+        "data plane",
+        "trust boundaries"
+      ],
+      "url": "/en/docs/architecture"
+    },
+    {
+      "docId": "architecture#overview",
+      "slug": "architecture",
+      "title": "Architecture",
+      "section": "Architecture",
+      "heading": "Architectural overview",
+      "headingId": "overview",
+      "content": "Control Plane, Data Plane, trust boundaries, and failure model. Animus is a distributed system with a strict separation between Control Plane and Data Plane responsibilities. The separation is a core invariant intended to isolate untrusted execution from governance and audit.",
+      "keywords": [
+        "control plane",
+        "data plane",
+        "trust boundaries"
+      ],
+      "url": "/en/docs/architecture#overview"
+    },
+    {
+      "docId": "architecture#control-plane",
+      "slug": "architecture",
+      "title": "Architecture",
+      "section": "Architecture",
+      "heading": "Control Plane",
+      "headingId": "control-plane",
+      "content": "Control Plane, Data Plane, trust boundaries, and failure model. Provides UI, CLI/SDK, and API interfaces; API is the primary interface. Stores metadata for Project, Dataset/DatasetVersion, Run/PipelineRun, Artifact, Model/ModelVersion, and policies. Orchestrates execution: validates inputs, builds the Execution Plan, and schedules work. Applies policies for access, production-run constraints, environments, network controls, retention, and governance. Generates AuditEvent for administrative actions, state transitions, and data/artifact access. Never executes user code and does not require direct access to execution data.",
+      "keywords": [
+        "control plane",
+        "data plane",
+        "trust boundaries"
+      ],
+      "url": "/en/docs/architecture#control-plane"
+    },
+    {
+      "docId": "architecture#data-plane",
+      "slug": "architecture",
+      "title": "Architecture",
+      "section": "Architecture",
+      "heading": "Data Plane",
+      "headingId": "data-plane",
+      "content": "Control Plane, Data Plane, trust boundaries, and failure model. Executes user code in containerized, isolated environments with explicit resource limits. Provides controlled access to DatasetVersion and Artifact storage interfaces. Collects logs, metrics, and traces for each Run and PipelineRun. Receives secrets temporarily and minimally, with access attempts recorded. Uses Kubernetes as the mandatory baseline execution environment.",
+      "keywords": [
+        "control plane",
+        "data plane",
+        "trust boundaries"
+      ],
+      "url": "/en/docs/architecture#data-plane"
+    },
+    {
+      "docId": "architecture#trust-boundaries",
+      "slug": "architecture",
+      "title": "Architecture",
+      "section": "Architecture",
+      "heading": "Trust boundaries",
+      "headingId": "trust-boundaries",
+      "content": "Control Plane, Data Plane, trust boundaries, and failure model. User clients (UI/CLI/SDK) are untrusted environments requiring strict authentication and authorization. Control Plane is a trusted management boundary that does not execute user code. Data Plane runs untrusted user code and isolates it by design. External systems (SCM, registry, vault, storage, SIEM) have independent trust boundaries and integrate via contracts.",
+      "keywords": [
+        "control plane",
+        "data plane",
+        "trust boundaries"
+      ],
+      "url": "/en/docs/architecture#trust-boundaries"
+    },
+    {
+      "docId": "architecture#failure-model",
+      "slug": "architecture",
+      "title": "Architecture",
+      "section": "Architecture",
+      "heading": "Principled failure model",
+      "headingId": "failure-model",
+      "content": "Control Plane, Data Plane, trust boundaries, and failure model. Control Plane operations are idempotent where possible. Run statuses must transition to consistent diagnostic states during partial outages. Reconciliation mechanisms restore observable state after temporary component loss. Failure scenarios must be observable via metrics, logs, and traces. Data Plane outages must not corrupt metadata, audit, or artifact references.",
+      "keywords": [
+        "control plane",
+        "data plane",
+        "trust boundaries"
+      ],
+      "url": "/en/docs/architecture#failure-model"
+    },
+    {
+      "docId": "architecture#diagram",
+      "slug": "architecture",
+      "title": "Architecture",
+      "section": "Architecture",
+      "heading": "Control Plane and Data Plane separation",
+      "headingId": "diagram",
+      "content": "Control Plane, Data Plane, trust boundaries, and failure model. The diagram illustrates the separation between management and execution planes. Cross-references See Execution Model for Run lifecycle and pipeline semantics; see Security for trust boundaries and isolation requirements.",
+      "keywords": [
+        "control plane",
+        "data plane",
+        "trust boundaries"
+      ],
+      "url": "/en/docs/architecture#diagram"
+    },
+    {
+      "docId": "domain-model",
+      "slug": "domain-model",
+      "title": "Domain Model",
+      "section": "Domain Model",
+      "heading": "Domain Model",
+      "headingId": null,
+      "content": "Canonical entities, attributes, and invariants. Project is the basic organizational and isolation unit in Animus, representing one ML product or independent ML task. Defines boundaries of access, execution, and team responsibility. All domain entities belong to exactly one Project; cross-Project access is forbidden. Lifecycle: active and archived; archived Projects are read-only and disallow new Run creation. Dataset is a logical data entity; DatasetVersion is an immutable version used in Run and serves as the primary data reference for reproducibility. DatasetVersion is immutable; data changes are represented only by creating a new DatasetVersion. Any Run must reference specific DatasetVersion identifiers. DatasetVersion deletion is forbidden when referenced by Run, Model, or AuditEvent unless retention policy allows it. CodeRef is a reference to user code in an external SCM and fixes the identification point; it does not store code. Production-run requires CodeRef with commit SHA; branches or tags are not permitted. CodeRef is immutable. EnvironmentDefinition describes a logical execution environment (base image, dependencies, resources). EnvironmentLock is a fixed, immutable representation used for execution. Production-run must use EnvironmentLock. EnvironmentLock is immutable and verifiable via digest and checksums. Run is the unit of execution and reproducibility, linking data, code, environment, parameters, and execution results. PipelineRun is a composed Run representing a DAG of node Runs. Run statuses: queued, running, succeeded, failed, canceled, unknown. Run cannot change input DatasetVersion and cannot exist without a Project. Artifact is any result of Run execution (logs, metrics, files, models, reports). Artifact is always bound to a Run and cannot exist outside a Project. Artifact access is controlled by Project permissions. Model is a logical entity representing a family of model versions; ModelVersion is a concrete Run result recognized as a model. ModelVersion statuses: draft, validated, approved, deprecated. ModelVersion must reference Run; promotion is recorded in AuditEvent. Export of approved models may be restricted by policy. AuditEvent is an immutable record of a significant system action. AuditEvent is append-only and cannot be modified or deleted. AuditEvent is exportable. AuditEvent includes actor, action, object reference, timestamp, and result. The system can be reconstructed as a graph rooted at Project, with Dataset/DatasetVersion, Environment/EnvironmentLock, Run/PipelineRun, Artifact, Model/ModelVersion, and AuditEvent as the temporal dimension.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/en/docs/domain-model"
+    },
+    {
+      "docId": "domain-model#project",
+      "slug": "domain-model",
+      "title": "Domain Model",
+      "section": "Domain Model",
+      "heading": "Project",
+      "headingId": "project",
+      "content": "Canonical entities, attributes, and invariants. Project is the basic organizational and isolation unit in Animus, representing one ML product or independent ML task. Defines boundaries of access, execution, and team responsibility. All domain entities belong to exactly one Project; cross-Project access is forbidden. Lifecycle: active and archived; archived Projects are read-only and disallow new Run creation.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/en/docs/domain-model#project"
+    },
+    {
+      "docId": "domain-model#datasets",
+      "slug": "domain-model",
+      "title": "Domain Model",
+      "section": "Domain Model",
+      "heading": "Dataset and DatasetVersion",
+      "headingId": "datasets",
+      "content": "Canonical entities, attributes, and invariants. Dataset is a logical data entity; DatasetVersion is an immutable version used in Run and serves as the primary data reference for reproducibility. DatasetVersion is immutable; data changes are represented only by creating a new DatasetVersion. Any Run must reference specific DatasetVersion identifiers. DatasetVersion deletion is forbidden when referenced by Run, Model, or AuditEvent unless retention policy allows it.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/en/docs/domain-model#datasets"
+    },
+    {
+      "docId": "domain-model#coderef",
+      "slug": "domain-model",
+      "title": "Domain Model",
+      "section": "Domain Model",
+      "heading": "CodeRef",
+      "headingId": "coderef",
+      "content": "Canonical entities, attributes, and invariants. CodeRef is a reference to user code in an external SCM and fixes the identification point; it does not store code. Production-run requires CodeRef with commit SHA; branches or tags are not permitted. CodeRef is immutable.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/en/docs/domain-model#coderef"
+    },
+    {
+      "docId": "domain-model#environment",
+      "slug": "domain-model",
+      "title": "Domain Model",
+      "section": "Domain Model",
+      "heading": "EnvironmentDefinition and EnvironmentLock",
+      "headingId": "environment",
+      "content": "Canonical entities, attributes, and invariants. EnvironmentDefinition describes a logical execution environment (base image, dependencies, resources). EnvironmentLock is a fixed, immutable representation used for execution. Production-run must use EnvironmentLock. EnvironmentLock is immutable and verifiable via digest and checksums.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/en/docs/domain-model#environment"
+    },
+    {
+      "docId": "domain-model#run",
+      "slug": "domain-model",
+      "title": "Domain Model",
+      "section": "Domain Model",
+      "heading": "Run and PipelineRun",
+      "headingId": "run",
+      "content": "Canonical entities, attributes, and invariants. Run is the unit of execution and reproducibility, linking data, code, environment, parameters, and execution results. PipelineRun is a composed Run representing a DAG of node Runs. Run statuses: queued, running, succeeded, failed, canceled, unknown. Run cannot change input DatasetVersion and cannot exist without a Project.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/en/docs/domain-model#run"
+    },
+    {
+      "docId": "domain-model#artifact",
+      "slug": "domain-model",
+      "title": "Domain Model",
+      "section": "Domain Model",
+      "heading": "Artifact",
+      "headingId": "artifact",
+      "content": "Canonical entities, attributes, and invariants. Artifact is any result of Run execution (logs, metrics, files, models, reports). Artifact is always bound to a Run and cannot exist outside a Project. Artifact access is controlled by Project permissions.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/en/docs/domain-model#artifact"
+    },
+    {
+      "docId": "domain-model#model",
+      "slug": "domain-model",
+      "title": "Domain Model",
+      "section": "Domain Model",
+      "heading": "Model and ModelVersion",
+      "headingId": "model",
+      "content": "Canonical entities, attributes, and invariants. Model is a logical entity representing a family of model versions; ModelVersion is a concrete Run result recognized as a model. ModelVersion statuses: draft, validated, approved, deprecated. ModelVersion must reference Run; promotion is recorded in AuditEvent. Export of approved models may be restricted by policy.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/en/docs/domain-model#model"
+    },
+    {
+      "docId": "domain-model#audit",
+      "slug": "domain-model",
+      "title": "Domain Model",
+      "section": "Domain Model",
+      "heading": "AuditEvent",
+      "headingId": "audit",
+      "content": "Canonical entities, attributes, and invariants. AuditEvent is an immutable record of a significant system action. AuditEvent is append-only and cannot be modified or deleted. AuditEvent is exportable. AuditEvent includes actor, action, object reference, timestamp, and result.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/en/docs/domain-model#audit"
+    },
+    {
+      "docId": "domain-model#graph",
+      "slug": "domain-model",
+      "title": "Domain Model",
+      "section": "Domain Model",
+      "heading": "Domain graph",
+      "headingId": "graph",
+      "content": "Canonical entities, attributes, and invariants. The system can be reconstructed as a graph rooted at Project, with Dataset/DatasetVersion, Environment/EnvironmentLock, Run/PipelineRun, Artifact, Model/ModelVersion, and AuditEvent as the temporal dimension.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/en/docs/domain-model#graph"
+    },
+    {
+      "docId": "execution-model",
+      "slug": "execution-model",
+      "title": "Execution Model",
+      "section": "Execution Model",
+      "heading": "Execution Model",
+      "headingId": null,
+      "content": "Declarative execution, Run lifecycle, and pipeline semantics. Isolation by default: each Run executes in an isolated environment. Declarative execution: users declare what to execute; the platform defines how. Controlled execution: policies, resource limits, and security constraints are enforced. Observability: execution status and results are captured for analysis. Reproducibility: fixed inputs and explicit dependencies; no hidden state. Creation: Control Plane checks access, validates references, applies policies, records AuditEvent, sets status queued. Planning: Control Plane forms the Execution Plan with image digest, resources, network policies, secret references, data/artifact access points, and scheduler version. Execution: Data Plane executes user code in isolated containers; Control Plane never executes user code. Completion: Control Plane records final status, links Artifacts, and emits AuditEvent and integration events. Pipeline is a directed acyclic graph (DAG) of execution steps. Each node executes as an individual Run; Control Plane validates the DAG and applies policies. Error handling is policy-driven: success, failure, or partial success with explicit degradation rules. retry: automatic repeat after transient failure. rerun: repeat with the same inputs. replay: repeat using the saved Execution Plan. Each repeat is recorded as a new Run linked to the original. Control Plane operations are idempotent where possible. Repeated requests with the same identifiers do not create duplicates. Runs execute in separate containers within a Project context. CPU, RAM, GPU, and ephemeral storage limits are explicit per Run. Direct access from Run to Control Plane metadata is disallowed. Error classes include user, data, environment, platform, and policy violations. Degradation preserves metadata consistency and marks Runs as unknown/reconciling when needed. Logs, metrics, and traces are collected and bound to Run and PipelineRun. Secrets and sensitive data must not appear in logs, metrics, or artifacts. Each significant execution stage produces AuditEvent, including policy application, status transitions, errors, and completion. Cross-references See Architecture for plane separation and trust boundaries; see Security for secret and network constraints.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan",
+        "observability"
+      ],
+      "url": "/en/docs/execution-model"
+    },
+    {
+      "docId": "execution-model#principles",
+      "slug": "execution-model",
+      "title": "Execution Model",
+      "section": "Execution Model",
+      "heading": "Execution principles",
+      "headingId": "principles",
+      "content": "Declarative execution, Run lifecycle, and pipeline semantics. Isolation by default: each Run executes in an isolated environment. Declarative execution: users declare what to execute; the platform defines how. Controlled execution: policies, resource limits, and security constraints are enforced. Observability: execution status and results are captured for analysis. Reproducibility: fixed inputs and explicit dependencies; no hidden state.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan",
+        "observability"
+      ],
+      "url": "/en/docs/execution-model#principles"
+    },
+    {
+      "docId": "execution-model#lifecycle",
+      "slug": "execution-model",
+      "title": "Execution Model",
+      "section": "Execution Model",
+      "heading": "Run lifecycle",
+      "headingId": "lifecycle",
+      "content": "Declarative execution, Run lifecycle, and pipeline semantics. Creation: Control Plane checks access, validates references, applies policies, records AuditEvent, sets status queued. Planning: Control Plane forms the Execution Plan with image digest, resources, network policies, secret references, data/artifact access points, and scheduler version. Execution: Data Plane executes user code in isolated containers; Control Plane never executes user code. Completion: Control Plane records final status, links Artifacts, and emits AuditEvent and integration events.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan",
+        "observability"
+      ],
+      "url": "/en/docs/execution-model#lifecycle"
+    },
+    {
+      "docId": "execution-model#pipeline",
+      "slug": "execution-model",
+      "title": "Execution Model",
+      "section": "Execution Model",
+      "heading": "Pipeline execution",
+      "headingId": "pipeline",
+      "content": "Declarative execution, Run lifecycle, and pipeline semantics. Pipeline is a directed acyclic graph (DAG) of execution steps. Each node executes as an individual Run; Control Plane validates the DAG and applies policies. Error handling is policy-driven: success, failure, or partial success with explicit degradation rules.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan",
+        "observability"
+      ],
+      "url": "/en/docs/execution-model#pipeline"
+    },
+    {
+      "docId": "execution-model#retries",
+      "slug": "execution-model",
+      "title": "Execution Model",
+      "section": "Execution Model",
+      "heading": "Retry, rerun, replay",
+      "headingId": "retries",
+      "content": "Declarative execution, Run lifecycle, and pipeline semantics. retry: automatic repeat after transient failure. rerun: repeat with the same inputs. replay: repeat using the saved Execution Plan. Each repeat is recorded as a new Run linked to the original.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan",
+        "observability"
+      ],
+      "url": "/en/docs/execution-model#retries"
+    },
+    {
+      "docId": "execution-model#idempotency",
+      "slug": "execution-model",
+      "title": "Execution Model",
+      "section": "Execution Model",
+      "heading": "Idempotency",
+      "headingId": "idempotency",
+      "content": "Declarative execution, Run lifecycle, and pipeline semantics. Control Plane operations are idempotent where possible. Repeated requests with the same identifiers do not create duplicates.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan",
+        "observability"
+      ],
+      "url": "/en/docs/execution-model#idempotency"
+    },
+    {
+      "docId": "execution-model#isolation",
+      "slug": "execution-model",
+      "title": "Execution Model",
+      "section": "Execution Model",
+      "heading": "Isolation and resources",
+      "headingId": "isolation",
+      "content": "Declarative execution, Run lifecycle, and pipeline semantics. Runs execute in separate containers within a Project context. CPU, RAM, GPU, and ephemeral storage limits are explicit per Run. Direct access from Run to Control Plane metadata is disallowed.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan",
+        "observability"
+      ],
+      "url": "/en/docs/execution-model#isolation"
+    },
+    {
+      "docId": "execution-model#errors",
+      "slug": "execution-model",
+      "title": "Execution Model",
+      "section": "Execution Model",
+      "heading": "Errors and degradation",
+      "headingId": "errors",
+      "content": "Declarative execution, Run lifecycle, and pipeline semantics. Error classes include user, data, environment, platform, and policy violations. Degradation preserves metadata consistency and marks Runs as unknown/reconciling when needed.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan",
+        "observability"
+      ],
+      "url": "/en/docs/execution-model#errors"
+    },
+    {
+      "docId": "execution-model#observability",
+      "slug": "execution-model",
+      "title": "Execution Model",
+      "section": "Execution Model",
+      "heading": "Observability",
+      "headingId": "observability",
+      "content": "Declarative execution, Run lifecycle, and pipeline semantics. Logs, metrics, and traces are collected and bound to Run and PipelineRun. Secrets and sensitive data must not appear in logs, metrics, or artifacts.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan",
+        "observability"
+      ],
+      "url": "/en/docs/execution-model#observability"
+    },
+    {
+      "docId": "execution-model#audit",
+      "slug": "execution-model",
+      "title": "Execution Model",
+      "section": "Execution Model",
+      "heading": "Audit linkage",
+      "headingId": "audit",
+      "content": "Declarative execution, Run lifecycle, and pipeline semantics. Each significant execution stage produces AuditEvent, including policy application, status transitions, errors, and completion. Cross-references See Architecture for plane separation and trust boundaries; see Security for secret and network constraints.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan",
+        "observability"
+      ],
+      "url": "/en/docs/execution-model#audit"
+    },
+    {
+      "docId": "interfaces",
+      "slug": "interfaces",
+      "title": "Interfaces",
+      "section": "Interfaces",
+      "heading": "Interfaces",
+      "headingId": null,
+      "content": "API, Pipeline specification, events, CLI/SDK, and UI principles. API is the primary interface and source of truth; UI cannot bypass API contracts. Interfaces are versioned; breaking changes require version increments. Critical operations are idempotent and repeatable. Each domain entity is an addressable resource with explicit lifecycle semantics. Operations follow Create, Read, Update, Delete semantics with formal error responses. Defines declarative execution structure and is the input contract for orchestration. Includes specification version, steps, dependencies, inputs/outputs, error policies, and resource requirements. Control Plane validates specification structure and policy compliance before PipelineRun creation. Events reflect state changes and are not a source of truth. Canonical event types and delivery mechanisms are defined for integration. CLI and SDK are built on the public API. CLI/SDK requirements align with API contract stability and versioning. UI is a visual representation of platform state and must not perform actions unavailable via API. UI must not hide information relevant to audit or diagnostics and must reflect platform constraints. All interfaces are subject to authentication, authorization, and audit requirements.",
+      "keywords": [
+        "api",
+        "pipeline specification",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/en/docs/interfaces"
+    },
+    {
+      "docId": "interfaces#principles",
+      "slug": "interfaces",
+      "title": "Interfaces",
+      "section": "Interfaces",
+      "heading": "Interface principles",
+      "headingId": "principles",
+      "content": "API, Pipeline specification, events, CLI/SDK, and UI principles. API is the primary interface and source of truth; UI cannot bypass API contracts. Interfaces are versioned; breaking changes require version increments. Critical operations are idempotent and repeatable.",
+      "keywords": [
+        "api",
+        "pipeline specification",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/en/docs/interfaces#principles"
+    },
+    {
+      "docId": "interfaces#resource-model",
+      "slug": "interfaces",
+      "title": "Interfaces",
+      "section": "Interfaces",
+      "heading": "API resource model",
+      "headingId": "resource-model",
+      "content": "API, Pipeline specification, events, CLI/SDK, and UI principles. Each domain entity is an addressable resource with explicit lifecycle semantics. Operations follow Create, Read, Update, Delete semantics with formal error responses.",
+      "keywords": [
+        "api",
+        "pipeline specification",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/en/docs/interfaces#resource-model"
+    },
+    {
+      "docId": "interfaces#pipeline-spec",
+      "slug": "interfaces",
+      "title": "Interfaces",
+      "section": "Interfaces",
+      "heading": "Pipeline specification",
+      "headingId": "pipeline-spec",
+      "content": "API, Pipeline specification, events, CLI/SDK, and UI principles. Defines declarative execution structure and is the input contract for orchestration. Includes specification version, steps, dependencies, inputs/outputs, error policies, and resource requirements. Control Plane validates specification structure and policy compliance before PipelineRun creation.",
+      "keywords": [
+        "api",
+        "pipeline specification",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/en/docs/interfaces#pipeline-spec"
+    },
+    {
+      "docId": "interfaces#events",
+      "slug": "interfaces",
+      "title": "Interfaces",
+      "section": "Interfaces",
+      "heading": "Events and integrations",
+      "headingId": "events",
+      "content": "API, Pipeline specification, events, CLI/SDK, and UI principles. Events reflect state changes and are not a source of truth. Canonical event types and delivery mechanisms are defined for integration.",
+      "keywords": [
+        "api",
+        "pipeline specification",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/en/docs/interfaces#events"
+    },
+    {
+      "docId": "interfaces#cli-sdk",
+      "slug": "interfaces",
+      "title": "Interfaces",
+      "section": "Interfaces",
+      "heading": "CLI and SDK",
+      "headingId": "cli-sdk",
+      "content": "API, Pipeline specification, events, CLI/SDK, and UI principles. CLI and SDK are built on the public API. CLI/SDK requirements align with API contract stability and versioning.",
+      "keywords": [
+        "api",
+        "pipeline specification",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/en/docs/interfaces#cli-sdk"
+    },
+    {
+      "docId": "interfaces#ui",
+      "slug": "interfaces",
+      "title": "Interfaces",
+      "section": "Interfaces",
+      "heading": "UI role",
+      "headingId": "ui",
+      "content": "API, Pipeline specification, events, CLI/SDK, and UI principles. UI is a visual representation of platform state and must not perform actions unavailable via API. UI must not hide information relevant to audit or diagnostics and must reflect platform constraints.",
+      "keywords": [
+        "api",
+        "pipeline specification",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/en/docs/interfaces#ui"
+    },
+    {
+      "docId": "interfaces#security-linkage",
+      "slug": "interfaces",
+      "title": "Interfaces",
+      "section": "Interfaces",
+      "heading": "Interfaces and security",
+      "headingId": "security-linkage",
+      "content": "API, Pipeline specification, events, CLI/SDK, and UI principles. All interfaces are subject to authentication, authorization, and audit requirements.",
+      "keywords": [
+        "api",
+        "pipeline specification",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/en/docs/interfaces#security-linkage"
+    },
+    {
+      "docId": "security",
+      "slug": "security",
+      "title": "Security",
+      "section": "Security",
+      "heading": "Security",
+      "headingId": null,
+      "content": "Security model, authentication, RBAC, isolation, secrets, and audit. Protect data, models, and results from unauthorized access. Prevent implicit privilege escalation and hidden channels of influence. Ensure actions are verifiable through audit. Maintain developer usability without bypasses. Assets include data, models, artifacts, metadata, credentials, and audit history. Threat actors include legitimate users with errors, abuse, compromised accounts, untrusted user code, and infrastructure compromise. Control Plane is trusted and never executes user code; Data Plane executes untrusted code and isolates it; network is untrusted. SSO via OIDC and/or SAML is required; local accounts are supported for air-gapped environments. Service accounts are supported for automation and CI/CD. Session management includes TTL, forced logout, limited parallel sessions, and audited login/logout events. MFA is enforced via external IdP. Authorization is based on Project-scoped RBAC with object-level policies. Default deny applies when no explicit permission is present. Every operation is checked for permissions and recorded in AuditEvent. Secrets are never stored in plain form and must not appear in UI, logs, metrics, or artifacts. Integration with external secret stores is required; secrets are provided temporarily and minimally. Secret access attempts are audited. Data Plane executes user code in containerized environments with restricted privileges. Network egress is deny-by-default and explicitly allowed by policy. Runs must not access Control Plane directly beyond required interfaces. Access to DatasetVersion is checked on every request and scoped by Project. Artifacts are stored within Project boundaries and governed by role-based access. Model export can be restricted by policy and requires appropriate approvals. AuditEvent records authentication, authorization changes, data access, Run execution, and model promotion/export. AuditEvent is append-only and cannot be disabled. Audit must be exportable to SIEM and monitoring systems with reliable delivery. Updates must be controlled and preserve data integrity. Rollback and compatibility of schemas and contracts are required. Supply-chain controls include image verification and SBOM support. Cross-references See Governance for RBAC roles and audit policy; see Operations for incident runbooks and recovery procedures.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress",
+        "sso"
+      ],
+      "url": "/en/docs/security"
+    },
+    {
+      "docId": "security#objectives",
+      "slug": "security",
+      "title": "Security",
+      "section": "Security",
+      "heading": "Security objectives",
+      "headingId": "objectives",
+      "content": "Security model, authentication, RBAC, isolation, secrets, and audit. Protect data, models, and results from unauthorized access. Prevent implicit privilege escalation and hidden channels of influence. Ensure actions are verifiable through audit. Maintain developer usability without bypasses.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress",
+        "sso"
+      ],
+      "url": "/en/docs/security#objectives"
+    },
+    {
+      "docId": "security#threat-model",
+      "slug": "security",
+      "title": "Security",
+      "section": "Security",
+      "heading": "Threat model and assumptions",
+      "headingId": "threat-model",
+      "content": "Security model, authentication, RBAC, isolation, secrets, and audit. Assets include data, models, artifacts, metadata, credentials, and audit history. Threat actors include legitimate users with errors, abuse, compromised accounts, untrusted user code, and infrastructure compromise. Control Plane is trusted and never executes user code; Data Plane executes untrusted code and isolates it; network is untrusted.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress",
+        "sso"
+      ],
+      "url": "/en/docs/security#threat-model"
+    },
+    {
+      "docId": "security#authentication",
+      "slug": "security",
+      "title": "Security",
+      "section": "Security",
+      "heading": "Authentication",
+      "headingId": "authentication",
+      "content": "Security model, authentication, RBAC, isolation, secrets, and audit. SSO via OIDC and/or SAML is required; local accounts are supported for air-gapped environments. Service accounts are supported for automation and CI/CD. Session management includes TTL, forced logout, limited parallel sessions, and audited login/logout events. MFA is enforced via external IdP.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress",
+        "sso"
+      ],
+      "url": "/en/docs/security#authentication"
+    },
+    {
+      "docId": "security#authorization",
+      "slug": "security",
+      "title": "Security",
+      "section": "Security",
+      "heading": "Authorization",
+      "headingId": "authorization",
+      "content": "Security model, authentication, RBAC, isolation, secrets, and audit. Authorization is based on Project-scoped RBAC with object-level policies. Default deny applies when no explicit permission is present. Every operation is checked for permissions and recorded in AuditEvent.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress",
+        "sso"
+      ],
+      "url": "/en/docs/security#authorization"
+    },
+    {
+      "docId": "security#secrets",
+      "slug": "security",
+      "title": "Security",
+      "section": "Security",
+      "heading": "Secrets management",
+      "headingId": "secrets",
+      "content": "Security model, authentication, RBAC, isolation, secrets, and audit. Secrets are never stored in plain form and must not appear in UI, logs, metrics, or artifacts. Integration with external secret stores is required; secrets are provided temporarily and minimally. Secret access attempts are audited.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress",
+        "sso"
+      ],
+      "url": "/en/docs/security#secrets"
+    },
+    {
+      "docId": "security#isolation",
+      "slug": "security",
+      "title": "Security",
+      "section": "Security",
+      "heading": "Execution isolation and network controls",
+      "headingId": "isolation",
+      "content": "Security model, authentication, RBAC, isolation, secrets, and audit. Data Plane executes user code in containerized environments with restricted privileges. Network egress is deny-by-default and explicitly allowed by policy. Runs must not access Control Plane directly beyond required interfaces.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress",
+        "sso"
+      ],
+      "url": "/en/docs/security#isolation"
+    },
+    {
+      "docId": "security#data-artifacts",
+      "slug": "security",
+      "title": "Security",
+      "section": "Security",
+      "heading": "Data and artifact access",
+      "headingId": "data-artifacts",
+      "content": "Security model, authentication, RBAC, isolation, secrets, and audit. Access to DatasetVersion is checked on every request and scoped by Project. Artifacts are stored within Project boundaries and governed by role-based access. Model export can be restricted by policy and requires appropriate approvals.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress",
+        "sso"
+      ],
+      "url": "/en/docs/security#data-artifacts"
+    },
+    {
+      "docId": "security#audit",
+      "slug": "security",
+      "title": "Security",
+      "section": "Security",
+      "heading": "Audit and export",
+      "headingId": "audit",
+      "content": "Security model, authentication, RBAC, isolation, secrets, and audit. AuditEvent records authentication, authorization changes, data access, Run execution, and model promotion/export. AuditEvent is append-only and cannot be disabled. Audit must be exportable to SIEM and monitoring systems with reliable delivery.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress",
+        "sso"
+      ],
+      "url": "/en/docs/security#audit"
+    },
+    {
+      "docId": "security#updates",
+      "slug": "security",
+      "title": "Security",
+      "section": "Security",
+      "heading": "Updates and vulnerabilities",
+      "headingId": "updates",
+      "content": "Security model, authentication, RBAC, isolation, secrets, and audit. Updates must be controlled and preserve data integrity. Rollback and compatibility of schemas and contracts are required. Supply-chain controls include image verification and SBOM support. Cross-references See Governance for RBAC roles and audit policy; see Operations for incident runbooks and recovery procedures.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress",
+        "sso"
+      ],
+      "url": "/en/docs/security#updates"
+    },
+    {
+      "docId": "operations",
+      "slug": "operations",
+      "title": "Operations",
+      "section": "Operations",
+      "heading": "Operations",
+      "headingId": null,
+      "content": "Deployment, reliability, observability, backups, and runbooks. Predictable behavior under load, failure, and updates. Observability by default without manual diagnostics. Automation of critical procedures: install, update, recovery. Separation of responsibilities between Control Plane and Data Plane operations. Single-cluster: Control Plane and Data Plane in one Kubernetes cluster. Multi-cluster: one Control Plane with multiple Data Plane clusters. On-premise, private cloud, and air-gapped environments are supported. Delivery via Helm charts and/or Kustomize manifests with versioned container images. Installation does not require manual container edits, source code modification, or external network access for air-gapped deployments. External dependencies include metadata database, object storage, IdP, and secret store, all documented and replaceable. Control Plane supports horizontal scaling and external state storage. Data Plane scales by Run volume, resource requirements, and cluster count. Project-level quotas, global limits, and scheduling priorities are enforced. Metrics for Control Plane and Data Plane, Run/PipelineRun, queues, and scheduler. Structured logs collected centrally without secrets. Distributed tracing for API requests and orchestration paths. Metadata, audit data, and platform configuration are subject to backup. RPO and RTO targets must be defined per installation. Recovery procedures are documented, testable, and automatable. Updates are staged and support rollback. Schema migrations are controlled and reversible where possible. Breaking changes require explicit versioning and migration guides. Air-gapped installations operate without access to public repositories. Offline image bundles, local registries, and integrity verification are required. Platform Owner: overall installation responsibility. SRE / Platform Engineer: reliability and operations. Security Officer: security controls and compliance review. Project Maintainer: management of individual Projects. RB-01: Control Plane unavailable. RB-02: Run stuck in queued. RB-03: Data Plane unavailable or degraded. RB-04: Audit export failure. RB-05: Suspected account compromise. RB-06: Data or model leakage incident. RB-07: Control Plane metadata loss. Cross-references See Acceptance Criteria for operational readiness checks and required verification scenarios.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/en/docs/operations"
+    },
+    {
+      "docId": "operations#principles",
+      "slug": "operations",
+      "title": "Operations",
+      "section": "Operations",
+      "heading": "Operational principles",
+      "headingId": "principles",
+      "content": "Deployment, reliability, observability, backups, and runbooks. Predictable behavior under load, failure, and updates. Observability by default without manual diagnostics. Automation of critical procedures: install, update, recovery. Separation of responsibilities between Control Plane and Data Plane operations.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/en/docs/operations#principles"
+    },
+    {
+      "docId": "operations#deployment",
+      "slug": "operations",
+      "title": "Operations",
+      "section": "Operations",
+      "heading": "Deployment models",
+      "headingId": "deployment",
+      "content": "Deployment, reliability, observability, backups, and runbooks. Single-cluster: Control Plane and Data Plane in one Kubernetes cluster. Multi-cluster: one Control Plane with multiple Data Plane clusters. On-premise, private cloud, and air-gapped environments are supported.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/en/docs/operations#deployment"
+    },
+    {
+      "docId": "operations#artifacts",
+      "slug": "operations",
+      "title": "Operations",
+      "section": "Operations",
+      "heading": "Installation artifacts and dependencies",
+      "headingId": "artifacts",
+      "content": "Deployment, reliability, observability, backups, and runbooks. Delivery via Helm charts and/or Kustomize manifests with versioned container images. Installation does not require manual container edits, source code modification, or external network access for air-gapped deployments. External dependencies include metadata database, object storage, IdP, and secret store, all documented and replaceable.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/en/docs/operations#artifacts"
+    },
+    {
+      "docId": "operations#scaling",
+      "slug": "operations",
+      "title": "Operations",
+      "section": "Operations",
+      "heading": "Scaling and reliability",
+      "headingId": "scaling",
+      "content": "Deployment, reliability, observability, backups, and runbooks. Control Plane supports horizontal scaling and external state storage. Data Plane scales by Run volume, resource requirements, and cluster count. Project-level quotas, global limits, and scheduling priorities are enforced.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/en/docs/operations#scaling"
+    },
+    {
+      "docId": "operations#observability",
+      "slug": "operations",
+      "title": "Operations",
+      "section": "Operations",
+      "heading": "Observability",
+      "headingId": "observability",
+      "content": "Deployment, reliability, observability, backups, and runbooks. Metrics for Control Plane and Data Plane, Run/PipelineRun, queues, and scheduler. Structured logs collected centrally without secrets. Distributed tracing for API requests and orchestration paths.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/en/docs/operations#observability"
+    },
+    {
+      "docId": "operations#backup-dr",
+      "slug": "operations",
+      "title": "Operations",
+      "section": "Operations",
+      "heading": "Backup and disaster recovery",
+      "headingId": "backup-dr",
+      "content": "Deployment, reliability, observability, backups, and runbooks. Metadata, audit data, and platform configuration are subject to backup. RPO and RTO targets must be defined per installation. Recovery procedures are documented, testable, and automatable.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/en/docs/operations#backup-dr"
+    },
+    {
+      "docId": "operations#updates",
+      "slug": "operations",
+      "title": "Operations",
+      "section": "Operations",
+      "heading": "Updates and migrations",
+      "headingId": "updates",
+      "content": "Deployment, reliability, observability, backups, and runbooks. Updates are staged and support rollback. Schema migrations are controlled and reversible where possible. Breaking changes require explicit versioning and migration guides.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/en/docs/operations#updates"
+    },
+    {
+      "docId": "operations#air-gapped",
+      "slug": "operations",
+      "title": "Operations",
+      "section": "Operations",
+      "heading": "Air-gapped mode",
+      "headingId": "air-gapped",
+      "content": "Deployment, reliability, observability, backups, and runbooks. Air-gapped installations operate without access to public repositories. Offline image bundles, local registries, and integrity verification are required.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/en/docs/operations#air-gapped"
+    },
+    {
+      "docId": "operations#roles",
+      "slug": "operations",
+      "title": "Operations",
+      "section": "Operations",
+      "heading": "Operational roles",
+      "headingId": "roles",
+      "content": "Deployment, reliability, observability, backups, and runbooks. Platform Owner: overall installation responsibility. SRE / Platform Engineer: reliability and operations. Security Officer: security controls and compliance review. Project Maintainer: management of individual Projects.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/en/docs/operations#roles"
+    },
+    {
+      "docId": "operations#runbooks",
+      "slug": "operations",
+      "title": "Operations",
+      "section": "Operations",
+      "heading": "Operational runbooks",
+      "headingId": "runbooks",
+      "content": "Deployment, reliability, observability, backups, and runbooks. RB-01: Control Plane unavailable. RB-02: Run stuck in queued. RB-03: Data Plane unavailable or degraded. RB-04: Audit export failure. RB-05: Suspected account compromise. RB-06: Data or model leakage incident. RB-07: Control Plane metadata loss. Cross-references See Acceptance Criteria for operational readiness checks and required verification scenarios.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/en/docs/operations#runbooks"
+    },
+    {
+      "docId": "governance",
+      "slug": "governance",
+      "title": "Governance",
+      "section": "Governance",
+      "heading": "Governance",
+      "headingId": null,
+      "content": "RBAC, policy enforcement, audit, and retention controls. Project-centric roles with default deny. Object-level enforcement for Dataset, Run, Model, and Audit operations. All access and state changes are audited by default. Project-scoped roles: Viewer, Developer, Maintainer, Admin. System roles: Platform Operator, Security Officer, Service Account. Operate within Project or System scope with minimal privileges. Do not use interactive sessions and have limited token TTL. All service account actions are audited. Control Plane applies policies for access, production-run constraints, environments, network controls, and retention/governance before execution. Policy decisions are recorded in AuditEvent. AuditEvent is append-only, non-disableable, and exportable. AuditEvent includes actor, action, object reference, timestamp, and result. Audit coverage includes authentication, access changes, data access, Run execution, and model promotion/export. DatasetVersion deletion is restricted by retention policy and legal hold. Retention policies govern lifecycle transitions (deprecated, expired, deleted). Cross-references See Security for threat model assumptions and audit constraints.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "policy",
+        "retention"
+      ],
+      "url": "/en/docs/governance"
+    },
+    {
+      "docId": "governance#rbac-principles",
+      "slug": "governance",
+      "title": "Governance",
+      "section": "Governance",
+      "heading": "RBAC model",
+      "headingId": "rbac-principles",
+      "content": "RBAC, policy enforcement, audit, and retention controls. Project-centric roles with default deny. Object-level enforcement for Dataset, Run, Model, and Audit operations. All access and state changes are audited by default.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "policy",
+        "retention"
+      ],
+      "url": "/en/docs/governance#rbac-principles"
+    },
+    {
+      "docId": "governance#roles",
+      "slug": "governance",
+      "title": "Governance",
+      "section": "Governance",
+      "heading": "Roles",
+      "headingId": "roles",
+      "content": "RBAC, policy enforcement, audit, and retention controls. Project-scoped roles: Viewer, Developer, Maintainer, Admin. System roles: Platform Operator, Security Officer, Service Account.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "policy",
+        "retention"
+      ],
+      "url": "/en/docs/governance#roles"
+    },
+    {
+      "docId": "governance#service-accounts",
+      "slug": "governance",
+      "title": "Governance",
+      "section": "Governance",
+      "heading": "Service accounts",
+      "headingId": "service-accounts",
+      "content": "RBAC, policy enforcement, audit, and retention controls. Operate within Project or System scope with minimal privileges. Do not use interactive sessions and have limited token TTL. All service account actions are audited.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "policy",
+        "retention"
+      ],
+      "url": "/en/docs/governance#service-accounts"
+    },
+    {
+      "docId": "governance#policy-enforcement",
+      "slug": "governance",
+      "title": "Governance",
+      "section": "Governance",
+      "heading": "Policy enforcement",
+      "headingId": "policy-enforcement",
+      "content": "RBAC, policy enforcement, audit, and retention controls. Control Plane applies policies for access, production-run constraints, environments, network controls, and retention/governance before execution. Policy decisions are recorded in AuditEvent.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "policy",
+        "retention"
+      ],
+      "url": "/en/docs/governance#policy-enforcement"
+    },
+    {
+      "docId": "governance#audit",
+      "slug": "governance",
+      "title": "Governance",
+      "section": "Governance",
+      "heading": "Audit",
+      "headingId": "audit",
+      "content": "RBAC, policy enforcement, audit, and retention controls. AuditEvent is append-only, non-disableable, and exportable. AuditEvent includes actor, action, object reference, timestamp, and result. Audit coverage includes authentication, access changes, data access, Run execution, and model promotion/export.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "policy",
+        "retention"
+      ],
+      "url": "/en/docs/governance#audit"
+    },
+    {
+      "docId": "governance#retention",
+      "slug": "governance",
+      "title": "Governance",
+      "section": "Governance",
+      "heading": "Retention and legal hold",
+      "headingId": "retention",
+      "content": "RBAC, policy enforcement, audit, and retention controls. DatasetVersion deletion is restricted by retention policy and legal hold. Retention policies govern lifecycle transitions (deprecated, expired, deleted). Cross-references See Security for threat model assumptions and audit constraints.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "policy",
+        "retention"
+      ],
+      "url": "/en/docs/governance#retention"
+    },
+    {
+      "docId": "acceptance-criteria",
+      "slug": "acceptance-criteria",
+      "title": "Acceptance Criteria",
+      "section": "Acceptance Criteria",
+      "heading": "Acceptance Criteria",
+      "headingId": null,
+      "content": "Production-grade conditions and verification scenarios. Acceptance criteria define formal conditions under which Animus Datalab is considered production-grade and suitable for regulated environments. The platform is not considered ready if any mandatory criterion is unmet. Acceptance is performed on a working installation with audit and security policies enabled. Full ML lifecycle in one Project with DatasetVersion, CodeRef commit SHA, and EnvironmentLock. Reproducible production-run with explicit determinism status. Project isolation with audited access denials. SSO or local accounts for air-gapped environments; session TTL and forced logout. RBAC enforcement with object-level permissions. Secrets are temporary, never exposed in UI/logs/artifacts, and audited. All significant actions generate AuditEvent. AuditEvent includes actor, action, object, and timestamp. Audit export is reliable and consistent under retries. Installation is automated and supports air-gapped mode. Updates do not lose data and support rollback. Backup and DR procedures are documented and effective. Metrics for Control Plane and Data Plane are available. Logs are structured and centralized. Tracing covers key execution paths. Dev environments are available and policy constraints are transparent. No hidden state; any result must be explainable through explicit entities. Animus Datalab is production-grade when the full ML lifecycle is executable within one Project, production-run reproducibility is explicit or its limitations are recorded, audit is end-to-end and exportable, security and access policies enforce permissions, deployments are installable and upgradable with rollback, and no hidden state affects results.",
+      "keywords": [
+        "acceptance",
+        "production-grade",
+        "criteria"
+      ],
+      "url": "/en/docs/acceptance-criteria"
+    },
+    {
+      "docId": "acceptance-criteria#purpose",
+      "slug": "acceptance-criteria",
+      "title": "Acceptance Criteria",
+      "section": "Acceptance Criteria",
+      "heading": "Purpose",
+      "headingId": "purpose",
+      "content": "Production-grade conditions and verification scenarios. Acceptance criteria define formal conditions under which Animus Datalab is considered production-grade and suitable for regulated environments.",
+      "keywords": [
+        "acceptance",
+        "production-grade",
+        "criteria"
+      ],
+      "url": "/en/docs/acceptance-criteria#purpose"
+    },
+    {
+      "docId": "acceptance-criteria#general",
+      "slug": "acceptance-criteria",
+      "title": "Acceptance Criteria",
+      "section": "Acceptance Criteria",
+      "heading": "General requirements",
+      "headingId": "general",
+      "content": "Production-grade conditions and verification scenarios. The platform is not considered ready if any mandatory criterion is unmet. Acceptance is performed on a working installation with audit and security policies enabled.",
+      "keywords": [
+        "acceptance",
+        "production-grade",
+        "criteria"
+      ],
+      "url": "/en/docs/acceptance-criteria#general"
+    },
+    {
+      "docId": "acceptance-criteria#e2e",
+      "slug": "acceptance-criteria",
+      "title": "Acceptance Criteria",
+      "section": "Acceptance Criteria",
+      "heading": "End-to-end scenarios",
+      "headingId": "e2e",
+      "content": "Production-grade conditions and verification scenarios. Full ML lifecycle in one Project with DatasetVersion, CodeRef commit SHA, and EnvironmentLock. Reproducible production-run with explicit determinism status. Project isolation with audited access denials.",
+      "keywords": [
+        "acceptance",
+        "production-grade",
+        "criteria"
+      ],
+      "url": "/en/docs/acceptance-criteria#e2e"
+    },
+    {
+      "docId": "acceptance-criteria#security",
+      "slug": "acceptance-criteria",
+      "title": "Acceptance Criteria",
+      "section": "Acceptance Criteria",
+      "heading": "Security and access",
+      "headingId": "security",
+      "content": "Production-grade conditions and verification scenarios. SSO or local accounts for air-gapped environments; session TTL and forced logout. RBAC enforcement with object-level permissions. Secrets are temporary, never exposed in UI/logs/artifacts, and audited.",
+      "keywords": [
+        "acceptance",
+        "production-grade",
+        "criteria"
+      ],
+      "url": "/en/docs/acceptance-criteria#security"
+    },
+    {
+      "docId": "acceptance-criteria#audit",
+      "slug": "acceptance-criteria",
+      "title": "Acceptance Criteria",
+      "section": "Acceptance Criteria",
+      "heading": "Audit and traceability",
+      "headingId": "audit",
+      "content": "Production-grade conditions and verification scenarios. All significant actions generate AuditEvent. AuditEvent includes actor, action, object, and timestamp. Audit export is reliable and consistent under retries.",
+      "keywords": [
+        "acceptance",
+        "production-grade",
+        "criteria"
+      ],
+      "url": "/en/docs/acceptance-criteria#audit"
+    },
+    {
+      "docId": "acceptance-criteria#operations",
+      "slug": "acceptance-criteria",
+      "title": "Acceptance Criteria",
+      "section": "Acceptance Criteria",
+      "heading": "Operational readiness",
+      "headingId": "operations",
+      "content": "Production-grade conditions and verification scenarios. Installation is automated and supports air-gapped mode. Updates do not lose data and support rollback. Backup and DR procedures are documented and effective.",
+      "keywords": [
+        "acceptance",
+        "production-grade",
+        "criteria"
+      ],
+      "url": "/en/docs/acceptance-criteria#operations"
+    },
+    {
+      "docId": "acceptance-criteria#observability",
+      "slug": "acceptance-criteria",
+      "title": "Acceptance Criteria",
+      "section": "Acceptance Criteria",
+      "heading": "Observability",
+      "headingId": "observability",
+      "content": "Production-grade conditions and verification scenarios. Metrics for Control Plane and Data Plane are available. Logs are structured and centralized. Tracing covers key execution paths.",
+      "keywords": [
+        "acceptance",
+        "production-grade",
+        "criteria"
+      ],
+      "url": "/en/docs/acceptance-criteria#observability"
+    },
+    {
+      "docId": "acceptance-criteria#dx",
+      "slug": "acceptance-criteria",
+      "title": "Acceptance Criteria",
+      "section": "Acceptance Criteria",
+      "heading": "Developer environment",
+      "headingId": "dx",
+      "content": "Production-grade conditions and verification scenarios. Dev environments are available and policy constraints are transparent. No hidden state; any result must be explainable through explicit entities.",
+      "keywords": [
+        "acceptance",
+        "production-grade",
+        "criteria"
+      ],
+      "url": "/en/docs/acceptance-criteria#dx"
+    },
+    {
+      "docId": "acceptance-criteria#production-grade",
+      "slug": "acceptance-criteria",
+      "title": "Acceptance Criteria",
+      "section": "Acceptance Criteria",
+      "heading": "Production-grade definition",
+      "headingId": "production-grade",
+      "content": "Production-grade conditions and verification scenarios. Animus Datalab is production-grade when the full ML lifecycle is executable within one Project, production-run reproducibility is explicit or its limitations are recorded, audit is end-to-end and exportable, security and access policies enforce permissions, deployments are installable and upgradable with rollback, and no hidden state affects results.",
+      "keywords": [
+        "acceptance",
+        "production-grade",
+        "criteria"
+      ],
+      "url": "/en/docs/acceptance-criteria#production-grade"
+    },
+    {
+      "docId": "adrs",
+      "slug": "adrs",
+      "title": "Architectural Decision Records",
+      "section": "Architectural Decision Records",
+      "heading": "Architectural Decision Records",
+      "headingId": null,
+      "content": "Accepted architectural decisions and rationale. ADR-001: Separation of Control Plane and Data Plane; Control Plane never executes user code. ADR-002: Run as the unit of reproducibility. ADR-003: Immutable DatasetVersion; Runs reference DatasetVersion. ADR-004: Production-run requires CodeRef commit SHA and EnvironmentLock. ADR-005: IDE is a tool, not a platform; managed IDE sessions only. ADR-006: AuditEvent is append-only, non-disableable, and exportable.",
+      "keywords": [
+        "adr",
+        "decisions"
+      ],
+      "url": "/en/docs/adrs"
+    },
+    {
+      "docId": "adrs#decisions",
+      "slug": "adrs",
+      "title": "Architectural Decision Records",
+      "section": "Architectural Decision Records",
+      "heading": "Accepted ADRs",
+      "headingId": "decisions",
+      "content": "Accepted architectural decisions and rationale. ADR-001: Separation of Control Plane and Data Plane; Control Plane never executes user code. ADR-002: Run as the unit of reproducibility. ADR-003: Immutable DatasetVersion; Runs reference DatasetVersion. ADR-004: Production-run requires CodeRef commit SHA and EnvironmentLock. ADR-005: IDE is a tool, not a platform; managed IDE sessions only. ADR-006: AuditEvent is append-only, non-disableable, and exportable.",
+      "keywords": [
+        "adr",
+        "decisions"
+      ],
+      "url": "/en/docs/adrs#decisions"
+    },
+    {
+      "docId": "glossary",
+      "slug": "glossary",
+      "title": "Glossary",
+      "section": "Glossary",
+      "heading": "Glossary",
+      "headingId": null,
+      "content": "Canonical terminology defined in the system documentation. Run: unit of execution and reproducibility in Animus. Control Plane: management plane of the platform. Data Plane: execution plane for user code. Immutable: an object that cannot be modified after creation. Production-run: a Run whose result may be used outside the laboratory. Project: organizational and isolation unit for access and execution. Dataset: logical data entity anchoring versions. DatasetVersion: immutable data version used by Run. CodeRef: reference to code in an external SCM with commit SHA. EnvironmentDefinition: logical description of an execution environment. EnvironmentLock: immutable, verifiable execution environment reference. PipelineRun: composed Run representing a DAG of Runs. Artifact: result of Run execution (logs, metrics, files, models, reports). Model: logical entity representing model versions. ModelVersion: concrete Run result recognized as a model. AuditEvent: immutable record of a significant system action.",
+      "keywords": [
+        "glossary",
+        "terms"
+      ],
+      "url": "/en/docs/glossary"
+    },
+    {
+      "docId": "glossary#core-terms",
+      "slug": "glossary",
+      "title": "Glossary",
+      "section": "Glossary",
+      "heading": "Core terms",
+      "headingId": "core-terms",
+      "content": "Canonical terminology defined in the system documentation. Run: unit of execution and reproducibility in Animus. Control Plane: management plane of the platform. Data Plane: execution plane for user code. Immutable: an object that cannot be modified after creation. Production-run: a Run whose result may be used outside the laboratory.",
+      "keywords": [
+        "glossary",
+        "terms"
+      ],
+      "url": "/en/docs/glossary#core-terms"
+    },
+    {
+      "docId": "glossary#domain-terms",
+      "slug": "glossary",
+      "title": "Glossary",
+      "section": "Glossary",
+      "heading": "Domain entities",
+      "headingId": "domain-terms",
+      "content": "Canonical terminology defined in the system documentation. Project: organizational and isolation unit for access and execution. Dataset: logical data entity anchoring versions. DatasetVersion: immutable data version used by Run. CodeRef: reference to code in an external SCM with commit SHA. EnvironmentDefinition: logical description of an execution environment. EnvironmentLock: immutable, verifiable execution environment reference. PipelineRun: composed Run representing a DAG of Runs. Artifact: result of Run execution (logs, metrics, files, models, reports). Model: logical entity representing model versions. ModelVersion: concrete Run result recognized as a model. AuditEvent: immutable record of a significant system action.",
+      "keywords": [
+        "glossary",
+        "terms"
+      ],
+      "url": "/en/docs/glossary#domain-terms"
+    }
+  ]
+}

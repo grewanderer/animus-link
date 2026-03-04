@@ -1,0 +1,69 @@
+{
+  "generatedAt": "2026-02-13T21:45:29.630Z",
+  "cycle": {
+    "current": 417,
+    "target": 999
+  },
+  "milestones": [
+    {
+      "id": "m-20260213-main-work-replay",
+      "cycle": 417,
+      "type": "replay",
+      "date": "2026-02-13T11:59:45Z",
+      "title": "Main-work replay achieved with proof equivalence",
+      "summary": "run-20260213-004 replayed successfully with locked context and published proof hash.",
+      "links": [
+        {
+          "label": "Run detail",
+          "href": "/runs/run-20260213-004"
+        },
+        {
+          "label": "Proof bundle",
+          "href": "https://example.com/proof/run-20260213-004.bundle.json"
+        }
+      ]
+    },
+    {
+      "id": "m-20260213-main-regression",
+      "cycle": 416,
+      "type": "merge",
+      "date": "2026-02-13T10:22:00Z",
+      "title": "Regression harness update merged to main",
+      "summary": "Regression harness now emits event-level traces consumed by scoreboard and run detail pages.",
+      "links": [
+        {
+          "label": "Metrics",
+          "href": "/metrics"
+        }
+      ]
+    },
+    {
+      "id": "m-20260212-proof-policy",
+      "cycle": 415,
+      "type": "release",
+      "date": "2026-02-12T18:05:00Z",
+      "title": "Proof bundle verification policy published",
+      "summary": "Proof schema and checksum verification instructions rolled into artifacts index.",
+      "links": [
+        {
+          "label": "Artifacts",
+          "href": "/artifacts"
+        }
+      ]
+    },
+    {
+      "id": "m-20260211-replay-note",
+      "cycle": 414,
+      "type": "note",
+      "date": "2026-02-11T17:49:00Z",
+      "title": "Replay baseline stabilized for M3",
+      "summary": "Replay drift for M3 dropped below threshold after environment lock harmonization.",
+      "links": [
+        {
+          "label": "Runs",
+          "href": "/runs"
+        }
+      ]
+    }
+  ]
+}

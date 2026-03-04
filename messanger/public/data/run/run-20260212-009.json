@@ -1,0 +1,47 @@
+{
+  "run": {
+    "id": "run-20260212-009",
+    "timestamp": "2026-02-12T18:05:00Z",
+    "model": "gpt-5-codex",
+    "branch": "main",
+    "commitSha": "c7d3e5d14d9ecf260fbd7e7f95a4f5f7a43e7f1d",
+    "tokens": 103110,
+    "status": "succeeded",
+    "replayStatus": "pending",
+    "proofHash": "sha256:6e2ebf5ab2e02899ca1031d4d7cd3a15bd1306db63728d4a6dbc7f9af21ef8d4",
+    "proofBundleUrl": "https://example.com/proof/run-20260212-009.bundle.json",
+    "proofBundleSizeBytes": 120542,
+    "reproducible": true,
+    "pinnedContext": true,
+    "envLockId": "envlock-20260212-c",
+    "harnessPassed": true,
+    "module": "M0",
+    "detailPath": "/runs/run-20260212-009"
+  },
+  "timeline": [
+    {
+      "time": "2026-02-12T18:05:00Z",
+      "type": "RunCreated",
+      "detail": "Run recorded with explicit context and policy snapshot.",
+      "source": "EventLog"
+    },
+    {
+      "time": "2026-02-12T18:05:00Z",
+      "type": "RunObserved",
+      "detail": "Status succeeded with replay state pending.",
+      "source": "Ledger"
+    }
+  ],
+  "artifacts": [
+    {
+      "label": "Proof bundle",
+      "href": "https://example.com/proof/run-20260212-009.bundle.json",
+      "hash": "sha256:6e2ebf5ab2e02899ca1031d4d7cd3a15bd1306db63728d4a6dbc7f9af21ef8d4"
+    }
+  ],
+  "replay": {
+    "href": "/runs?replayFrom=run-20260212-009",
+    "note": "Replay creates a new run with lineage to this source run."
+  },
+  "warnings": []
+}

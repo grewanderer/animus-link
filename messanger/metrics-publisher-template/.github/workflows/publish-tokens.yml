@@ -1,0 +1,46 @@
+name: Publish Tokens Aggregate
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Publish tokens aggregate
+        env:
+          TOKENS_SOURCE_MODE: ${{ vars.TOKENS_SOURCE_MODE }}
+          TOKENS_SOURCE_LABEL: ${{ vars.TOKENS_SOURCE_LABEL }}
+          TOKENS_SOURCE_ENDPOINT: ${{ vars.TOKENS_SOURCE_ENDPOINT }}
+          TOKENS_SOURCE_TOKEN: ${{ secrets.TOKENS_SOURCE_TOKEN }}
+          TOKENS_TOTAL: ${{ vars.TOKENS_TOTAL }}
+          TOKENS_24H: ${{ vars.TOKENS_24H }}
+          TOKENS_7D: ${{ vars.TOKENS_7D }}
+        run: node scripts/publish-tokens.mjs
+
+      - name: Commit changes
+        run: |
+          if [ -z "$(git status --porcelain public/data/tokens.json)" ]; then
+            echo "No changes in tokens.json"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/tokens.json
+          git commit -m "chore(metrics): publish tokens aggregate"
+          git push

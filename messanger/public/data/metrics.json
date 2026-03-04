@@ -1,0 +1,144 @@
+{
+  "generatedAt": "2026-02-13T12:00:00Z",
+  "refreshIntervalSeconds": 20,
+  "sourceRepository": "grewanderer/animus_coder",
+  "tokens": {
+    "total": 983070,
+    "last24h": 662231
+  },
+  "runs": {
+    "total": 8,
+    "last24h": 5,
+    "replaySuccessRate7d": 50
+  },
+  "proofBundles": {
+    "total": 6,
+    "last24h": 4
+  },
+  "commits": {
+    "total": 289,
+    "last7d": 37,
+    "weekly": [
+      { "time": "2025-12-29", "value": 28 },
+      { "time": "2026-01-05", "value": 31 },
+      { "time": "2026-01-12", "value": 34 },
+      { "time": "2026-01-19", "value": 33 },
+      { "time": "2026-01-26", "value": 35 },
+      { "time": "2026-02-02", "value": 36 },
+      { "time": "2026-02-09", "value": 37 }
+    ]
+  },
+  "mergedPrs": {
+    "total": 94,
+    "last7d": 11
+  },
+  "branchStatus": [
+    {
+      "name": "main",
+      "ahead": 0,
+      "behind": 0,
+      "lastCommitSha": "6bd1ca9e7a0e6f671bcce4e2c05ee2a2df5fd26f",
+      "lastCommitAt": "2026-02-13T10:18:00Z",
+      "ciStatus": "pass",
+      "commitUrl": "https://github.com/grewanderer/animus_coder/commit/6bd1ca9e7a0e6f671bcce4e2c05ee2a2df5fd26f",
+      "compareUrl": "https://github.com/grewanderer/animus_coder/compare/main"
+    },
+    {
+      "name": "main-work",
+      "ahead": 4,
+      "behind": 1,
+      "lastCommitSha": "c8f1ec4358f09b94e1f0b057a913715dfb8a8612",
+      "lastCommitAt": "2026-02-13T11:40:00Z",
+      "ciStatus": "pending",
+      "commitUrl": "https://github.com/grewanderer/animus_coder/commit/c8f1ec4358f09b94e1f0b057a913715dfb8a8612",
+      "compareUrl": "https://github.com/grewanderer/animus_coder/compare/main...main-work"
+    }
+  ],
+  "ciStatus": {
+    "workflow": "metrics-refresh",
+    "conclusion": "success",
+    "updatedAt": "2026-02-13T11:58:00Z",
+    "url": "https://github.com/grewanderer/animus_coder/actions"
+  },
+  "latestRun": {
+    "id": "run-20260213-004",
+    "model": "gpt-5-codex",
+    "timestamp": "2026-02-13T11:42:00Z",
+    "href": "/runs/run-20260213-004",
+    "status": "succeeded"
+  },
+  "regressionScore": {
+    "value": 67.5,
+    "formula": "score = (75.0 * 0.35) + (50.0 * 0.35) + (87.5 * 0.20) + (62.5 * 0.10)",
+    "weights": {
+      "proofBundle": 0.35,
+      "replaySuccess": 0.35,
+      "pinnedContext": 0.2,
+      "harnessPass": 0.1
+    },
+    "components": {
+      "proofBundlePct": 75,
+      "replaySuccessPct": 50,
+      "pinnedContextPct": 87.5,
+      "harnessPassPct": 62.5
+    },
+    "series": [
+      { "time": "2026-02-07", "value": 59.2 },
+      { "time": "2026-02-08", "value": 60.8 },
+      { "time": "2026-02-09", "value": 62.4 },
+      { "time": "2026-02-10", "value": 63.1 },
+      { "time": "2026-02-11", "value": 65.4 },
+      { "time": "2026-02-12", "value": 66.2 },
+      { "time": "2026-02-13", "value": 67.5 }
+    ]
+  },
+  "tokensPerRun": [
+    { "time": "2026-02-09", "value": 66023 },
+    { "time": "2026-02-10", "value": 78814 },
+    { "time": "2026-02-11", "value": 176002 },
+    { "time": "2026-02-12", "value": 96877 },
+    { "time": "2026-02-13", "value": 156226 }
+  ],
+  "replayRate": [
+    { "time": "2026-02-09", "value": 44 },
+    { "time": "2026-02-10", "value": 45 },
+    { "time": "2026-02-11", "value": 47 },
+    { "time": "2026-02-12", "value": 49 },
+    { "time": "2026-02-13", "value": 50 }
+  ],
+  "commitsPerWeek": [
+    { "time": "2025-12-29", "value": 28 },
+    { "time": "2026-01-05", "value": 31 },
+    { "time": "2026-01-12", "value": 34 },
+    { "time": "2026-01-19", "value": 33 },
+    { "time": "2026-01-26", "value": 35 },
+    { "time": "2026-02-02", "value": 36 },
+    { "time": "2026-02-09", "value": 37 }
+  ],
+  "moduleBreakdown": [
+    {
+      "module": "M0",
+      "runs": 2,
+      "tokens": 169133,
+      "successRate": 100
+    },
+    {
+      "module": "M1",
+      "runs": 2,
+      "tokens": 203150,
+      "successRate": 50
+    },
+    {
+      "module": "M2",
+      "runs": 2,
+      "tokens": 236345,
+      "successRate": 0
+    },
+    {
+      "module": "M3",
+      "runs": 2,
+      "tokens": 374442,
+      "successRate": 100
+    }
+  ]
+}

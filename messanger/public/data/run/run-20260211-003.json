@@ -1,0 +1,31 @@
+{
+  "run": {
+    "id": "run-20260211-003",
+    "commitSha": "a19071e5dc1a9fb3452a96965ae8a6f84989c77e",
+    "environmentLockId": "envlock-20260210-c",
+    "policySnapshotId": "policy-20260211-03",
+    "status": "running",
+    "tokens": 92440,
+    "bundlePath": "https://github.com/grewanderer/animus_coder/releases/download/run-snapshots-2026-02/run-20260211-003.bundle.json",
+    "createdAt": "2026-02-11T15:00:42Z",
+    "updatedAt": "2026-02-11T15:18:02Z",
+    "riskMarkers": []
+  },
+  "timeline": [
+    {
+      "time": "2026-02-11T15:00:42Z",
+      "type": "RunCreated",
+      "detail": "Run admitted with explicit commit SHA and EnvironmentLock references."
+    },
+    {
+      "time": "2026-02-11T15:01:14Z",
+      "type": "ExecutionStarted",
+      "detail": "Data Plane execution started and remains in progress."
+    }
+  ],
+  "replay": {
+    "href": "/runs?replayFrom=run-20260211-003",
+    "note": "Replay is available after terminal status is recorded."
+  },
+  "warnings": []
+}

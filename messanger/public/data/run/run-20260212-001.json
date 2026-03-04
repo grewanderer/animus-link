@@ -1,0 +1,36 @@
+{
+  "run": {
+    "id": "run-20260212-001",
+    "commitSha": "9afce49a16f67d4ecf43b4abf28099de5f2af402",
+    "environmentLockId": "envlock-20260211-a",
+    "policySnapshotId": "policy-20260212-01",
+    "status": "succeeded",
+    "tokens": 168445,
+    "bundlePath": "https://github.com/grewanderer/animus_coder/releases/download/run-snapshots-2026-02/run-20260212-001.bundle.json",
+    "createdAt": "2026-02-12T09:14:12Z",
+    "updatedAt": "2026-02-12T09:27:47Z",
+    "riskMarkers": []
+  },
+  "timeline": [
+    {
+      "time": "2026-02-12T09:14:12Z",
+      "type": "RunCreated",
+      "detail": "Control Plane validated Run context and persisted Run record."
+    },
+    {
+      "time": "2026-02-12T09:15:03Z",
+      "type": "ExecutionPlanned",
+      "detail": "Execution snapshot stored with pinned image digest and resource envelope."
+    },
+    {
+      "time": "2026-02-12T09:26:51Z",
+      "type": "RunFinished",
+      "detail": "Data Plane reported success; artifact references and audit events were committed."
+    }
+  ],
+  "replay": {
+    "href": "/runs?replayFrom=run-20260212-001",
+    "note": "Replay creates a new Run with lineage to this source Run."
+  },
+  "warnings": []
+}

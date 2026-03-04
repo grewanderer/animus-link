@@ -1,0 +1,103 @@
+{
+  "generatedAt": "2026-02-13T21:45:29.629Z",
+  "formatPolicyNote": "Proof bundles are immutable. Verify SHA-256 hash and replay under declared context before asserting equivalence.",
+  "proofBundles": [
+    {
+      "hash": "sha256:84f9f1be8e1b3fb53cbe13f714e13d4d7e17943f8f3011f9a6a6d39f8eaa0042",
+      "runId": "run-20260213-004",
+      "sizeBytes": 188420,
+      "timestamp": "2026-02-13T11:42:00Z",
+      "bundleUrl": "https://example.com/proof/run-20260213-004.bundle.json",
+      "verification": "sha256sum run-20260213-004.bundle.json"
+    },
+    {
+      "hash": "sha256:15d9a2ee742f24eb2d12f5df6f44ddcb5f8ffab234c9144e386dce9f0fb18d7f",
+      "runId": "run-20260213-003",
+      "sizeBytes": 143551,
+      "timestamp": "2026-02-13T10:55:00Z",
+      "bundleUrl": "https://example.com/proof/run-20260213-003.bundle.json",
+      "verification": "sha256sum run-20260213-003.bundle.json"
+    },
+    {
+      "hash": "sha256:a42f99adf3189ef939cb40a71b4d5fb6df8a952fd9022f2b5e58a60884b90d5a",
+      "runId": "run-20260213-002",
+      "sizeBytes": 111300,
+      "timestamp": "2026-02-13T09:22:00Z",
+      "bundleUrl": "https://example.com/proof/run-20260213-002.bundle.json",
+      "verification": "sha256sum run-20260213-002.bundle.json"
+    },
+    {
+      "hash": "sha256:6e2ebf5ab2e02899ca1031d4d7cd3a15bd1306db63728d4a6dbc7f9af21ef8d4",
+      "runId": "run-20260212-009",
+      "sizeBytes": 120542,
+      "timestamp": "2026-02-12T18:05:00Z",
+      "bundleUrl": "https://example.com/proof/run-20260212-009.bundle.json",
+      "verification": "sha256sum run-20260212-009.bundle.json"
+    },
+    {
+      "hash": "sha256:bebf6fcdfaf8c2124c9a532e7d4ace610f74903f1e0149c19361cf066ca431ec",
+      "runId": "run-20260211-011",
+      "sizeBytes": 190110,
+      "timestamp": "2026-02-11T17:49:00Z",
+      "bundleUrl": "https://example.com/proof/run-20260211-011.bundle.json",
+      "verification": "sha256sum run-20260211-011.bundle.json"
+    },
+    {
+      "hash": "sha256:2d7b8ad2d16a07d1683e04f3802acdb44fe637286f913f465177fa5ae6748295",
+      "runId": "run-20260209-008",
+      "sizeBytes": 95384,
+      "timestamp": "2026-02-09T08:41:00Z",
+      "bundleUrl": "https://example.com/proof/run-20260209-008.bundle.json",
+      "verification": "sha256sum run-20260209-008.bundle.json"
+    }
+  ],
+  "replayOutcomes": [
+    {
+      "sourceRunId": "run-20260213-004",
+      "replayRunId": "run-20260213-004-replay",
+      "status": "succeeded",
+      "timestamp": "2026-02-13T11:42:00Z",
+      "note": "Replay recorded as successful."
+    },
+    {
+      "sourceRunId": "run-20260213-003",
+      "replayRunId": "run-20260213-003-replay",
+      "status": "failed",
+      "timestamp": "2026-02-13T10:55:00Z",
+      "note": "Replay diverged from source output."
+    },
+    {
+      "sourceRunId": "run-20260213-002",
+      "replayRunId": "run-20260213-002-replay",
+      "status": "succeeded",
+      "timestamp": "2026-02-13T09:22:00Z",
+      "note": "Replay recorded as successful."
+    },
+    {
+      "sourceRunId": "run-20260212-009",
+      "status": "running",
+      "timestamp": "2026-02-12T18:05:00Z",
+      "note": "Replay pending."
+    },
+    {
+      "sourceRunId": "run-20260212-007",
+      "status": "running",
+      "timestamp": "2026-02-12T12:31:00Z",
+      "note": "Replay pending."
+    },
+    {
+      "sourceRunId": "run-20260211-011",
+      "replayRunId": "run-20260211-011-replay",
+      "status": "succeeded",
+      "timestamp": "2026-02-11T17:49:00Z",
+      "note": "Replay recorded as successful."
+    },
+    {
+      "sourceRunId": "run-20260209-008",
+      "replayRunId": "run-20260209-008-replay",
+      "status": "succeeded",
+      "timestamp": "2026-02-09T08:41:00Z",
+      "note": "Replay recorded as successful."
+    }
+  ]
+}

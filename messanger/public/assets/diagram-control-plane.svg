@@ -1,0 +1,43 @@
+<svg width="960" height="520" viewBox="0 0 960 520" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b1b2c" />
+      <stop offset="100%" stop-color="#08131f" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6af7d9" />
+      <stop offset="100%" stop-color="#5bc9ff" />
+    </linearGradient>
+    <style>
+      .label { font: 600 18px 'Space Grotesk', sans-serif; fill: #e8f4ff; }
+      .text { font: 14px 'Space Grotesk', sans-serif; fill: #b8c9de; }
+      .caption { font: 12px 'JetBrains Mono', monospace; fill: #95a9c1; letter-spacing: 0.14em; text-transform: uppercase; }
+    </style>
+  </defs>
+
+  <rect x="24" y="24" width="912" height="472" rx="28" fill="url(#panel)" stroke="#203247" stroke-width="2" />
+  <rect x="56" y="60" width="848" height="176" rx="22" fill="#0f2136" stroke="#2a3c52" stroke-width="1.5" />
+  <rect x="56" y="284" width="848" height="176" rx="22" fill="#0d1c2e" stroke="#24364c" stroke-width="1.5" />
+
+  <text x="86" y="96" class="caption">Control Plane</text>
+  <text x="86" y="128" class="label">Policy + Registry + Audit</text>
+  <text x="86" y="156" class="text">Approvals, lineage, quality gates, and metadata</text>
+
+  <text x="86" y="320" class="caption">Data Plane</text>
+  <text x="86" y="352" class="label">Isolated Execution</text>
+  <text x="86" y="380" class="text">Runs inside your infrastructure with explicit resource limits</text>
+
+  <rect x="620" y="98" width="244" height="96" rx="16" fill="#0a1726" stroke="#2a3c52" />
+  <text x="644" y="128" class="text">API + Spec</text>
+  <text x="644" y="154" class="text">RBAC + SSO</text>
+  <text x="644" y="180" class="text">Audit Export</text>
+
+  <rect x="620" y="322" width="244" height="96" rx="16" fill="#0a1726" stroke="#24364c" />
+  <text x="644" y="352" class="text">Kubernetes / VM</text>
+  <text x="644" y="378" class="text">Containers + Isolation</text>
+  <text x="644" y="404" class="text">Artifacts + Logs</text>
+
+  <path d="M480 236 L480 284" stroke="url(#accent)" stroke-width="3" />
+  <circle cx="480" cy="236" r="6" fill="#6af7d9" />
+  <circle cx="480" cy="284" r="6" fill="#5bc9ff" />
+</svg>

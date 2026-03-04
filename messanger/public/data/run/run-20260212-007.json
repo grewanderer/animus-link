@@ -1,0 +1,39 @@
+{
+  "run": {
+    "id": "run-20260212-007",
+    "timestamp": "2026-02-12T12:31:00Z",
+    "model": "gpt-4.1",
+    "branch": "main-work",
+    "commitSha": "f95be47a3d2a1a02dcbb22ee0a72d7d35d9b089f",
+    "tokens": 90443,
+    "status": "running",
+    "replayStatus": "pending",
+    "proofBundleSizeBytes": 0,
+    "reproducible": true,
+    "pinnedContext": true,
+    "envLockId": "envlock-20260212-b",
+    "harnessPassed": false,
+    "module": "M2",
+    "detailPath": "/runs/run-20260212-007"
+  },
+  "timeline": [
+    {
+      "time": "2026-02-12T12:31:00Z",
+      "type": "RunCreated",
+      "detail": "Run recorded with explicit context and policy snapshot.",
+      "source": "EventLog"
+    },
+    {
+      "time": "2026-02-12T12:31:00Z",
+      "type": "RunObserved",
+      "detail": "Status running with replay state pending.",
+      "source": "Ledger"
+    }
+  ],
+  "artifacts": [],
+  "replay": {
+    "href": "/runs?replayFrom=run-20260212-007",
+    "note": "Replay creates a new run with lineage to this source run."
+  },
+  "warnings": []
+}

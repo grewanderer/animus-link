@@ -1,0 +1,20 @@
+[Unit]
+Description=Animus Landing
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/srv/animus-landing
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=0.0.0.0
+EnvironmentFile=/srv/animus-landing/.env.production
+ExecStartPre=/usr/bin/env node /srv/animus-landing/scripts/validate-env.mjs --mode=runtime
+ExecStart=/usr/bin/env node /srv/animus-landing/node_modules/next/dist/bin/next start -H 0.0.0.0 -p 3000
+Restart=on-failure
+RestartSec=5
+User=animus
+Group=animus
+
+[Install]
+WantedBy=multi-user.target

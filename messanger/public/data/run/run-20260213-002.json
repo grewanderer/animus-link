@@ -1,0 +1,53 @@
+{
+  "run": {
+    "id": "run-20260213-002",
+    "timestamp": "2026-02-13T09:22:00Z",
+    "model": "gpt-5-codex",
+    "branch": "main-work",
+    "commitSha": "4a53af2030ab5b58b65f9e8ec4d53d4cdcbf6e62",
+    "tokens": 124336,
+    "status": "succeeded",
+    "replayStatus": "replayed",
+    "proofHash": "sha256:a42f99adf3189ef939cb40a71b4d5fb6df8a952fd9022f2b5e58a60884b90d5a",
+    "proofBundleUrl": "https://example.com/proof/run-20260213-002.bundle.json",
+    "proofBundleSizeBytes": 111300,
+    "reproducible": true,
+    "pinnedContext": true,
+    "envLockId": "envlock-20260212-f",
+    "harnessPassed": true,
+    "module": "M1",
+    "detailPath": "/runs/run-20260213-002"
+  },
+  "timeline": [
+    {
+      "time": "2026-02-13T09:22:00Z",
+      "type": "RunCreated",
+      "detail": "Run created from cloud LLM proposal with local validation mode enabled.",
+      "source": "EventLog"
+    },
+    {
+      "time": "2026-02-13T09:28:40Z",
+      "type": "ProofBundlePublished",
+      "detail": "Bundle uploaded with hash and replay command.",
+      "source": "BundlePublisher"
+    },
+    {
+      "time": "2026-02-13T09:34:02Z",
+      "type": "ReplaySucceeded",
+      "detail": "Replay completed with equivalent outputs under locked context.",
+      "source": "ReplayEngine"
+    }
+  ],
+  "artifacts": [
+    {
+      "label": "Proof bundle",
+      "href": "https://example.com/proof/run-20260213-002.bundle.json",
+      "hash": "sha256:a42f99adf3189ef939cb40a71b4d5fb6df8a952fd9022f2b5e58a60884b90d5a"
+    }
+  ],
+  "replay": {
+    "href": "/runs?replayFrom=run-20260213-002",
+    "note": "Replay command: codex replay --run run-20260213-002 --lock envlock-20260212-f"
+  },
+  "warnings": []
+}

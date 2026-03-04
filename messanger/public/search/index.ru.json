@@ -1,0 +1,1372 @@
+{
+  "version": "v1-duyap9",
+  "locale": "ru",
+  "generatedAt": "2026-02-01T18:57:37.380Z",
+  "entries": [
+    {
+      "docId": "overview",
+      "slug": "overview",
+      "title": "Обзор",
+      "section": "Обзор",
+      "heading": "Обзор",
+      "headingId": null,
+      "content": "Назначение, цели и границы системы. Animus Datalab — корпоративная цифровая лаборатория машинного обучения, предназначенная для организации полного жизненного цикла ML-разработки в управляемом и воспроизводимом виде. Лаборатория объединяет работу с данными, эксперименты, обучение и оценку моделей, подготовку к промышленному использованию в едином операционном контуре с общими правилами исполнения, безопасности и аудита. Обеспечить воспроизводимость ML-экспериментов и результатов. Свести контекст разработки модели (данные, код, окружение, параметры, решения) в явный и связанный вид. Предоставить рабочую среду без нарушения корпоративных требований. Обеспечить управляемость, аудит и безопасность по умолчанию. Animus не является системой контроля версий кода. Animus не является IDE или редактором кода как продуктом. Animus не является полноценной inference-платформой. Animus может интегрироваться с внешними SCM, IDE и системами деплоя/serving через управляемые окружения и контрактные интерфейсы. Связанные разделы См. «Определение системы» (инварианты и явный контекст), «Доменная модель» (сущности) и «Архитектура» (разделение плоскостей).",
+      "keywords": [
+        "определение",
+        "цели",
+        "границы"
+      ],
+      "url": "/ru/docs/overview"
+    },
+    {
+      "docId": "overview#definition",
+      "slug": "overview",
+      "title": "Обзор",
+      "section": "Обзор",
+      "heading": "Определение системы",
+      "headingId": "definition",
+      "content": "Назначение, цели и границы системы. Animus Datalab — корпоративная цифровая лаборатория машинного обучения, предназначенная для организации полного жизненного цикла ML-разработки в управляемом и воспроизводимом виде. Лаборатория объединяет работу с данными, эксперименты, обучение и оценку моделей, подготовку к промышленному использованию в едином операционном контуре с общими правилами исполнения, безопасности и аудита.",
+      "keywords": [
+        "определение",
+        "цели",
+        "границы"
+      ],
+      "url": "/ru/docs/overview#definition"
+    },
+    {
+      "docId": "overview#objectives",
+      "slug": "overview",
+      "title": "Обзор",
+      "section": "Обзор",
+      "heading": "Цели платформы",
+      "headingId": "objectives",
+      "content": "Назначение, цели и границы системы. Обеспечить воспроизводимость ML-экспериментов и результатов. Свести контекст разработки модели (данные, код, окружение, параметры, решения) в явный и связанный вид. Предоставить рабочую среду без нарушения корпоративных требований. Обеспечить управляемость, аудит и безопасность по умолчанию.",
+      "keywords": [
+        "определение",
+        "цели",
+        "границы"
+      ],
+      "url": "/ru/docs/overview#objectives"
+    },
+    {
+      "docId": "overview#boundaries",
+      "slug": "overview",
+      "title": "Обзор",
+      "section": "Обзор",
+      "heading": "Границы системы",
+      "headingId": "boundaries",
+      "content": "Назначение, цели и границы системы. Animus не является системой контроля версий кода. Animus не является IDE или редактором кода как продуктом. Animus не является полноценной inference-платформой. Animus может интегрироваться с внешними SCM, IDE и системами деплоя/serving через управляемые окружения и контрактные интерфейсы. Связанные разделы См. «Определение системы» (инварианты и явный контекст), «Доменная модель» (сущности) и «Архитектура» (разделение плоскостей).",
+      "keywords": [
+        "определение",
+        "цели",
+        "границы"
+      ],
+      "url": "/ru/docs/overview#boundaries"
+    },
+    {
+      "docId": "system-definition",
+      "slug": "system-definition",
+      "title": "Определение системы",
+      "section": "Определение системы",
+      "heading": "Определение системы",
+      "headingId": null,
+      "content": "Формальное определение, инварианты и явный контекст. Animus Datalab — корпоративная цифровая лаборатория машинного обучения, предназначенная для организации полного жизненного цикла ML-разработки в управляемом и воспроизводимом виде. Единый операционный контур обеспечивается общими правилами исполнения, безопасности и аудита. Control Plane не исполняет пользовательский код. Любой production-run однозначно определяется DatasetVersion, CodeRef (commit SHA) и EnvironmentLock. Все значимые действия фиксируются в AuditEvent. Данные, код, окружения и результаты представлены как явные, версионируемые сущности. В системе отсутствует скрытое состояние, влияющее на результат исполнения. Всё, что влияет на результат исполнения, должно быть представлено в системе как явная сущность или ссылка на сущность. Действия без явного контекста рассматриваются как ошибка проектирования и должны быть исключены или формализованы. Animus не заменяет SCM, IDE или inference-платформы. Интеграции с внешними системами выполняются через контрактные интерфейсы.",
+      "keywords": [
+        "инварианты",
+        "контекст",
+        "определение"
+      ],
+      "url": "/ru/docs/system-definition"
+    },
+    {
+      "docId": "system-definition#formal-definition",
+      "slug": "system-definition",
+      "title": "Определение системы",
+      "section": "Определение системы",
+      "heading": "Формальное определение",
+      "headingId": "formal-definition",
+      "content": "Формальное определение, инварианты и явный контекст. Animus Datalab — корпоративная цифровая лаборатория машинного обучения, предназначенная для организации полного жизненного цикла ML-разработки в управляемом и воспроизводимом виде. Единый операционный контур обеспечивается общими правилами исполнения, безопасности и аудита.",
+      "keywords": [
+        "инварианты",
+        "контекст",
+        "определение"
+      ],
+      "url": "/ru/docs/system-definition#formal-definition"
+    },
+    {
+      "docId": "system-definition#invariants",
+      "slug": "system-definition",
+      "title": "Определение системы",
+      "section": "Определение системы",
+      "heading": "Архитектурные инварианты",
+      "headingId": "invariants",
+      "content": "Формальное определение, инварианты и явный контекст. Control Plane не исполняет пользовательский код. Любой production-run однозначно определяется DatasetVersion, CodeRef (commit SHA) и EnvironmentLock. Все значимые действия фиксируются в AuditEvent. Данные, код, окружения и результаты представлены как явные, версионируемые сущности. В системе отсутствует скрытое состояние, влияющее на результат исполнения.",
+      "keywords": [
+        "инварианты",
+        "контекст",
+        "определение"
+      ],
+      "url": "/ru/docs/system-definition#invariants"
+    },
+    {
+      "docId": "system-definition#explicit-context",
+      "slug": "system-definition",
+      "title": "Определение системы",
+      "section": "Определение системы",
+      "heading": "Требование явного контекста",
+      "headingId": "explicit-context",
+      "content": "Формальное определение, инварианты и явный контекст. Всё, что влияет на результат исполнения, должно быть представлено в системе как явная сущность или ссылка на сущность. Действия без явного контекста рассматриваются как ошибка проектирования и должны быть исключены или формализованы.",
+      "keywords": [
+        "инварианты",
+        "контекст",
+        "определение"
+      ],
+      "url": "/ru/docs/system-definition#explicit-context"
+    },
+    {
+      "docId": "system-definition#non-goals",
+      "slug": "system-definition",
+      "title": "Определение системы",
+      "section": "Определение системы",
+      "heading": "Нецели",
+      "headingId": "non-goals",
+      "content": "Формальное определение, инварианты и явный контекст. Animus не заменяет SCM, IDE или inference-платформы. Интеграции с внешними системами выполняются через контрактные интерфейсы.",
+      "keywords": [
+        "инварианты",
+        "контекст",
+        "определение"
+      ],
+      "url": "/ru/docs/system-definition#non-goals"
+    },
+    {
+      "docId": "architecture",
+      "slug": "architecture",
+      "title": "Архитектура",
+      "section": "Архитектура",
+      "heading": "Архитектура",
+      "headingId": null,
+      "content": "Control Plane, Data Plane, границы доверия и модель отказов. Animus построен как распределённая система с чётким разделением ответственности между Control Plane и Data Plane. Разделение является фундаментальным инвариантом и исключает выполнение недоверенного кода в управляющем контуре. Предоставляет UI, CLI/SDK и API; API является первичным интерфейсом. Хранит метаданные доменных сущностей и является источником истины. Оркестрирует исполнение: валидирует входы, формирует Execution Plan и планирует Run. Применяет политики доступа, production-run, окружений, сетевых ограничений и ретеншна. Формирует AuditEvent для административных действий и смен статусов. Не исполняет пользовательский код и не требует доступа к данным исполнения. Исполняет пользовательский код в контейнеризованных изолированных окружениях с явными лимитами ресурсов. Обеспечивает контролируемый доступ к DatasetVersion и Artifact. Собирает логи, метрики и трассы Run и PipelineRun. Секреты предоставляются временно и минимально, доступ фиксируется. Kubernetes является обязательной базовой средой исполнения. Пользовательские клиенты (UI/CLI/SDK) — недоверенная среда, требующая строгой аутентификации и авторизации. Control Plane — доверенный контур управления без исполнения пользовательского кода. Data Plane — частично доверенный контур, исполняющий недоверенный код и изолирующий его. Внешние системы (SCM, registry, vault, storage, SIEM) имеют собственные контуры доверия. Операции Control Plane идемпотентны там, где это возможно. Run переходят в диагностируемые статусы (unknown/reconciling) при потере связности. Система восстанавливает наблюдаемое состояние после временной недоступности компонентов. Сценарии отказов наблюдаемы через метрики, логи и трассы. Отказ Data Plane не должен разрушать консистентность метаданных и аудита. Диаграмма иллюстрирует разделение управляющего и исполняющего контуров. Связанные разделы См. «Модель исполнения» для жизненного цикла Run и семантики пайплайнов; см. «Безопасность» для требований к границам доверия и изоляции.",
+      "keywords": [
+        "control plane",
+        "data plane",
+        "trust boundaries"
+      ],
+      "url": "/ru/docs/architecture"
+    },
+    {
+      "docId": "architecture#overview",
+      "slug": "architecture",
+      "title": "Архитектура",
+      "section": "Архитектура",
+      "heading": "Архитектурный обзор",
+      "headingId": "overview",
+      "content": "Control Plane, Data Plane, границы доверия и модель отказов. Animus построен как распределённая система с чётким разделением ответственности между Control Plane и Data Plane. Разделение является фундаментальным инвариантом и исключает выполнение недоверенного кода в управляющем контуре.",
+      "keywords": [
+        "control plane",
+        "data plane",
+        "trust boundaries"
+      ],
+      "url": "/ru/docs/architecture#overview"
+    },
+    {
+      "docId": "architecture#control-plane",
+      "slug": "architecture",
+      "title": "Архитектура",
+      "section": "Архитектура",
+      "heading": "Control Plane",
+      "headingId": "control-plane",
+      "content": "Control Plane, Data Plane, границы доверия и модель отказов. Предоставляет UI, CLI/SDK и API; API является первичным интерфейсом. Хранит метаданные доменных сущностей и является источником истины. Оркестрирует исполнение: валидирует входы, формирует Execution Plan и планирует Run. Применяет политики доступа, production-run, окружений, сетевых ограничений и ретеншна. Формирует AuditEvent для административных действий и смен статусов. Не исполняет пользовательский код и не требует доступа к данным исполнения.",
+      "keywords": [
+        "control plane",
+        "data plane",
+        "trust boundaries"
+      ],
+      "url": "/ru/docs/architecture#control-plane"
+    },
+    {
+      "docId": "architecture#data-plane",
+      "slug": "architecture",
+      "title": "Архитектура",
+      "section": "Архитектура",
+      "heading": "Data Plane",
+      "headingId": "data-plane",
+      "content": "Control Plane, Data Plane, границы доверия и модель отказов. Исполняет пользовательский код в контейнеризованных изолированных окружениях с явными лимитами ресурсов. Обеспечивает контролируемый доступ к DatasetVersion и Artifact. Собирает логи, метрики и трассы Run и PipelineRun. Секреты предоставляются временно и минимально, доступ фиксируется. Kubernetes является обязательной базовой средой исполнения.",
+      "keywords": [
+        "control plane",
+        "data plane",
+        "trust boundaries"
+      ],
+      "url": "/ru/docs/architecture#data-plane"
+    },
+    {
+      "docId": "architecture#trust-boundaries",
+      "slug": "architecture",
+      "title": "Архитектура",
+      "section": "Архитектура",
+      "heading": "Границы доверия",
+      "headingId": "trust-boundaries",
+      "content": "Control Plane, Data Plane, границы доверия и модель отказов. Пользовательские клиенты (UI/CLI/SDK) — недоверенная среда, требующая строгой аутентификации и авторизации. Control Plane — доверенный контур управления без исполнения пользовательского кода. Data Plane — частично доверенный контур, исполняющий недоверенный код и изолирующий его. Внешние системы (SCM, registry, vault, storage, SIEM) имеют собственные контуры доверия.",
+      "keywords": [
+        "control plane",
+        "data plane",
+        "trust boundaries"
+      ],
+      "url": "/ru/docs/architecture#trust-boundaries"
+    },
+    {
+      "docId": "architecture#failure-model",
+      "slug": "architecture",
+      "title": "Архитектура",
+      "section": "Архитектура",
+      "heading": "Модель отказов",
+      "headingId": "failure-model",
+      "content": "Control Plane, Data Plane, границы доверия и модель отказов. Операции Control Plane идемпотентны там, где это возможно. Run переходят в диагностируемые статусы (unknown/reconciling) при потере связности. Система восстанавливает наблюдаемое состояние после временной недоступности компонентов. Сценарии отказов наблюдаемы через метрики, логи и трассы. Отказ Data Plane не должен разрушать консистентность метаданных и аудита.",
+      "keywords": [
+        "control plane",
+        "data plane",
+        "trust boundaries"
+      ],
+      "url": "/ru/docs/architecture#failure-model"
+    },
+    {
+      "docId": "architecture#diagram",
+      "slug": "architecture",
+      "title": "Архитектура",
+      "section": "Архитектура",
+      "heading": "Разделение Control Plane и Data Plane",
+      "headingId": "diagram",
+      "content": "Control Plane, Data Plane, границы доверия и модель отказов. Диаграмма иллюстрирует разделение управляющего и исполняющего контуров. Связанные разделы См. «Модель исполнения» для жизненного цикла Run и семантики пайплайнов; см. «Безопасность» для требований к границам доверия и изоляции.",
+      "keywords": [
+        "control plane",
+        "data plane",
+        "trust boundaries"
+      ],
+      "url": "/ru/docs/architecture#diagram"
+    },
+    {
+      "docId": "domain-model",
+      "slug": "domain-model",
+      "title": "Доменная модель",
+      "section": "Доменная модель",
+      "heading": "Доменная модель",
+      "headingId": null,
+      "content": "Сущности, атрибуты и инварианты. Project — базовая организационная и изоляционная единица Animus, представляющая один ML-продукт или независимую задачу. Задаёт границы доступа, исполнения и ответственности команд. Все доменные сущности принадлежат ровно одному Project; межпроектные зависимости запрещены. Жизненный цикл: active и archived (read-only, новые Run запрещены). Dataset — логическая сущность данных; DatasetVersion — конкретная неизменяемая версия, используемая в Run и являющаяся primary data reference. DatasetVersion является immutable; изменения данных оформляются созданием новой версии. Любое использование данных в Run ссылается на конкретную DatasetVersion. Удаление DatasetVersion запрещено при использовании в Run, Model или AuditEvent, если не разрешено retention policy. CodeRef — ссылка на версию пользовательского кода во внешней SCM, фиксирующая точку идентификации. Production-run требует CodeRef с commit SHA; ветки и теги запрещены. CodeRef является immutable. EnvironmentDefinition описывает логическое окружение исполнения; EnvironmentLock — неизменяемое фиксированное представление окружения. Production-run использует EnvironmentLock. EnvironmentLock является immutable и проверяемым по digest/checksum. Run — единица исполнения и воспроизводимости, связывающая данные, код, окружение, параметры и результат. PipelineRun — составной Run, представляющий DAG шагов (node-runs). Статусы Run: queued, running, succeeded, failed, canceled, unknown. Run не может менять входные DatasetVersion и не может существовать без Project. Artifact — любой результат исполнения Run: логи, метрики, файлы, модели, отчёты. Artifact всегда привязан к Run и не существует вне Project. Доступ к Artifact контролируется правами Project. Model — логическая сущность семейства версий; ModelVersion — конкретный результат Run, признанный моделью. Статусы ModelVersion: draft, validated, approved, deprecated. ModelVersion должна ссылаться на Run; promotion фиксируется в AuditEvent. Экспорт approved модели может быть ограничен политиками. AuditEvent — неизменяемая запись о значимом действии в системе. AuditEvent append-only и не может быть изменён или удалён. AuditEvent экспортируем. AuditEvent содержит actor, action, object_ref, timestamp и result. Система восстанавливается как граф, корнем которого является Project, а AuditEvent образует временное измерение этого графа.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/ru/docs/domain-model"
+    },
+    {
+      "docId": "domain-model#project",
+      "slug": "domain-model",
+      "title": "Доменная модель",
+      "section": "Доменная модель",
+      "heading": "Project",
+      "headingId": "project",
+      "content": "Сущности, атрибуты и инварианты. Project — базовая организационная и изоляционная единица Animus, представляющая один ML-продукт или независимую задачу. Задаёт границы доступа, исполнения и ответственности команд. Все доменные сущности принадлежат ровно одному Project; межпроектные зависимости запрещены. Жизненный цикл: active и archived (read-only, новые Run запрещены).",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/ru/docs/domain-model#project"
+    },
+    {
+      "docId": "domain-model#datasets",
+      "slug": "domain-model",
+      "title": "Доменная модель",
+      "section": "Доменная модель",
+      "heading": "Dataset и DatasetVersion",
+      "headingId": "datasets",
+      "content": "Сущности, атрибуты и инварианты. Dataset — логическая сущность данных; DatasetVersion — конкретная неизменяемая версия, используемая в Run и являющаяся primary data reference. DatasetVersion является immutable; изменения данных оформляются созданием новой версии. Любое использование данных в Run ссылается на конкретную DatasetVersion. Удаление DatasetVersion запрещено при использовании в Run, Model или AuditEvent, если не разрешено retention policy.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/ru/docs/domain-model#datasets"
+    },
+    {
+      "docId": "domain-model#coderef",
+      "slug": "domain-model",
+      "title": "Доменная модель",
+      "section": "Доменная модель",
+      "heading": "CodeRef",
+      "headingId": "coderef",
+      "content": "Сущности, атрибуты и инварианты. CodeRef — ссылка на версию пользовательского кода во внешней SCM, фиксирующая точку идентификации. Production-run требует CodeRef с commit SHA; ветки и теги запрещены. CodeRef является immutable.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/ru/docs/domain-model#coderef"
+    },
+    {
+      "docId": "domain-model#environment",
+      "slug": "domain-model",
+      "title": "Доменная модель",
+      "section": "Доменная модель",
+      "heading": "EnvironmentDefinition и EnvironmentLock",
+      "headingId": "environment",
+      "content": "Сущности, атрибуты и инварианты. EnvironmentDefinition описывает логическое окружение исполнения; EnvironmentLock — неизменяемое фиксированное представление окружения. Production-run использует EnvironmentLock. EnvironmentLock является immutable и проверяемым по digest/checksum.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/ru/docs/domain-model#environment"
+    },
+    {
+      "docId": "domain-model#run",
+      "slug": "domain-model",
+      "title": "Доменная модель",
+      "section": "Доменная модель",
+      "heading": "Run и PipelineRun",
+      "headingId": "run",
+      "content": "Сущности, атрибуты и инварианты. Run — единица исполнения и воспроизводимости, связывающая данные, код, окружение, параметры и результат. PipelineRun — составной Run, представляющий DAG шагов (node-runs). Статусы Run: queued, running, succeeded, failed, canceled, unknown. Run не может менять входные DatasetVersion и не может существовать без Project.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/ru/docs/domain-model#run"
+    },
+    {
+      "docId": "domain-model#artifact",
+      "slug": "domain-model",
+      "title": "Доменная модель",
+      "section": "Доменная модель",
+      "heading": "Artifact",
+      "headingId": "artifact",
+      "content": "Сущности, атрибуты и инварианты. Artifact — любой результат исполнения Run: логи, метрики, файлы, модели, отчёты. Artifact всегда привязан к Run и не существует вне Project. Доступ к Artifact контролируется правами Project.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/ru/docs/domain-model#artifact"
+    },
+    {
+      "docId": "domain-model#model",
+      "slug": "domain-model",
+      "title": "Доменная модель",
+      "section": "Доменная модель",
+      "heading": "Model и ModelVersion",
+      "headingId": "model",
+      "content": "Сущности, атрибуты и инварианты. Model — логическая сущность семейства версий; ModelVersion — конкретный результат Run, признанный моделью. Статусы ModelVersion: draft, validated, approved, deprecated. ModelVersion должна ссылаться на Run; promotion фиксируется в AuditEvent. Экспорт approved модели может быть ограничен политиками.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/ru/docs/domain-model#model"
+    },
+    {
+      "docId": "domain-model#audit",
+      "slug": "domain-model",
+      "title": "Доменная модель",
+      "section": "Доменная модель",
+      "heading": "AuditEvent",
+      "headingId": "audit",
+      "content": "Сущности, атрибуты и инварианты. AuditEvent — неизменяемая запись о значимом действии в системе. AuditEvent append-only и не может быть изменён или удалён. AuditEvent экспортируем. AuditEvent содержит actor, action, object_ref, timestamp и result.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/ru/docs/domain-model#audit"
+    },
+    {
+      "docId": "domain-model#graph",
+      "slug": "domain-model",
+      "title": "Доменная модель",
+      "section": "Доменная модель",
+      "heading": "Связность доменной модели",
+      "headingId": "graph",
+      "content": "Сущности, атрибуты и инварианты. Система восстанавливается как граф, корнем которого является Project, а AuditEvent образует временное измерение этого графа.",
+      "keywords": [
+        "project",
+        "dataset",
+        "run",
+        "model",
+        "audit"
+      ],
+      "url": "/ru/docs/domain-model#graph"
+    },
+    {
+      "docId": "execution-model",
+      "slug": "execution-model",
+      "title": "Модель исполнения",
+      "section": "Модель исполнения",
+      "heading": "Модель исполнения",
+      "headingId": null,
+      "content": "Декларативное исполнение, жизненный цикл Run, DAG семантика. Изоляция по умолчанию: каждый Run исполняется в изолированной среде. Декларативность: пользователь описывает что выполнять, платформа определяет как. Контролируемость: политики, лимиты ресурсов и безопасность применяются до исполнения. Наблюдаемость: ход исполнения и результаты фиксируются. Воспроизводимость: фиксированные входы, явные зависимости, отсутствие скрытого состояния. Создание: проверка прав, валидация ссылок, применение политик, AuditEvent, статус queued. Планирование: формирование Execution Plan с image digest, ресурсами, сетевыми политиками, ссылками на секреты, точками доступа к данным и версией планировщика. Исполнение: Data Plane исполняет пользовательский код в контейнерах; Control Plane не исполняет код. Завершение: фиксация финального статуса, привязка артефактов и AuditEvent. Pipeline — направленный ациклический граф (DAG). Каждый узел исполняется как Run; Control Plane валидирует DAG и применяет политики. Политики обработки ошибок задаются явно и определяют успешность или деградацию. retry — автоматический повтор при временной ошибке. rerun — повтор с теми же входами. replay — повтор по сохранённому Execution Plan. Каждый повтор фиксируется как новый Run, связанный с исходным. Операции Control Plane идемпотентны там, где это возможно. Повторные запросы с одинаковыми параметрами не создают дубликатов. Run исполняется в отдельном контейнере и в контексте Project. Лимиты CPU/RAM/GPU и временного хранилища задаются явно. Прямой доступ Run к метаданным Control Plane запрещён. Классы ошибок: user, data, environment, platform, policy violations. При деградации Run переводятся в диагностируемые статусы, метаданные сохраняются. Логи, метрики и трассы собираются и привязываются к Run и PipelineRun. Секреты и чувствительные данные не должны попадать в логи, метрики и артефакты. Каждый значимый этап исполнения порождает AuditEvent. Связанные разделы См. «Архитектура» для разделения плоскостей и границ доверия; см. «Безопасность» для ограничений по секретам и сети.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan"
+      ],
+      "url": "/ru/docs/execution-model"
+    },
+    {
+      "docId": "execution-model#principles",
+      "slug": "execution-model",
+      "title": "Модель исполнения",
+      "section": "Модель исполнения",
+      "heading": "Принципы исполнения",
+      "headingId": "principles",
+      "content": "Декларативное исполнение, жизненный цикл Run, DAG семантика. Изоляция по умолчанию: каждый Run исполняется в изолированной среде. Декларативность: пользователь описывает что выполнять, платформа определяет как. Контролируемость: политики, лимиты ресурсов и безопасность применяются до исполнения. Наблюдаемость: ход исполнения и результаты фиксируются. Воспроизводимость: фиксированные входы, явные зависимости, отсутствие скрытого состояния.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan"
+      ],
+      "url": "/ru/docs/execution-model#principles"
+    },
+    {
+      "docId": "execution-model#lifecycle",
+      "slug": "execution-model",
+      "title": "Модель исполнения",
+      "section": "Модель исполнения",
+      "heading": "Жизненный цикл Run",
+      "headingId": "lifecycle",
+      "content": "Декларативное исполнение, жизненный цикл Run, DAG семантика. Создание: проверка прав, валидация ссылок, применение политик, AuditEvent, статус queued. Планирование: формирование Execution Plan с image digest, ресурсами, сетевыми политиками, ссылками на секреты, точками доступа к данным и версией планировщика. Исполнение: Data Plane исполняет пользовательский код в контейнерах; Control Plane не исполняет код. Завершение: фиксация финального статуса, привязка артефактов и AuditEvent.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan"
+      ],
+      "url": "/ru/docs/execution-model#lifecycle"
+    },
+    {
+      "docId": "execution-model#pipeline",
+      "slug": "execution-model",
+      "title": "Модель исполнения",
+      "section": "Модель исполнения",
+      "heading": "Pipeline execution",
+      "headingId": "pipeline",
+      "content": "Декларативное исполнение, жизненный цикл Run, DAG семантика. Pipeline — направленный ациклический граф (DAG). Каждый узел исполняется как Run; Control Plane валидирует DAG и применяет политики. Политики обработки ошибок задаются явно и определяют успешность или деградацию.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan"
+      ],
+      "url": "/ru/docs/execution-model#pipeline"
+    },
+    {
+      "docId": "execution-model#retries",
+      "slug": "execution-model",
+      "title": "Модель исполнения",
+      "section": "Модель исполнения",
+      "heading": "Повторы, rerun и replay",
+      "headingId": "retries",
+      "content": "Декларативное исполнение, жизненный цикл Run, DAG семантика. retry — автоматический повтор при временной ошибке. rerun — повтор с теми же входами. replay — повтор по сохранённому Execution Plan. Каждый повтор фиксируется как новый Run, связанный с исходным.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan"
+      ],
+      "url": "/ru/docs/execution-model#retries"
+    },
+    {
+      "docId": "execution-model#idempotency",
+      "slug": "execution-model",
+      "title": "Модель исполнения",
+      "section": "Модель исполнения",
+      "heading": "Идемпотентность",
+      "headingId": "idempotency",
+      "content": "Декларативное исполнение, жизненный цикл Run, DAG семантика. Операции Control Plane идемпотентны там, где это возможно. Повторные запросы с одинаковыми параметрами не создают дубликатов.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan"
+      ],
+      "url": "/ru/docs/execution-model#idempotency"
+    },
+    {
+      "docId": "execution-model#isolation",
+      "slug": "execution-model",
+      "title": "Модель исполнения",
+      "section": "Модель исполнения",
+      "heading": "Изоляция и ресурсы",
+      "headingId": "isolation",
+      "content": "Декларативное исполнение, жизненный цикл Run, DAG семантика. Run исполняется в отдельном контейнере и в контексте Project. Лимиты CPU/RAM/GPU и временного хранилища задаются явно. Прямой доступ Run к метаданным Control Plane запрещён.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan"
+      ],
+      "url": "/ru/docs/execution-model#isolation"
+    },
+    {
+      "docId": "execution-model#errors",
+      "slug": "execution-model",
+      "title": "Модель исполнения",
+      "section": "Модель исполнения",
+      "heading": "Ошибки и деградация",
+      "headingId": "errors",
+      "content": "Декларативное исполнение, жизненный цикл Run, DAG семантика. Классы ошибок: user, data, environment, platform, policy violations. При деградации Run переводятся в диагностируемые статусы, метаданные сохраняются.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan"
+      ],
+      "url": "/ru/docs/execution-model#errors"
+    },
+    {
+      "docId": "execution-model#observability",
+      "slug": "execution-model",
+      "title": "Модель исполнения",
+      "section": "Модель исполнения",
+      "heading": "Наблюдаемость",
+      "headingId": "observability",
+      "content": "Декларативное исполнение, жизненный цикл Run, DAG семантика. Логи, метрики и трассы собираются и привязываются к Run и PipelineRun. Секреты и чувствительные данные не должны попадать в логи, метрики и артефакты.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan"
+      ],
+      "url": "/ru/docs/execution-model#observability"
+    },
+    {
+      "docId": "execution-model#audit",
+      "slug": "execution-model",
+      "title": "Модель исполнения",
+      "section": "Модель исполнения",
+      "heading": "Связь с аудитом",
+      "headingId": "audit",
+      "content": "Декларативное исполнение, жизненный цикл Run, DAG семантика. Каждый значимый этап исполнения порождает AuditEvent. Связанные разделы См. «Архитектура» для разделения плоскостей и границ доверия; см. «Безопасность» для ограничений по секретам и сети.",
+      "keywords": [
+        "run",
+        "pipeline",
+        "execution plan"
+      ],
+      "url": "/ru/docs/execution-model#audit"
+    },
+    {
+      "docId": "interfaces",
+      "slug": "interfaces",
+      "title": "Интерфейсы",
+      "section": "Интерфейсы",
+      "heading": "Интерфейсы",
+      "headingId": null,
+      "content": "API, Pipeline specification, события, CLI/SDK и роль UI. API является источником истины; UI не должен вводить обходные механизмы. Интерфейсы версионируются; breaking changes требуют смены версии. Критические операции должны быть идемпотентными и повторяемыми. Каждая доменная сущность представлена как адресуемый ресурс с явным жизненным циклом. Операции Create/Read/Update/Delete сопровождаются формальными ошибками и диагностикой. Описывает декларативную структуру исполнения и не содержит исполняемого кода. Включает версию спецификации, шаги, зависимости, входы/выходы, политики ошибок и требования к ресурсам. Control Plane валидирует DAG и политики перед созданием PipelineRun. События отражают изменения состояния и не являются источником истины. Канонические события и механизмы доставки определены для интеграций. CLI и SDK строятся поверх публичного API. Требования CLI/SDK согласованы с политикой версионирования. UI является контролируемым интерфейсом для аудита и управления. UI не может обходить политики и ограничения API. Все интерфейсы подчиняются аутентификации, авторизации и аудиту.",
+      "keywords": [
+        "api",
+        "pipeline spec",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/ru/docs/interfaces"
+    },
+    {
+      "docId": "interfaces#principles",
+      "slug": "interfaces",
+      "title": "Интерфейсы",
+      "section": "Интерфейсы",
+      "heading": "Принципы интерфейсов",
+      "headingId": "principles",
+      "content": "API, Pipeline specification, события, CLI/SDK и роль UI. API является источником истины; UI не должен вводить обходные механизмы. Интерфейсы версионируются; breaking changes требуют смены версии. Критические операции должны быть идемпотентными и повторяемыми.",
+      "keywords": [
+        "api",
+        "pipeline spec",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/ru/docs/interfaces#principles"
+    },
+    {
+      "docId": "interfaces#resource-model",
+      "slug": "interfaces",
+      "title": "Интерфейсы",
+      "section": "Интерфейсы",
+      "heading": "Ресурсная модель API",
+      "headingId": "resource-model",
+      "content": "API, Pipeline specification, события, CLI/SDK и роль UI. Каждая доменная сущность представлена как адресуемый ресурс с явным жизненным циклом. Операции Create/Read/Update/Delete сопровождаются формальными ошибками и диагностикой.",
+      "keywords": [
+        "api",
+        "pipeline spec",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/ru/docs/interfaces#resource-model"
+    },
+    {
+      "docId": "interfaces#pipeline-spec",
+      "slug": "interfaces",
+      "title": "Интерфейсы",
+      "section": "Интерфейсы",
+      "heading": "Pipeline specification",
+      "headingId": "pipeline-spec",
+      "content": "API, Pipeline specification, события, CLI/SDK и роль UI. Описывает декларативную структуру исполнения и не содержит исполняемого кода. Включает версию спецификации, шаги, зависимости, входы/выходы, политики ошибок и требования к ресурсам. Control Plane валидирует DAG и политики перед созданием PipelineRun.",
+      "keywords": [
+        "api",
+        "pipeline spec",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/ru/docs/interfaces#pipeline-spec"
+    },
+    {
+      "docId": "interfaces#events",
+      "slug": "interfaces",
+      "title": "Интерфейсы",
+      "section": "Интерфейсы",
+      "heading": "События и интеграции",
+      "headingId": "events",
+      "content": "API, Pipeline specification, события, CLI/SDK и роль UI. События отражают изменения состояния и не являются источником истины. Канонические события и механизмы доставки определены для интеграций.",
+      "keywords": [
+        "api",
+        "pipeline spec",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/ru/docs/interfaces#events"
+    },
+    {
+      "docId": "interfaces#cli-sdk",
+      "slug": "interfaces",
+      "title": "Интерфейсы",
+      "section": "Интерфейсы",
+      "heading": "CLI и SDK",
+      "headingId": "cli-sdk",
+      "content": "API, Pipeline specification, события, CLI/SDK и роль UI. CLI и SDK строятся поверх публичного API. Требования CLI/SDK согласованы с политикой версионирования.",
+      "keywords": [
+        "api",
+        "pipeline spec",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/ru/docs/interfaces#cli-sdk"
+    },
+    {
+      "docId": "interfaces#ui",
+      "slug": "interfaces",
+      "title": "Интерфейсы",
+      "section": "Интерфейсы",
+      "heading": "Роль UI",
+      "headingId": "ui",
+      "content": "API, Pipeline specification, события, CLI/SDK и роль UI. UI является контролируемым интерфейсом для аудита и управления. UI не может обходить политики и ограничения API.",
+      "keywords": [
+        "api",
+        "pipeline spec",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/ru/docs/interfaces#ui"
+    },
+    {
+      "docId": "interfaces#security-linkage",
+      "slug": "interfaces",
+      "title": "Интерфейсы",
+      "section": "Интерфейсы",
+      "heading": "Интерфейсы и безопасность",
+      "headingId": "security-linkage",
+      "content": "API, Pipeline specification, события, CLI/SDK и роль UI. Все интерфейсы подчиняются аутентификации, авторизации и аудиту.",
+      "keywords": [
+        "api",
+        "pipeline spec",
+        "events",
+        "cli",
+        "sdk"
+      ],
+      "url": "/ru/docs/interfaces#security-linkage"
+    },
+    {
+      "docId": "security",
+      "slug": "security",
+      "title": "Безопасность",
+      "section": "Безопасность",
+      "heading": "Безопасность",
+      "headingId": null,
+      "content": "Модель безопасности, аутентификация, RBAC, изоляция, секреты и аудит. Защита данных, моделей и результатов от несанкционированного доступа. Исключение неявного расширения привилегий и скрытых каналов влияния. Проверяемость действий пользователей и системы. Сохранение удобства работы без обходов. Активы: данные, модели, артефакты, метаданные, учётные данные и аудит. Источники угроз: ошибки пользователей, злоупотребления, компрометация аккаунтов, уязвимости пользовательского кода, компрометация инфраструктуры. Control Plane считается доверенным контуром и не исполняет код; Data Plane исполняет недоверенный код и изолирует его; сеть считается недоверенной. SSO через OIDC и/или SAML; локальные учётные записи для air-gapped окружений. Service accounts для автоматизации и CI/CD. Управление сессиями: TTL, принудительный выход, ограничение параллельных сессий и аудит входов/выходов. MFA реализуется через внешний IdP. RBAC на уровне Project с уточнением прав на уровне объектов. Отсутствие явного разрешения трактуется как запрет. Каждая операция проходит проверку прав и фиксируется в аудите. Секреты не хранятся в открытом виде и не попадают в UI, логи, метрики и артефакты. Интеграция с внешними secret store обязательна; секреты предоставляются временно и минимально. Попытки доступа к секретам аудитируются. Исполнение в контейнеризованных окружениях с ограниченными правами. Сетевой egress запрещён по умолчанию и разрешается политиками. Run не должен иметь прямого доступа к Control Plane. Доступ к DatasetVersion проверяется при каждом обращении и определяется Project и политиками. Артефакты хранятся в рамках Project и контролируются ролями. Экспорт моделей может быть ограничен или запрещён политиками. AuditEvent фиксирует аутентификацию, изменение прав, доступ к данным, Run и promotion моделей. AuditEvent append-only и не может быть отключён. Аудит экспортируем в SIEM и системы мониторинга с надёжной доставкой. Обновления контролируемы и сохраняют целостность данных. Поддерживаются rollback и совместимость схем/контрактов. Поддерживается проверка образов и SBOM. Связанные разделы См. «Управление (Governance)» для ролей RBAC и политики аудита; см. «Эксплуатация» для runbook и процедур восстановления.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress"
+      ],
+      "url": "/ru/docs/security"
+    },
+    {
+      "docId": "security#objectives",
+      "slug": "security",
+      "title": "Безопасность",
+      "section": "Безопасность",
+      "heading": "Цели модели безопасности",
+      "headingId": "objectives",
+      "content": "Модель безопасности, аутентификация, RBAC, изоляция, секреты и аудит. Защита данных, моделей и результатов от несанкционированного доступа. Исключение неявного расширения привилегий и скрытых каналов влияния. Проверяемость действий пользователей и системы. Сохранение удобства работы без обходов.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress"
+      ],
+      "url": "/ru/docs/security#objectives"
+    },
+    {
+      "docId": "security#threat-model",
+      "slug": "security",
+      "title": "Безопасность",
+      "section": "Безопасность",
+      "heading": "Модель угроз и допущения",
+      "headingId": "threat-model",
+      "content": "Модель безопасности, аутентификация, RBAC, изоляция, секреты и аудит. Активы: данные, модели, артефакты, метаданные, учётные данные и аудит. Источники угроз: ошибки пользователей, злоупотребления, компрометация аккаунтов, уязвимости пользовательского кода, компрометация инфраструктуры. Control Plane считается доверенным контуром и не исполняет код; Data Plane исполняет недоверенный код и изолирует его; сеть считается недоверенной.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress"
+      ],
+      "url": "/ru/docs/security#threat-model"
+    },
+    {
+      "docId": "security#authentication",
+      "slug": "security",
+      "title": "Безопасность",
+      "section": "Безопасность",
+      "heading": "Аутентификация",
+      "headingId": "authentication",
+      "content": "Модель безопасности, аутентификация, RBAC, изоляция, секреты и аудит. SSO через OIDC и/или SAML; локальные учётные записи для air-gapped окружений. Service accounts для автоматизации и CI/CD. Управление сессиями: TTL, принудительный выход, ограничение параллельных сессий и аудит входов/выходов. MFA реализуется через внешний IdP.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress"
+      ],
+      "url": "/ru/docs/security#authentication"
+    },
+    {
+      "docId": "security#authorization",
+      "slug": "security",
+      "title": "Безопасность",
+      "section": "Безопасность",
+      "heading": "Авторизация",
+      "headingId": "authorization",
+      "content": "Модель безопасности, аутентификация, RBAC, изоляция, секреты и аудит. RBAC на уровне Project с уточнением прав на уровне объектов. Отсутствие явного разрешения трактуется как запрет. Каждая операция проходит проверку прав и фиксируется в аудите.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress"
+      ],
+      "url": "/ru/docs/security#authorization"
+    },
+    {
+      "docId": "security#secrets",
+      "slug": "security",
+      "title": "Безопасность",
+      "section": "Безопасность",
+      "heading": "Управление секретами",
+      "headingId": "secrets",
+      "content": "Модель безопасности, аутентификация, RBAC, изоляция, секреты и аудит. Секреты не хранятся в открытом виде и не попадают в UI, логи, метрики и артефакты. Интеграция с внешними secret store обязательна; секреты предоставляются временно и минимально. Попытки доступа к секретам аудитируются.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress"
+      ],
+      "url": "/ru/docs/security#secrets"
+    },
+    {
+      "docId": "security#isolation",
+      "slug": "security",
+      "title": "Безопасность",
+      "section": "Безопасность",
+      "heading": "Изоляция и сетевые ограничения",
+      "headingId": "isolation",
+      "content": "Модель безопасности, аутентификация, RBAC, изоляция, секреты и аудит. Исполнение в контейнеризованных окружениях с ограниченными правами. Сетевой egress запрещён по умолчанию и разрешается политиками. Run не должен иметь прямого доступа к Control Plane.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress"
+      ],
+      "url": "/ru/docs/security#isolation"
+    },
+    {
+      "docId": "security#data-artifacts",
+      "slug": "security",
+      "title": "Безопасность",
+      "section": "Безопасность",
+      "heading": "Безопасность данных и артефактов",
+      "headingId": "data-artifacts",
+      "content": "Модель безопасности, аутентификация, RBAC, изоляция, секреты и аудит. Доступ к DatasetVersion проверяется при каждом обращении и определяется Project и политиками. Артефакты хранятся в рамках Project и контролируются ролями. Экспорт моделей может быть ограничен или запрещён политиками.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress"
+      ],
+      "url": "/ru/docs/security#data-artifacts"
+    },
+    {
+      "docId": "security#audit",
+      "slug": "security",
+      "title": "Безопасность",
+      "section": "Безопасность",
+      "heading": "Аудит и экспорт",
+      "headingId": "audit",
+      "content": "Модель безопасности, аутентификация, RBAC, изоляция, секреты и аудит. AuditEvent фиксирует аутентификацию, изменение прав, доступ к данным, Run и promotion моделей. AuditEvent append-only и не может быть отключён. Аудит экспортируем в SIEM и системы мониторинга с надёжной доставкой.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress"
+      ],
+      "url": "/ru/docs/security#audit"
+    },
+    {
+      "docId": "security#updates",
+      "slug": "security",
+      "title": "Безопасность",
+      "section": "Безопасность",
+      "heading": "Обновления и уязвимости",
+      "headingId": "updates",
+      "content": "Модель безопасности, аутентификация, RBAC, изоляция, секреты и аудит. Обновления контролируемы и сохраняют целостность данных. Поддерживаются rollback и совместимость схем/контрактов. Поддерживается проверка образов и SBOM. Связанные разделы См. «Управление (Governance)» для ролей RBAC и политики аудита; см. «Эксплуатация» для runbook и процедур восстановления.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "secrets",
+        "egress"
+      ],
+      "url": "/ru/docs/security#updates"
+    },
+    {
+      "docId": "operations",
+      "slug": "operations",
+      "title": "Эксплуатация",
+      "section": "Эксплуатация",
+      "heading": "Эксплуатация",
+      "headingId": null,
+      "content": "Развёртывание, надёжность, наблюдаемость, backup/DR, обновления, runbooks. Предсказуемость поведения при нагрузках, отказах и обновлениях. Наблюдаемость по умолчанию без ручной диагностики. Минимизация ручных операций для установки, обновления и восстановления. Разделение ответственности между Control Plane и Data Plane. Single-cluster: весь контур в одном Kubernetes-кластере. Multi-cluster: один Control Plane и несколько Data Plane. On-prem, private cloud и air-gapped окружения поддерживаются. Поставка через Helm charts и/или Kustomize с версионированными контейнерными образами. Установка не требует ручного редактирования контейнеров или исходного кода. Внешние зависимости: БД метаданных, объектное хранилище, IdP, secret store; они документированы и заменяемы. Control Plane поддерживает горизонтальное масштабирование и внешнее хранилище состояния. Data Plane масштабируется по числу Run, ресурсам и количеству кластеров. Квоты и лимиты задаются на уровне Project и глобально. Метрики для Control Plane и Data Plane, Run/PipelineRun и очередей планировщика. Логи структурированы и централизованно собираются, без секретов. Трассировка охватывает API, оркестрацию и взаимодействие плоскостей. Резервное копирование метаданных, аудита и конфигураций платформы обязательно. Для каждой инсталляции определяются RPO и RTO. Процедуры восстановления документированы, проверяемы и автоматизируемы. Обновления выполняются поэтапно и поддерживают rollback. Миграции схем контролируемы и обратимы, где возможно. Breaking changes требуют смены версии и migration guide. Работа без доступа к публичным репозиториям и внешним зависимостям. Офлайн-пакеты образов, локальные registry и проверка целостности обязательны. Platform Owner — владелец инсталляции. SRE / Platform Engineer — надёжность и эксплуатация. Security Officer — контроль безопасности и соответствия. Project Maintainer — управление проектом. RB-01: Control Plane недоступен. RB-02: Run не запускается / застрял в queued. RB-03: Data Plane недоступен или деградирован. RB-04: Audit export не работает. RB-05: Подозрение на компрометацию учётной записи. RB-06: Утечка данных / моделей. RB-07: Потеря метаданных Control Plane. Связанные разделы См. «Критерии готовности» для проверок эксплуатационной готовности и сценариев приёмки.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/ru/docs/operations"
+    },
+    {
+      "docId": "operations#principles",
+      "slug": "operations",
+      "title": "Эксплуатация",
+      "section": "Эксплуатация",
+      "heading": "Принципы эксплуатации",
+      "headingId": "principles",
+      "content": "Развёртывание, надёжность, наблюдаемость, backup/DR, обновления, runbooks. Предсказуемость поведения при нагрузках, отказах и обновлениях. Наблюдаемость по умолчанию без ручной диагностики. Минимизация ручных операций для установки, обновления и восстановления. Разделение ответственности между Control Plane и Data Plane.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/ru/docs/operations#principles"
+    },
+    {
+      "docId": "operations#deployment",
+      "slug": "operations",
+      "title": "Эксплуатация",
+      "section": "Эксплуатация",
+      "heading": "Модели развёртывания",
+      "headingId": "deployment",
+      "content": "Развёртывание, надёжность, наблюдаемость, backup/DR, обновления, runbooks. Single-cluster: весь контур в одном Kubernetes-кластере. Multi-cluster: один Control Plane и несколько Data Plane. On-prem, private cloud и air-gapped окружения поддерживаются.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/ru/docs/operations#deployment"
+    },
+    {
+      "docId": "operations#artifacts",
+      "slug": "operations",
+      "title": "Эксплуатация",
+      "section": "Эксплуатация",
+      "heading": "Установочные артефакты и зависимости",
+      "headingId": "artifacts",
+      "content": "Развёртывание, надёжность, наблюдаемость, backup/DR, обновления, runbooks. Поставка через Helm charts и/или Kustomize с версионированными контейнерными образами. Установка не требует ручного редактирования контейнеров или исходного кода. Внешние зависимости: БД метаданных, объектное хранилище, IdP, secret store; они документированы и заменяемы.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/ru/docs/operations#artifacts"
+    },
+    {
+      "docId": "operations#scaling",
+      "slug": "operations",
+      "title": "Эксплуатация",
+      "section": "Эксплуатация",
+      "heading": "Масштабирование и надёжность",
+      "headingId": "scaling",
+      "content": "Развёртывание, надёжность, наблюдаемость, backup/DR, обновления, runbooks. Control Plane поддерживает горизонтальное масштабирование и внешнее хранилище состояния. Data Plane масштабируется по числу Run, ресурсам и количеству кластеров. Квоты и лимиты задаются на уровне Project и глобально.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/ru/docs/operations#scaling"
+    },
+    {
+      "docId": "operations#observability",
+      "slug": "operations",
+      "title": "Эксплуатация",
+      "section": "Эксплуатация",
+      "heading": "Наблюдаемость",
+      "headingId": "observability",
+      "content": "Развёртывание, надёжность, наблюдаемость, backup/DR, обновления, runbooks. Метрики для Control Plane и Data Plane, Run/PipelineRun и очередей планировщика. Логи структурированы и централизованно собираются, без секретов. Трассировка охватывает API, оркестрацию и взаимодействие плоскостей.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/ru/docs/operations#observability"
+    },
+    {
+      "docId": "operations#backup-dr",
+      "slug": "operations",
+      "title": "Эксплуатация",
+      "section": "Эксплуатация",
+      "heading": "Backup и DR",
+      "headingId": "backup-dr",
+      "content": "Развёртывание, надёжность, наблюдаемость, backup/DR, обновления, runbooks. Резервное копирование метаданных, аудита и конфигураций платформы обязательно. Для каждой инсталляции определяются RPO и RTO. Процедуры восстановления документированы, проверяемы и автоматизируемы.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/ru/docs/operations#backup-dr"
+    },
+    {
+      "docId": "operations#updates",
+      "slug": "operations",
+      "title": "Эксплуатация",
+      "section": "Эксплуатация",
+      "heading": "Обновления и миграции",
+      "headingId": "updates",
+      "content": "Развёртывание, надёжность, наблюдаемость, backup/DR, обновления, runbooks. Обновления выполняются поэтапно и поддерживают rollback. Миграции схем контролируемы и обратимы, где возможно. Breaking changes требуют смены версии и migration guide.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/ru/docs/operations#updates"
+    },
+    {
+      "docId": "operations#air-gapped",
+      "slug": "operations",
+      "title": "Эксплуатация",
+      "section": "Эксплуатация",
+      "heading": "Air-gapped режим",
+      "headingId": "air-gapped",
+      "content": "Развёртывание, надёжность, наблюдаемость, backup/DR, обновления, runbooks. Работа без доступа к публичным репозиториям и внешним зависимостям. Офлайн-пакеты образов, локальные registry и проверка целостности обязательны.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/ru/docs/operations#air-gapped"
+    },
+    {
+      "docId": "operations#roles",
+      "slug": "operations",
+      "title": "Эксплуатация",
+      "section": "Эксплуатация",
+      "heading": "Эксплуатационные роли",
+      "headingId": "roles",
+      "content": "Развёртывание, надёжность, наблюдаемость, backup/DR, обновления, runbooks. Platform Owner — владелец инсталляции. SRE / Platform Engineer — надёжность и эксплуатация. Security Officer — контроль безопасности и соответствия. Project Maintainer — управление проектом.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/ru/docs/operations#roles"
+    },
+    {
+      "docId": "operations#runbooks",
+      "slug": "operations",
+      "title": "Эксплуатация",
+      "section": "Эксплуатация",
+      "heading": "Runbooks",
+      "headingId": "runbooks",
+      "content": "Развёртывание, надёжность, наблюдаемость, backup/DR, обновления, runbooks. RB-01: Control Plane недоступен. RB-02: Run не запускается / застрял в queued. RB-03: Data Plane недоступен или деградирован. RB-04: Audit export не работает. RB-05: Подозрение на компрометацию учётной записи. RB-06: Утечка данных / моделей. RB-07: Потеря метаданных Control Plane. Связанные разделы См. «Критерии готовности» для проверок эксплуатационной готовности и сценариев приёмки.",
+      "keywords": [
+        "deployment",
+        "observability",
+        "backup",
+        "upgrade",
+        "runbooks"
+      ],
+      "url": "/ru/docs/operations#runbooks"
+    },
+    {
+      "docId": "governance",
+      "slug": "governance",
+      "title": "Управление (Governance)",
+      "section": "Управление (Governance)",
+      "heading": "Управление (Governance)",
+      "headingId": null,
+      "content": "RBAC, применение политик, аудит и ретеншн. Project-centric модель ролей с default deny. Object-level enforcement для Dataset, Run, Model и Audit. Все изменения состояния и доступы аудитируются. Project-scoped роли: Viewer, Developer, Maintainer, Admin. Системные роли: Platform Operator, Security Officer, Service Account. Действуют в рамках Project или System с минимальными правами. Не используют интерактивные сессии и имеют ограниченный TTL токенов. Все действия Service Accounts аудитируются. Control Plane применяет политики доступа, production-run, окружений, сетевых ограничений и ретеншна до исполнения. Результаты применения политик фиксируются в AuditEvent. AuditEvent append-only, не отключаем и экспортируем. AuditEvent содержит actor, action, object_ref, timestamp и result. Аудит охватывает аутентификацию, изменения прав, доступы, Run и promotion моделей. DatasetVersion не может быть удалена при использовании в Run/Model/AuditEvent без разрешения retention policy. Политики ретеншна определяют lifecycle переходы (deprecated, expired, deleted). Связанные разделы См. «Безопасность» для допущений модели угроз и ограничений аудита.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "policy",
+        "retention"
+      ],
+      "url": "/ru/docs/governance"
+    },
+    {
+      "docId": "governance#rbac-principles",
+      "slug": "governance",
+      "title": "Управление (Governance)",
+      "section": "Управление (Governance)",
+      "heading": "RBAC принципы",
+      "headingId": "rbac-principles",
+      "content": "RBAC, применение политик, аудит и ретеншн. Project-centric модель ролей с default deny. Object-level enforcement для Dataset, Run, Model и Audit. Все изменения состояния и доступы аудитируются.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "policy",
+        "retention"
+      ],
+      "url": "/ru/docs/governance#rbac-principles"
+    },
+    {
+      "docId": "governance#roles",
+      "slug": "governance",
+      "title": "Управление (Governance)",
+      "section": "Управление (Governance)",
+      "heading": "Роли",
+      "headingId": "roles",
+      "content": "RBAC, применение политик, аудит и ретеншн. Project-scoped роли: Viewer, Developer, Maintainer, Admin. Системные роли: Platform Operator, Security Officer, Service Account.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "policy",
+        "retention"
+      ],
+      "url": "/ru/docs/governance#roles"
+    },
+    {
+      "docId": "governance#service-accounts",
+      "slug": "governance",
+      "title": "Управление (Governance)",
+      "section": "Управление (Governance)",
+      "heading": "Service Accounts",
+      "headingId": "service-accounts",
+      "content": "RBAC, применение политик, аудит и ретеншн. Действуют в рамках Project или System с минимальными правами. Не используют интерактивные сессии и имеют ограниченный TTL токенов. Все действия Service Accounts аудитируются.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "policy",
+        "retention"
+      ],
+      "url": "/ru/docs/governance#service-accounts"
+    },
+    {
+      "docId": "governance#policy-enforcement",
+      "slug": "governance",
+      "title": "Управление (Governance)",
+      "section": "Управление (Governance)",
+      "heading": "Применение политик",
+      "headingId": "policy-enforcement",
+      "content": "RBAC, применение политик, аудит и ретеншн. Control Plane применяет политики доступа, production-run, окружений, сетевых ограничений и ретеншна до исполнения. Результаты применения политик фиксируются в AuditEvent.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "policy",
+        "retention"
+      ],
+      "url": "/ru/docs/governance#policy-enforcement"
+    },
+    {
+      "docId": "governance#audit",
+      "slug": "governance",
+      "title": "Управление (Governance)",
+      "section": "Управление (Governance)",
+      "heading": "Аудит",
+      "headingId": "audit",
+      "content": "RBAC, применение политик, аудит и ретеншн. AuditEvent append-only, не отключаем и экспортируем. AuditEvent содержит actor, action, object_ref, timestamp и result. Аудит охватывает аутентификацию, изменения прав, доступы, Run и promotion моделей.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "policy",
+        "retention"
+      ],
+      "url": "/ru/docs/governance#audit"
+    },
+    {
+      "docId": "governance#retention",
+      "slug": "governance",
+      "title": "Управление (Governance)",
+      "section": "Управление (Governance)",
+      "heading": "Retention и legal hold",
+      "headingId": "retention",
+      "content": "RBAC, применение политик, аудит и ретеншн. DatasetVersion не может быть удалена при использовании в Run/Model/AuditEvent без разрешения retention policy. Политики ретеншна определяют lifecycle переходы (deprecated, expired, deleted). Связанные разделы См. «Безопасность» для допущений модели угроз и ограничений аудита.",
+      "keywords": [
+        "rbac",
+        "audit",
+        "policy",
+        "retention"
+      ],
+      "url": "/ru/docs/governance#retention"
+    },
+    {
+      "docId": "acceptance-criteria",
+      "slug": "acceptance-criteria",
+      "title": "Критерии готовности",
+      "section": "Критерии готовности",
+      "heading": "Критерии готовности",
+      "headingId": null,
+      "content": "Условия production-grade и сценарии приёмки. Критерии готовности определяют формальные условия, при которых Animus Datalab считается production-grade и пригодной для регулируемых сред. Платформа не считается готовой, если не выполнен хотя бы один обязательный критерий. Приёмка выполняется на рабочей инсталляции с включёнными аудитом и политиками безопасности. Полный ML-цикл в одном Project с DatasetVersion, CodeRef commit SHA и EnvironmentLock. Воспроизводимость production-run с явным уровнем детерминизма. Изоляция проектов с запрещённым доступом и аудированием попыток. SSO или локальные учётные записи в air-gapped, TTL сессий и принудительный выход. RBAC и object-level enforcement работают корректно. Секреты временные, не раскрываются в UI/логах/артефактах, обращения фиксируются. Все значимые действия порождают AuditEvent. AuditEvent содержит actor, action, object, timestamp. Экспорт аудита надёжен и повторяем. Установка автоматизируема и поддерживает air-gapped. Обновления без потери данных, с rollback и контролируемыми миграциями. Backup и DR процедурно и фактически выполняемы. Метрики Control Plane и Data Plane доступны. Логи структурированы и централизованы. Трассировка охватывает ключевые пути исполнения. Dev-окружения доступны, ограничения и политики прозрачны. Отсутствует скрытое состояние; любой результат объясним через сущности. Animus Datalab считается production-grade, если полный ML-цикл выполняется в рамках одного Project, воспроизводимость production-run формализована или ограничения зафиксированы, аудит сквозной и экспортируемый, безопасность и доступы работают end-to-end, развертывание/обновления/rollback предсказуемы, и скрытое состояние отсутствует.",
+      "keywords": [
+        "acceptance",
+        "production-grade"
+      ],
+      "url": "/ru/docs/acceptance-criteria"
+    },
+    {
+      "docId": "acceptance-criteria#purpose",
+      "slug": "acceptance-criteria",
+      "title": "Критерии готовности",
+      "section": "Критерии готовности",
+      "heading": "Назначение",
+      "headingId": "purpose",
+      "content": "Условия production-grade и сценарии приёмки. Критерии готовности определяют формальные условия, при которых Animus Datalab считается production-grade и пригодной для регулируемых сред.",
+      "keywords": [
+        "acceptance",
+        "production-grade"
+      ],
+      "url": "/ru/docs/acceptance-criteria#purpose"
+    },
+    {
+      "docId": "acceptance-criteria#general",
+      "slug": "acceptance-criteria",
+      "title": "Критерии готовности",
+      "section": "Критерии готовности",
+      "heading": "Общие требования",
+      "headingId": "general",
+      "content": "Условия production-grade и сценарии приёмки. Платформа не считается готовой, если не выполнен хотя бы один обязательный критерий. Приёмка выполняется на рабочей инсталляции с включёнными аудитом и политиками безопасности.",
+      "keywords": [
+        "acceptance",
+        "production-grade"
+      ],
+      "url": "/ru/docs/acceptance-criteria#general"
+    },
+    {
+      "docId": "acceptance-criteria#e2e",
+      "slug": "acceptance-criteria",
+      "title": "Критерии готовности",
+      "section": "Критерии готовности",
+      "heading": "Сквозные сценарии",
+      "headingId": "e2e",
+      "content": "Условия production-grade и сценарии приёмки. Полный ML-цикл в одном Project с DatasetVersion, CodeRef commit SHA и EnvironmentLock. Воспроизводимость production-run с явным уровнем детерминизма. Изоляция проектов с запрещённым доступом и аудированием попыток.",
+      "keywords": [
+        "acceptance",
+        "production-grade"
+      ],
+      "url": "/ru/docs/acceptance-criteria#e2e"
+    },
+    {
+      "docId": "acceptance-criteria#security",
+      "slug": "acceptance-criteria",
+      "title": "Критерии готовности",
+      "section": "Критерии готовности",
+      "heading": "Безопасность и доступ",
+      "headingId": "security",
+      "content": "Условия production-grade и сценарии приёмки. SSO или локальные учётные записи в air-gapped, TTL сессий и принудительный выход. RBAC и object-level enforcement работают корректно. Секреты временные, не раскрываются в UI/логах/артефактах, обращения фиксируются.",
+      "keywords": [
+        "acceptance",
+        "production-grade"
+      ],
+      "url": "/ru/docs/acceptance-criteria#security"
+    },
+    {
+      "docId": "acceptance-criteria#audit",
+      "slug": "acceptance-criteria",
+      "title": "Критерии готовности",
+      "section": "Критерии готовности",
+      "heading": "Аудит и трассируемость",
+      "headingId": "audit",
+      "content": "Условия production-grade и сценарии приёмки. Все значимые действия порождают AuditEvent. AuditEvent содержит actor, action, object, timestamp. Экспорт аудита надёжен и повторяем.",
+      "keywords": [
+        "acceptance",
+        "production-grade"
+      ],
+      "url": "/ru/docs/acceptance-criteria#audit"
+    },
+    {
+      "docId": "acceptance-criteria#operations",
+      "slug": "acceptance-criteria",
+      "title": "Критерии готовности",
+      "section": "Критерии готовности",
+      "heading": "Эксплуатационная готовность",
+      "headingId": "operations",
+      "content": "Условия production-grade и сценарии приёмки. Установка автоматизируема и поддерживает air-gapped. Обновления без потери данных, с rollback и контролируемыми миграциями. Backup и DR процедурно и фактически выполняемы.",
+      "keywords": [
+        "acceptance",
+        "production-grade"
+      ],
+      "url": "/ru/docs/acceptance-criteria#operations"
+    },
+    {
+      "docId": "acceptance-criteria#observability",
+      "slug": "acceptance-criteria",
+      "title": "Критерии готовности",
+      "section": "Критерии готовности",
+      "heading": "Наблюдаемость",
+      "headingId": "observability",
+      "content": "Условия production-grade и сценарии приёмки. Метрики Control Plane и Data Plane доступны. Логи структурированы и централизованы. Трассировка охватывает ключевые пути исполнения.",
+      "keywords": [
+        "acceptance",
+        "production-grade"
+      ],
+      "url": "/ru/docs/acceptance-criteria#observability"
+    },
+    {
+      "docId": "acceptance-criteria#dx",
+      "slug": "acceptance-criteria",
+      "title": "Критерии готовности",
+      "section": "Критерии готовности",
+      "heading": "Developer environment",
+      "headingId": "dx",
+      "content": "Условия production-grade и сценарии приёмки. Dev-окружения доступны, ограничения и политики прозрачны. Отсутствует скрытое состояние; любой результат объясним через сущности.",
+      "keywords": [
+        "acceptance",
+        "production-grade"
+      ],
+      "url": "/ru/docs/acceptance-criteria#dx"
+    },
+    {
+      "docId": "acceptance-criteria#production-grade",
+      "slug": "acceptance-criteria",
+      "title": "Критерии готовности",
+      "section": "Критерии готовности",
+      "heading": "Определение production-grade",
+      "headingId": "production-grade",
+      "content": "Условия production-grade и сценарии приёмки. Animus Datalab считается production-grade, если полный ML-цикл выполняется в рамках одного Project, воспроизводимость production-run формализована или ограничения зафиксированы, аудит сквозной и экспортируемый, безопасность и доступы работают end-to-end, развертывание/обновления/rollback предсказуемы, и скрытое состояние отсутствует.",
+      "keywords": [
+        "acceptance",
+        "production-grade"
+      ],
+      "url": "/ru/docs/acceptance-criteria#production-grade"
+    },
+    {
+      "docId": "adrs",
+      "slug": "adrs",
+      "title": "ADR",
+      "section": "ADR",
+      "heading": "ADR",
+      "headingId": null,
+      "content": "Архитектурные решения и обоснования. ADR-001: Разделение Control Plane и Data Plane; Control Plane не исполняет пользовательский код. ADR-002: Run как единица воспроизводимости. ADR-003: Immutable DatasetVersion; Run ссылается на DatasetVersion. ADR-004: Production-run только по commit SHA и EnvironmentLock. ADR-005: IDE как инструмент, не как платформа. ADR-006: AuditEvent append-only, не отключаем и экспортируем.",
+      "keywords": [
+        "adr",
+        "decisions"
+      ],
+      "url": "/ru/docs/adrs"
+    },
+    {
+      "docId": "adrs#decisions",
+      "slug": "adrs",
+      "title": "ADR",
+      "section": "ADR",
+      "heading": "Принятые ADR",
+      "headingId": "decisions",
+      "content": "Архитектурные решения и обоснования. ADR-001: Разделение Control Plane и Data Plane; Control Plane не исполняет пользовательский код. ADR-002: Run как единица воспроизводимости. ADR-003: Immutable DatasetVersion; Run ссылается на DatasetVersion. ADR-004: Production-run только по commit SHA и EnvironmentLock. ADR-005: IDE как инструмент, не как платформа. ADR-006: AuditEvent append-only, не отключаем и экспортируем.",
+      "keywords": [
+        "adr",
+        "decisions"
+      ],
+      "url": "/ru/docs/adrs#decisions"
+    },
+    {
+      "docId": "glossary",
+      "slug": "glossary",
+      "title": "Глоссарий",
+      "section": "Глоссарий",
+      "heading": "Глоссарий",
+      "headingId": null,
+      "content": "Канонические термины и определения. Run — единица исполнения и воспроизводимости в Animus. Control Plane — управляющая плоскость платформы. Data Plane — плоскость исполнения пользовательского кода. Immutable — объект, не допускающий изменения после создания. Production-run — запуск, результат которого может быть использован вне лаборатории. Project — организационная и изоляционная единица доступа и исполнения. Dataset — логическая сущность данных, объединяющая версии. DatasetVersion — неизменяемая версия данных, используемая в Run. CodeRef — ссылка на код во внешней SCM с commit SHA. EnvironmentDefinition — логическое описание окружения исполнения. EnvironmentLock — неизменяемое и проверяемое окружение исполнения. PipelineRun — составной Run как DAG шагов. Artifact — результат исполнения Run (логи, метрики, файлы, модели, отчёты). Model — логическая сущность семейства версий моделей. ModelVersion — конкретный результат Run, признанный моделью. AuditEvent — неизменяемая запись о значимом действии.",
+      "keywords": [
+        "глоссарий",
+        "термины"
+      ],
+      "url": "/ru/docs/glossary"
+    },
+    {
+      "docId": "glossary#core-terms",
+      "slug": "glossary",
+      "title": "Глоссарий",
+      "section": "Глоссарий",
+      "heading": "Ключевые термины",
+      "headingId": "core-terms",
+      "content": "Канонические термины и определения. Run — единица исполнения и воспроизводимости в Animus. Control Plane — управляющая плоскость платформы. Data Plane — плоскость исполнения пользовательского кода. Immutable — объект, не допускающий изменения после создания. Production-run — запуск, результат которого может быть использован вне лаборатории.",
+      "keywords": [
+        "глоссарий",
+        "термины"
+      ],
+      "url": "/ru/docs/glossary#core-terms"
+    },
+    {
+      "docId": "glossary#domain-terms",
+      "slug": "glossary",
+      "title": "Глоссарий",
+      "section": "Глоссарий",
+      "heading": "Доменные сущности",
+      "headingId": "domain-terms",
+      "content": "Канонические термины и определения. Project — организационная и изоляционная единица доступа и исполнения. Dataset — логическая сущность данных, объединяющая версии. DatasetVersion — неизменяемая версия данных, используемая в Run. CodeRef — ссылка на код во внешней SCM с commit SHA. EnvironmentDefinition — логическое описание окружения исполнения. EnvironmentLock — неизменяемое и проверяемое окружение исполнения. PipelineRun — составной Run как DAG шагов. Artifact — результат исполнения Run (логи, метрики, файлы, модели, отчёты). Model — логическая сущность семейства версий моделей. ModelVersion — конкретный результат Run, признанный моделью. AuditEvent — неизменяемая запись о значимом действии.",
+      "keywords": [
+        "глоссарий",
+        "термины"
+      ],
+      "url": "/ru/docs/glossary#domain-terms"
+    }
+  ]
+}

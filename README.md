@@ -135,10 +135,14 @@ Reproducible local verification scripts:
 - `bash scripts/verify-full-tunnel-linux.sh`
 - `bash scripts/verify-release-artifacts.sh dist`
 
-Python desktop messenger app (GUI) on top of Link daemon:
-- `apps/chat-gui-python/chat_gui.py`
-- Usage guide: `apps/chat-gui-python/README.md`
-- Dependency: `pip install -r apps/chat-gui-python/requirements.txt`
+Link web messenger app (React + Node runtime) inside protected Animus network:
+- `messanger/app/link/page.tsx` (primary route)
+- `messanger/app/messenger/page.tsx` (legacy route)
+- Backend API/runtime:
+  - `messanger/app/api/messenger/route.ts`
+  - `messanger/lib/messenger/runtime.ts`
+- Usage guide: `messanger/README.md`
+- Recommended stack for further development: React frontend + Node backend.
 
 ## Repo layout
 - `spec/` — normative specs (wire, state machine, identity, relay, node security)

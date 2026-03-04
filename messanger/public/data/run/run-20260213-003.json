@@ -1,0 +1,65 @@
+{
+  "run": {
+    "id": "run-20260213-003",
+    "timestamp": "2026-02-13T10:55:00Z",
+    "model": "gpt-4.1",
+    "branch": "main",
+    "commitSha": "6bd1ca9e7a0e6f671bcce4e2c05ee2a2df5fd26f",
+    "tokens": 145902,
+    "status": "failed",
+    "replayStatus": "failed_replay",
+    "proofHash": "sha256:15d9a2ee742f24eb2d12f5df6f44ddcb5f8ffab234c9144e386dce9f0fb18d7f",
+    "proofBundleUrl": "https://example.com/proof/run-20260213-003.bundle.json",
+    "proofBundleSizeBytes": 143551,
+    "reproducible": true,
+    "pinnedContext": true,
+    "envLockId": "envlock-20260213-a",
+    "harnessPassed": false,
+    "module": "M2",
+    "detailPath": "/runs/run-20260213-003"
+  },
+  "timeline": [
+    {
+      "time": "2026-02-13T10:55:00Z",
+      "type": "RunCreated",
+      "detail": "Run accepted with explicit context and policy snapshot.",
+      "source": "EventLog"
+    },
+    {
+      "time": "2026-02-13T11:01:27Z",
+      "type": "RegressionHarnessFailed",
+      "detail": "Behavioral mismatch detected in module M2 replay fixture.",
+      "source": "RegressionHarness"
+    },
+    {
+      "time": "2026-02-13T11:03:10Z",
+      "type": "RunFinished",
+      "detail": "Run marked failed, proof bundle emitted for inspection.",
+      "source": "EventLog"
+    },
+    {
+      "time": "2026-02-13T11:17:09Z",
+      "type": "ReplayFailed",
+      "detail": "Replay run diverged at deterministic checkpoint after step 4.",
+      "source": "ReplayEngine"
+    }
+  ],
+  "artifacts": [
+    {
+      "label": "Failure proof bundle",
+      "href": "https://example.com/proof/run-20260213-003.bundle.json",
+      "hash": "sha256:15d9a2ee742f24eb2d12f5df6f44ddcb5f8ffab234c9144e386dce9f0fb18d7f"
+    },
+    {
+      "label": "Harness diff report",
+      "href": "https://example.com/proof/run-20260213-003.diff.json"
+    }
+  ],
+  "replay": {
+    "href": "/runs?replayFrom=run-20260213-003",
+    "note": "Replay failed previously; inspect harness diff report before retrying."
+  },
+  "warnings": [
+    "Replay divergence exceeded tolerance for module M2 baseline snapshot."
+  ]
+}

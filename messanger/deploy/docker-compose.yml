@@ -1,0 +1,12 @@
+services:
+  landing:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://kapakka.org}
+    env_file:
+      - ../.env.production
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
