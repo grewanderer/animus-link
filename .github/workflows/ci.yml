@@ -9,6 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: workflow portability guards
+        run: |
+          set -o pipefail
+          if grep -R --line-number -E '^[[:space:]]*if[[:space:]]+\[[[:space:]]+"\\$\\{RUNNER_OS\\}"[[:space:]]*=[[:space:]]*"Windows"[[:space:]]*\\];[[:space:]]*then' .github/workflows/*.yml; then
+            echo "Workflow shell script must not branch on RUNNER_OS; use step-level if: runner.os conditions."
+            exit 1
+          fi
+          if grep -R --line-number -E '^[[:space:]]*rg[[:space:]]' .github/workflows/*.yml; then
+            echo "Workflow scripts must not depend on ripgrep (rg). Use grep/find instead."
+            exit 1
+          fi
       - name: job diagnostics
         run: |
           mkdir -p ci-logs
