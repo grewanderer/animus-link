@@ -312,11 +312,7 @@ jobs:
       - uses: android-actions/setup-android@v3
       - name: verify committed gradle wrapper files
         run: |
-          if [ "${RUNNER_OS}" = "Windows" ]; then
-            pwsh -NoLogo -NoProfile -Command 'New-Item -ItemType Directory -Force -Path "mobile/android/ci-logs" | Out-Null'
-          else
-            mkdir -p mobile/android/ci-logs
-          fi
+          mkdir -p mobile/android/ci-logs
           set -o pipefail
           {
             test -f mobile/android/gradlew
@@ -380,11 +376,7 @@ jobs:
           targets: aarch64-linux-android,x86_64-linux-android
       - name: android job diagnostics
         run: |
-          if [ "${RUNNER_OS}" = "Windows" ]; then
-            pwsh -NoLogo -NoProfile -Command 'New-Item -ItemType Directory -Force -Path "mobile/android/ci-logs" | Out-Null'
-          else
-            mkdir -p mobile/android/ci-logs
-          fi
+          mkdir -p mobile/android/ci-logs
           {
             echo "Runner OS: ${RUNNER_OS}"
             echo "Shell: ${SHELL:-unknown}"
