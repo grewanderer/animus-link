@@ -20,6 +20,7 @@ FFI linkage (UniFFI):
 
 Build (CI/MVP):
 - `xcodebuild -project mobile/ios/AnimusLinkIOS.xcodeproj -target AnimusLinkIOS -target AnimusLinkTunnelExtension ... build`
+- CI shared scheme: `AnimusLinkIOS-CI` (host + extension build graph).
 
 Relay/security notes:
 - Host app can start/stop `NETunnelProviderManager` for the Packet Tunnel extension.
@@ -50,6 +51,12 @@ Common troubleshooting:
 - `TunnelManagerLoadError` / `SaveError`: provisioning or entitlement mismatch.
 - `startVPNTunnel` failure: extension bundle identifier mismatch or extension not embedded.
 - If tunnel remains disconnected, verify relay reachability and signed-token path on backend.
+
+Redaction checks (manual, current MVP):
+1. Generate an invite from the Onboarding screen and confirm only a masked invite is rendered in UI status.
+2. Paste a relay token into Tunnel settings and confirm only masked/token-preview text is shown.
+3. Run Diagnostics -> Report a problem and verify exported text contains `animus://invite/[redacted]` and `animus://rtok/[redacted]`.
+4. Confirm no invite/token values are printed in Xcode console logs during these flows.
 
 TestFlight beta flow:
 1. Download CI/release iOS artifacts:
