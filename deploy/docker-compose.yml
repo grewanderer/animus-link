@@ -1,7 +1,8 @@
 services:
   relay:
     build:
-      context: ./relay
+      context: ..
+      dockerfile: deploy/relay/Dockerfile
     command:
       - "--bind"
       - "0.0.0.0:7777"

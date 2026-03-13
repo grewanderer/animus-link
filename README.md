@@ -35,7 +35,17 @@ cargo run -p link-daemon -- \
   --relay-name default-relay \
   --relay-token-signing-seed-hex 9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60
 
-# 7) Relay-first e2e demo (relay + two daemons + echo proxy)
+# 7) Use the local CLI against the daemon API
+cargo run -p link-cli -- status
+cargo run -p link-cli -- health
+cargo run -p link-cli -- self-check
+cargo run -p link-cli -- diagnostics
+cargo run -p link-cli -- invite create
+cargo run -p link-cli -- service expose echo 127.0.0.1:19180 --allowed-peer peer-b
+cargo run -p link-cli -- service connect echo
+cargo run -p link-cli -- tunnel status
+
+# 8) Relay-first e2e demo (relay + two daemons + echo proxy)
 bash scripts/demo-relay-first-e2e.sh
 ```
 
