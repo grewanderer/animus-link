@@ -123,6 +123,132 @@ npm.cmd run dev
 - In B: `Join Room`
 - Send messages both ways
 
+### Mode C: Realistic remote test (2 different computers via VPS relay)
+
+Use this mode when you want to test with another person over the internet.
+
+Architecture:
+
+- VPS runs only `relay-server`
+- your machine runs `link-daemon` + `messanger`
+- friend machine runs `link-daemon` + `messanger`
+
+This is the closest test to the real product flow today, because each user still has a local daemon and local messenger runtime.
+
+#### Step 1: start relay on VPS with Docker
+
+On the VPS:
+
+```bash
+cd /opt/animus-link
+cp deploy/.env.relay.example deploy/.env.relay
+```
+
+Edit `deploy/.env.relay` and set:
+
+```env
+ANIMUS_RELAY_NAME=default-relay
+ANIMUS_RELAY_TOKEN_ISSUER_PUBKEY_HEX=d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a
+```
+
+Open `UDP 7777` in the VPS firewall/security group, then run:
+
+```bash
+docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml up -d --build
+docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml ps
+docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml logs -f relay
+```
+
+Assume relay is reachable as `relay.example.com:7777`.
+
+#### Step 2: your machine
+
+Terminal 1, daemon:
+
+```powershell
+cd C:\Users\Red\Desktop\animus-link
+cargo run -p link-daemon -- --api-bind 127.0.0.1:9999 --state-file .animus-link/state/a.json --relay-addr relay.example.com:7777 --relay-name default-relay --relay-token-signing-seed-hex 9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60
+```
+
+Terminal 2, web:
+
+```powershell
+cd C:\Users\Red\Desktop\animus-link\messanger
+npm.cmd ci
+$env:ANIMUS_MESSENGER_STATE_FILE=".animus-link/messenger-web/a.json"
+$env:NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+$env:NEXT_PUBLIC_MESSENGER_ADVANCED_UI="1"
+npm.cmd run dev
+```
+
+Open:
+
+```text
+http://localhost:3000/link
+```
+
+Set:
+
+```text
+Daemon API = http://127.0.0.1:9999
+```
+
+#### Step 3: friend machine
+
+Terminal 1, daemon:
+
+```powershell
+cd C:\Users\Friend\Desktop\animus-link
+cargo run -p link-daemon -- --api-bind 127.0.0.1:9999 --state-file .animus-link/state/b.json --relay-addr relay.example.com:7777 --relay-name default-relay --relay-token-signing-seed-hex 9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60
+```
+
+Terminal 2, web:
+
+```powershell
+cd C:\Users\Friend\Desktop\animus-link\messanger
+npm.cmd ci
+$env:ANIMUS_MESSENGER_STATE_FILE=".animus-link/messenger-web/b.json"
+$env:NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+$env:NEXT_PUBLIC_MESSENGER_ADVANCED_UI="1"
+npm.cmd run dev
+```
+
+Open:
+
+```text
+http://localhost:3000/link
+```
+
+Set:
+
+```text
+Daemon API = http://127.0.0.1:9999
+```
+
+#### Step 4: chat flow
+
+1. On your machine: click `Create Invite`
+2. Send the full invite string to your friend
+3. On friend machine: paste it into `Invite code` and click `Join Invite`
+4. On your machine: click `Start Host`
+5. On friend machine: click `Join Room`
+6. Send messages in both directions
+
+#### Step 5: quick checks if connection fails
+
+On each machine:
+
+```powershell
+curl http://127.0.0.1:9999/v1/health
+```
+
+On the VPS:
+
+```bash
+docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml ps
+docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml logs --tail=100 relay
+```
+
 ## How To Use The App
 
 After opening `http://localhost:3000/link`, the page is split into:
@@ -184,7 +310,6 @@ UI modes:
 
 ### Message timeline
 
-- `system` messages show connection events (`joined`, `left`, `connection closed`).
 - Outgoing messages are styled differently from incoming.
 - Message list auto-refreshes periodically.
 - If room is disconnected, the message area shows a join notice (`Join the room to see messages.`).
@@ -246,6 +371,8 @@ npm run start
 
 ## Docker
 
+### Web app container
+
 Build:
 
 ```bash
@@ -258,11 +385,18 @@ Run:
 docker run -d --name animus-landing -p 3000:3000 --env-file .env.production animus-landing
 ```
 
-Compose:
+### Relay container for VPS testing
+
+For real messenger testing across different computers, run `relay-server` on the VPS and keep the web app local on each user machine.
+
+On the VPS:
 
 ```bash
-NEXT_PUBLIC_SITE_URL=https://example.com docker compose -f deploy/docker-compose.yml up -d --build
+cp deploy/.env.relay.example deploy/.env.relay
+docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml up -d --build
 ```
+
+Open `UDP 7777` in the VPS firewall/security group.
 
 ## Commands
 

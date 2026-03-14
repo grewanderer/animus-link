@@ -1,5 +1,8 @@
 services:
   relay:
+    container_name: animus-relay
+    init: true
+    restart: unless-stopped
     build:
       context: ..
       dockerfile: deploy/relay/Dockerfile

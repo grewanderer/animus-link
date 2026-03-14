@@ -3,8 +3,10 @@
 import {
   type ChangeEvent,
   type KeyboardEvent,
+  type MutableRefObject,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type TextareaHTMLAttributes,
   useCallback,
   useEffect,
   useMemo,
@@ -155,11 +157,11 @@ function statusToneClass(tone: 'idle' | 'live' | 'warn', dark: boolean): string 
   }
   if (tone === 'warn') {
     return dark
-      ? 'border-amber-300/50 bg-amber-300/15 text-amber-200'
-      : 'border-amber-500/45 bg-amber-100 text-amber-700';
+      ? 'border-sky-300/50 bg-sky-300/15 text-sky-200'
+      : 'border-sky-500/45 bg-sky-100 text-sky-700';
   }
   return dark
-    ? 'border-amber-200/25 bg-amber-100/10 text-amber-100/80'
+    ? 'border-slate-300/25 bg-slate-100/10 text-slate-100/80'
     : 'border-slate-400/45 bg-slate-100 text-slate-700';
 }
 
@@ -215,150 +217,25 @@ function AvatarCircle({
   );
 }
 
-function RadioKnob({
-  title,
-  leftLabel,
-  rightLabel,
-  activeRight,
-  onClick,
-  className,
-}: {
-  title: string;
-  leftLabel: string;
-  rightLabel: string;
-  activeRight: boolean;
-  onClick: () => void;
-  className?: string;
-}) {
-  const angle = activeRight ? 42 : -42;
-
-  return (
-    <div className={cn('flex w-[112px] flex-col items-center gap-2.5', className)}>
-      <div className="text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-[#cbb487]">
-        {title}
-      </div>
-      <button
-        type="button"
-        onClick={onClick}
-        aria-label={`${title}: ${activeRight ? rightLabel : leftLabel}`}
-        className="group relative flex h-[112px] w-[112px] items-center justify-center rounded-full border border-[#8c6b35] bg-[radial-gradient(circle_at_35%_28%,#5b4730_0%,#2a1c11_45%,#140d08_100%)] shadow-[inset_0_2px_0_rgba(255,223,164,0.18),inset_0_-8px_18px_rgba(0,0,0,0.45),0_16px_28px_rgba(0,0,0,0.4)] transition-transform duration-200 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-amber-300/65"
-      >
-        <span className="absolute inset-[10px] rounded-full border border-[#5f4725] bg-[radial-gradient(circle_at_30%_28%,#3d2e1d_0%,#1a120c_65%,#100905_100%)] shadow-[inset_0_0_0_1px_rgba(255,222,162,0.06)]" />
-        <span
-          className="absolute h-[40px] w-[5px] rounded-full bg-[linear-gradient(180deg,#f7d98b,#9c6d2d)] shadow-[0_0_12px_rgba(244,200,106,0.25)] transition-transform duration-300"
-          style={{ transform: `translateY(-25px) rotate(${angle}deg)` }}
-        />
-        <span className="absolute inset-[33px] rounded-full border border-[#7d6132] bg-[radial-gradient(circle_at_35%_30%,#4d3b26_0%,#24180f_72%,#16100a_100%)] shadow-[inset_0_1px_0_rgba(255,228,174,0.15)]" />
-        <span className="absolute inset-[43px] rounded-full border border-[#917140] bg-[radial-gradient(circle_at_35%_30%,#765a34_0%,#412c18_78%,#2a1a0e_100%)]" />
-      </button>
-      <div className="flex w-full items-center justify-between px-1 text-[10px] font-semibold uppercase tracking-[0.08em]">
-        <span className={cn(activeRight ? 'text-[#8d7753]' : 'text-[#f1d89d]')}>{leftLabel}</span>
-        <span className={cn(activeRight ? 'text-[#f1d89d]' : 'text-[#8d7753]')}>{rightLabel}</span>
-      </div>
-    </div>
-  );
-}
-
-function KnobPod({
-  side,
-  children,
-  className,
-}: {
-  side: 'left' | 'right';
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "relative border border-[#7d5f30] bg-[linear-gradient(145deg,#342417,#21150d)] shadow-[inset_0_1px_0_rgba(255,220,160,0.15),0_28px_40px_rgba(0,0,0,0.28)]",
-        "before:pointer-events-none before:absolute before:inset-[10px] before:rounded-[24px] before:border before:border-amber-100/10",
-        side === 'left'
-          ? 'rounded-[38px_30px_30px_38px] px-5 py-5 pr-6'
-          : 'rounded-[30px_38px_38px_30px] px-5 py-5 pl-6',
-        className,
-      )}
-    >
-      <div className="relative z-10">{children}</div>
-    </div>
-  );
-}
-
-function RadioClockDisplay({
-  value,
-  className,
-}: {
-  value: string;
-  className?: string;
-}) {
-  const glyphs = value.split('');
-
-  return (
-    <div
-      className={cn(
-        'relative w-[278px] rounded-[34px] border border-[#7d5f30] bg-[linear-gradient(145deg,#39271a,#24170e)] px-5 py-5 shadow-[inset_0_1px_0_rgba(255,220,160,0.15),0_30px_44px_rgba(0,0,0,0.28)]',
-        'before:pointer-events-none before:absolute before:inset-[10px] before:rounded-[24px] before:border before:border-amber-100/10',
-        className,
-      )}
-    >
-      <div className="relative z-10">
-        <div className="mb-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-[#cbb487]">
-          <span>Clock</span>
-          <span>Local</span>
-        </div>
-
-        <div className="rounded-[24px] border border-[#6f8740]/60 bg-[linear-gradient(180deg,#182014,#10150d)] p-4 shadow-[inset_0_0_0_1px_rgba(170,220,116,0.1),inset_0_0_26px_rgba(125,170,84,0.08)]">
-          <div className="flex items-center justify-center gap-2">
-            {glyphs.map((char, index) =>
-              char === ':' ? (
-                <div key={`colon-${index}`} className="flex h-[72px] flex-col items-center justify-center gap-3 px-1">
-                  <span className="size-2 rounded-full bg-[#dbff98] shadow-[0_0_10px_rgba(219,255,152,0.8)]" />
-                  <span className="size-2 rounded-full bg-[#dbff98] shadow-[0_0_10px_rgba(219,255,152,0.8)]" />
-                </div>
-              ) : (
-                <div
-                  key={`digit-${index}-${char}`}
-                  className="flex h-[72px] w-[46px] items-center justify-center rounded-[14px] border border-[#799147]/65 bg-[linear-gradient(180deg,rgba(25,36,16,0.96),rgba(12,17,9,0.98))] font-mono text-[40px] font-bold leading-none text-[#e8ffb6] shadow-[inset_0_0_12px_rgba(163,224,105,0.08)]"
-                >
-                  <span className="drop-shadow-[0_0_12px_rgba(216,255,144,0.55)]">{char}</span>
-                </div>
-              ),
-            )}
-          </div>
-
-          <div className="mt-3 flex items-center justify-between text-[9px] font-semibold uppercase tracking-[0.18em] text-[#96b26e]">
-            <span>Animus</span>
-            <span>24H Sync</span>
-          </div>
-        </div>
-
-        <div className="mt-3 flex items-center justify-end gap-2">
-          <span className="inline-block h-2.5 w-7 rounded-full border border-[#7b6438] bg-[linear-gradient(180deg,#2b361d,#11170d)]" />
-          <span className="inline-block h-2.5 w-7 rounded-full border border-[#7b6438] bg-[linear-gradient(180deg,#63823d,#2e471c)] shadow-[0_0_10px_rgba(151,205,93,0.18)]" />
-          <span className="inline-block h-2.5 w-7 rounded-full border border-[#7b6438] bg-[linear-gradient(180deg,#3a2620,#1b110d)]" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ExternalScrollArea({
   children,
   className,
   viewportClassName,
+  viewportRef: externalViewportRef,
 }: {
   children: ReactNode;
   className?: string;
   viewportClassName?: string;
+  viewportRef?: MutableRefObject<HTMLDivElement | null>;
 }) {
-  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const internalViewportRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef<{ startY: number; startScrollTop: number } | null>(null);
   const [metrics, setMetrics] = useState({ scrollable: false, thumbHeight: 0, thumbTop: 0 });
 
   const syncMetrics = useCallback(() => {
-    const viewport = viewportRef.current;
+    const viewport = internalViewportRef.current;
     const track = trackRef.current;
     if (!viewport || !track) {
       return;
@@ -399,7 +276,7 @@ function ExternalScrollArea({
   });
 
   useEffect(() => {
-    const viewport = viewportRef.current;
+    const viewport = internalViewportRef.current;
     const content = contentRef.current;
     if (!viewport) {
       return;
@@ -425,7 +302,7 @@ function ExternalScrollArea({
   }, [syncMetrics]);
 
   const handleTrackPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    const viewport = viewportRef.current;
+    const viewport = internalViewportRef.current;
     const track = trackRef.current;
     if (!viewport || !track || !metrics.scrollable) {
       return;
@@ -437,7 +314,7 @@ function ExternalScrollArea({
   }, [metrics.scrollable]);
 
   const handleThumbPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    const viewport = viewportRef.current;
+    const viewport = internalViewportRef.current;
     const track = trackRef.current;
     if (!viewport || !track || !metrics.scrollable) {
       return;
@@ -453,7 +330,7 @@ function ExternalScrollArea({
 
     const onPointerMove = (moveEvent: PointerEvent) => {
       const drag = dragStateRef.current;
-      const nextViewport = viewportRef.current;
+      const nextViewport = internalViewportRef.current;
       const nextTrack = trackRef.current;
       if (!drag || !nextViewport || !nextTrack) {
         return;
@@ -475,10 +352,20 @@ function ExternalScrollArea({
     window.addEventListener('pointerup', onPointerUp);
   }, [metrics.scrollable, metrics.thumbHeight]);
 
+  const handleViewportRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      internalViewportRef.current = node;
+      if (externalViewportRef) {
+        externalViewportRef.current = node;
+      }
+    },
+    [externalViewportRef],
+  );
+
   return (
-    <div className={cn('grid min-h-0 grid-cols-[minmax(0,1fr)_8px] items-stretch gap-1.5', className)}>
+    <div className={cn('grid min-h-0 grid-cols-[minmax(0,1fr)_7px] items-stretch gap-1.5', className)}>
       <div
-        ref={viewportRef}
+        ref={handleViewportRef}
         className={cn('messenger-native-scroll-hidden min-h-0 overflow-y-auto', viewportClassName)}
       >
         <div ref={contentRef}>{children}</div>
@@ -488,7 +375,7 @@ function ExternalScrollArea({
         ref={trackRef}
         className={cn(
           'messenger-external-rail',
-          metrics.scrollable ? 'opacity-100' : 'opacity-35',
+          metrics.scrollable ? 'opacity-100' : 'pointer-events-none opacity-0',
         )}
         onPointerDown={handleTrackPointerDown}
       >
@@ -501,6 +388,38 @@ function ExternalScrollArea({
         ) : null}
       </div>
     </div>
+  );
+}
+
+function AutoSizeTextarea({
+  className,
+  maxHeight = 180,
+  value,
+  style,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { maxHeight?: number }) {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    textarea.style.height = '0px';
+    const nextHeight = Math.min(textarea.scrollHeight, maxHeight);
+    textarea.style.height = `${nextHeight}px`;
+    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, [maxHeight, value]);
+
+  return (
+    <textarea
+      {...props}
+      ref={textareaRef}
+      value={value}
+      className={cn('messenger-scrollbar resize-none', className)}
+      style={style}
+    />
   );
 }
 
@@ -546,7 +465,6 @@ export function MessengerApp() {
 
   const shellDark = theme === 'dark';
   const currentLocale = parseSiteLocaleFromAnyPath(pathname) ?? defaultSiteLocale;
-  const messengerLocale = currentLocale === 'ru' ? 'ru' : 'en';
 
   useEffect(() => {
     const html = document.documentElement;
@@ -963,41 +881,41 @@ export function MessengerApp() {
   const shell = cn(
     'relative z-10 flex flex-col overflow-hidden rounded-[42px] border p-4 sm:p-6',
     shellDark
-      ? 'border-[#7d5f30] bg-[linear-gradient(145deg,#2b1f14,#1d130b)] text-[#f7e6bf] shadow-[0_42px_90px_rgba(0,0,0,0.58)]'
-      : 'border-[#a3906f] bg-[linear-gradient(145deg,#f1eadc,#e4d6bc)] text-[#302714] shadow-[0_34px_80px_rgba(74,56,20,0.24)]',
+      ? 'border-[#2c4c66] bg-[linear-gradient(180deg,#15273a,#0e1928)] text-[#ecf6ff] shadow-[0_42px_90px_rgba(0,0,0,0.58)]'
+      : 'border-[#98afc4] bg-[linear-gradient(180deg,#f0f5fb,#dde7f1)] text-[#223547] shadow-[0_34px_80px_rgba(42,67,92,0.22)]',
   );
   const panel = cn(
-    'rounded-[30px] border p-4 shadow-[inset_0_1px_0_rgba(255,220,160,0.15),0_20px_35px_rgba(0,0,0,0.2)]',
+    'rounded-[30px] border p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_20px_35px_rgba(0,0,0,0.2)]',
     shellDark
-      ? 'border-[#856833] bg-[linear-gradient(145deg,#332316,#24180f)]'
-      : 'border-[#aa956e] bg-[linear-gradient(145deg,#efe5d2,#e2d3b6)]',
+      ? 'border-[#2e4e69] bg-[linear-gradient(180deg,#1a2b3b,#142433)]'
+      : 'border-[#9bb4c8] bg-[linear-gradient(180deg,#edf4fa,#e3ecf4)]',
   );
   const screen = cn(
     'rounded-[22px] border p-3',
     shellDark
-      ? 'border-[#6a542d] bg-[linear-gradient(180deg,#121c16,#15201a)] text-[#d8f8cc] shadow-[inset_0_0_0_1px_rgba(144,195,112,0.08)]'
-      : 'border-[#99ad92] bg-[linear-gradient(180deg,#eef7ea,#e2efde)] text-[#2f4b2f] shadow-[inset_0_0_0_1px_rgba(130,164,112,0.2)]',
+      ? 'border-[#355c7b] bg-[linear-gradient(180deg,#13273b,#0d1b2b)] text-[#e3f2ff] shadow-[inset_0_0_0_1px_rgba(132,190,230,0.1)]'
+      : 'border-[#9fb9cf] bg-[linear-gradient(180deg,#eff6fc,#e5eef7)] text-[#29465c] shadow-[inset_0_0_0_1px_rgba(123,165,198,0.16)]',
   );
   const inputClass = cn(
     'w-full rounded-2xl border px-3 py-2.5 text-sm focus:outline-none focus:ring-2',
     shellDark
-      ? 'border-[#7a6136] bg-[#17110b] text-[#f8e6c0] placeholder:text-[#a79068] focus:ring-amber-300/70'
-      : 'border-[#b39f78] bg-[#f8f2e6] text-[#3a2f1e] placeholder:text-[#8b7650] focus:ring-amber-600/55',
+      ? 'border-[#345470] bg-[#0d1824] text-[#edf6ff] placeholder:text-[#7f96ab] focus:ring-sky-300/65'
+      : 'border-[#acc1d2] bg-[#fbfdff] text-[#233648] placeholder:text-[#758a9e] focus:ring-sky-500/45',
   );
-  const textDim = shellDark ? 'text-[#dac9a3]/80' : 'text-[#5f4c35]/80';
+  const textDim = shellDark ? 'text-[#b7cbe0]/82' : 'text-[#60768a]/82';
   const buttonBase =
     'inline-flex items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] disabled:cursor-not-allowed';
   const buttonPrimary = cn(
     buttonBase,
     shellDark
-      ? 'border-[#d4ad5a] bg-[linear-gradient(180deg,#f4c86a,#c18935)] text-[#2b1804] disabled:opacity-45'
-      : 'border-[#9f7d3f] bg-[linear-gradient(180deg,#f5d38a,#d29b45)] text-[#2c1b07] disabled:opacity-45',
+      ? 'border-[#59b6ff] bg-[linear-gradient(180deg,#5dc4ff,#317dbe)] text-white disabled:opacity-45'
+      : 'border-[#5799d1] bg-[linear-gradient(180deg,#81cfff,#5294d4)] text-white disabled:opacity-45',
   );
   const buttonSoft = cn(
     buttonBase,
     shellDark
-      ? 'border-[#7f6236] bg-[#1c120b] text-[#f3deb5] disabled:opacity-45'
-      : 'border-[#ab9468] bg-[#efe2cb] text-[#46331b] disabled:opacity-45',
+      ? 'border-[#385671] bg-[#132334] text-[#dcecff] disabled:opacity-45'
+      : 'border-[#a5bbce] bg-[#eff5fa] text-[#264158] disabled:opacity-45',
   );
 
   return (
@@ -1006,34 +924,11 @@ export function MessengerApp() {
         'h-[100dvh] min-h-[100dvh] w-full overflow-hidden px-3 py-4 sm:px-6 sm:py-6',
         shellDark ? 'messenger-theme-dark' : 'messenger-theme-light',
         shellDark
-          ? 'bg-[radial-gradient(circle_at_15%_10%,rgba(255,175,78,0.12),transparent_35%),linear-gradient(180deg,#0c0805,#050403)]'
-          : 'bg-[radial-gradient(circle_at_15%_10%,rgba(249,220,152,0.38),transparent_38%),linear-gradient(180deg,#ece6d9,#ddd0b8)]',
+          ? 'bg-[radial-gradient(circle_at_15%_10%,rgba(96,180,255,0.16),transparent_35%),linear-gradient(180deg,#0a121a,#070d14)]'
+          : 'bg-[radial-gradient(circle_at_15%_10%,rgba(125,184,236,0.26),transparent_38%),linear-gradient(180deg,#e9f1f8,#d6e2ec)]',
       )}
     >
-      <div className="relative mx-auto grid h-full max-w-[1920px] grid-cols-1 2xl:grid-cols-[360px_minmax(0,1fr)_220px] 2xl:gap-x-10">
-        <aside className="relative hidden min-h-0 flex-col items-center justify-between py-10 2xl:flex">
-          <RadioClockDisplay value={formatShortTime(clockNow / 1000)} className="mt-4" />
-
-          <KnobPod side="left" className="mb-2">
-            <div className="flex items-start gap-5">
-              <RadioKnob
-                title="Settings"
-                leftLabel="Off"
-                rightLabel="On"
-                activeRight={settingsOpen}
-                onClick={() => setSettingsOpen((prev) => !prev)}
-              />
-              <RadioKnob
-                title="Profile"
-                leftLabel="Off"
-                rightLabel="On"
-                activeRight={profileEditorOpen}
-                onClick={() => setProfileEditorOpen((prev) => !prev)}
-              />
-            </div>
-          </KnobPod>
-        </aside>
-
+      <div className="relative mx-auto h-full max-w-[1560px]">
         <section
           className={cn(
             shell,
@@ -1049,30 +944,29 @@ export function MessengerApp() {
               className={cn(
                 'rounded-full border px-3 py-2',
                 shellDark
-                  ? 'border-amber-200/25 bg-black/20'
-                  : 'border-slate-500/35 bg-white/35',
+                  ? 'border-sky-200/15 bg-white/[0.04]'
+                  : 'border-slate-500/25 bg-white/45',
               )}
             >
               <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em]">
-                <span>Tuner</span>
-                <span className="2xl:hidden">{formatFullTime(clockNow / 1000)}</span>
-                <span className="hidden 2xl:inline text-[#c7dca4]">Link band</span>
+                <span>Session</span>
+                <span>{formatShortTime(clockNow / 1000)}</span>
               </div>
               <div
                 className={cn(
                   'h-2.5 rounded-full border',
                   shellDark
-                    ? 'border-amber-300/25 bg-[linear-gradient(90deg,#213e2e_0%,#7cab6b_28%,#bcd88d_50%,#7cab6b_72%,#213e2e_100%)]'
-                    : 'border-emerald-700/20 bg-[linear-gradient(90deg,#a8cf9f_0%,#d5e9c5_50%,#a8cf9f_100%)]',
+                    ? 'border-sky-300/20 bg-[linear-gradient(90deg,#15324a_0%,#4f98cf_45%,#8fd7ff_50%,#4f98cf_55%,#15324a_100%)]'
+                    : 'border-sky-700/20 bg-[linear-gradient(90deg,#a9d6f7_0%,#dbf1ff_50%,#a9d6f7_100%)]',
                 )}
               />
             </div>
             <div
               className={cn(
-                'flex items-center gap-1 rounded-full border px-2 py-1 2xl:hidden',
+                'flex items-center gap-1 rounded-full border px-2 py-1',
                 shellDark
-                  ? 'border-amber-200/25 bg-black/20'
-                  : 'border-slate-500/35 bg-white/35',
+                  ? 'border-sky-200/15 bg-white/[0.04]'
+                  : 'border-slate-500/25 bg-white/45',
               )}
             >
               {MESSENGER_SITE_LOCALES.map((locale) => {
@@ -1085,16 +979,16 @@ export function MessengerApp() {
                       'rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]',
                       active
                         ? shellDark
-                          ? 'border-amber-300/55 bg-amber-300/15 text-amber-50'
-                          : 'border-amber-600/45 bg-amber-100 text-amber-900'
+                          ? 'border-sky-300/50 bg-sky-300/15 text-sky-50'
+                          : 'border-sky-600/40 bg-sky-100 text-sky-900'
                         : shellDark
-                          ? 'border-amber-100/15 bg-transparent text-amber-100/70'
+                          ? 'border-sky-100/10 bg-transparent text-sky-100/70'
                           : 'border-slate-400/30 bg-transparent text-slate-700/75',
                     )}
                     onClick={() => handleLocaleSwitch(locale)}
-                      >
-                        {locale}
-                      </button>
+                    >
+                      {locale}
+                    </button>
                 );
               })}
             </div>
@@ -1102,19 +996,21 @@ export function MessengerApp() {
               <span
                 className={cn(
                   'inline-block size-4 rounded-full border',
-                  shellDark ? 'border-amber-300/40 bg-amber-300/20' : 'border-amber-700/40 bg-amber-300/45',
+                  shellDark ? 'border-sky-300/40 bg-sky-300/20' : 'border-sky-700/35 bg-sky-300/45',
                 )}
               />
               <span
                 className={cn(
                   'inline-block size-4 rounded-full border',
-                  shellDark ? 'border-lime-300/40 bg-lime-300/20' : 'border-lime-700/40 bg-lime-300/45',
+                  shellDark ? 'border-emerald-300/40 bg-emerald-300/20' : 'border-emerald-700/35 bg-emerald-300/45',
                 )}
               />
               <span
                 className={cn(
                   'inline-block size-4 rounded-full border',
-                  shellDark ? 'border-red-300/40 bg-red-300/20' : 'border-red-700/40 bg-red-300/45',
+                  shellDark
+                    ? 'border-slate-300/35 bg-slate-300/15'
+                    : 'border-slate-600/30 bg-slate-300/35',
                 )}
               />
             </div>
@@ -1166,8 +1062,8 @@ export function MessengerApp() {
                         size={92}
                         className={cn(
                           shellDark
-                            ? 'border-[#8fb171]/45 bg-[#182217] text-[#dff8d0]'
-                            : 'border-[#90a98f] bg-[#eaf5e8] text-[#325139]',
+                            ? 'border-[#5b8ab0]/45 bg-[#14283b] text-[#e6f4ff]'
+                            : 'border-[#9fbad0] bg-[#eef6fc] text-[#2f4f68]',
                         )}
                       />
                       <p className="max-w-full truncate text-base font-semibold">
@@ -1175,7 +1071,7 @@ export function MessengerApp() {
                       </p>
                       <button
                         type="button"
-                        className={cn(buttonSoft, 'px-3 py-1.5 text-[11px] 2xl:hidden')}
+                        className={cn(buttonSoft, 'px-3 py-1.5 text-[11px]')}
                         onClick={() => setProfileEditorOpen((prev) => !prev)}
                       >
                         {profileEditorOpen ? 'Close Edit' : 'Edit Profile'}
@@ -1198,10 +1094,10 @@ export function MessengerApp() {
                               'w-full rounded-2xl border p-2 text-left',
                               selected
                                 ? shellDark
-                                  ? 'border-amber-300/60 bg-amber-300/10'
-                                  : 'border-amber-600/50 bg-amber-100'
+                                  ? 'border-sky-300/55 bg-sky-300/12'
+                                  : 'border-sky-500/35 bg-sky-100'
                                 : shellDark
-                                  ? 'border-amber-100/20 bg-black/20'
+                                  ? 'border-[#32506a] bg-[#0f1a27]/55'
                                   : 'border-slate-400/35 bg-white/45',
                             )}
                           >
@@ -1229,7 +1125,7 @@ export function MessengerApp() {
                         className={cn(
                           'rounded-2xl border p-3',
                           shellDark
-                            ? 'border-amber-100/20 bg-black/20'
+                            ? 'border-[#32506a] bg-[#101b29]'
                             : 'border-slate-400/35 bg-white/45',
                         )}
                       >
@@ -1297,7 +1193,7 @@ export function MessengerApp() {
                   <div className="mt-3">
                     <button
                       type="button"
-                      className={cn(buttonSoft, '2xl:hidden')}
+                      className={buttonSoft}
                       onClick={() => setSettingsOpen((prev) => !prev)}
                     >
                       Settings
@@ -1334,8 +1230,9 @@ export function MessengerApp() {
                             </div>
                           ) : null}
 
-                          <textarea
-                            className={cn(inputClass, 'min-h-[76px] resize-y')}
+                          <AutoSizeTextarea
+                            className={cn(inputClass, 'min-h-[76px] break-all')}
+                            maxHeight={144}
                             value={inviteDraft}
                             onChange={(event) => setInviteDraft(event.target.value)}
                             placeholder="Invite code"
@@ -1360,7 +1257,7 @@ export function MessengerApp() {
                             </button>
                           </div>
 
-                          <div className={cn('my-3 h-px', shellDark ? 'bg-amber-100/15' : 'bg-slate-400/35')} />
+                          <div className={cn('my-3 h-px', shellDark ? 'bg-[#33506a]' : 'bg-slate-400/35')} />
 
                           <input
                             className={inputClass}
@@ -1416,7 +1313,7 @@ export function MessengerApp() {
                   <div
                     className={cn(
                       'rounded-[24px] border p-3',
-                      shellDark ? 'border-amber-100/20 bg-black/15' : 'border-slate-400/35 bg-white/35',
+                      shellDark ? 'border-[#32506a] bg-[#101b29]/80' : 'border-slate-400/35 bg-white/35',
                     )}
                   >
                     <div className="grid items-center gap-2 md:grid-cols-[auto_minmax(0,1fr)_auto]">
@@ -1426,8 +1323,8 @@ export function MessengerApp() {
                         size={50}
                         className={cn(
                           shellDark
-                            ? 'border-[#8db16f]/45 bg-[#1a2618] text-[#ddf8ce]'
-                            : 'border-[#8fa88e] bg-[#eaf5e7] text-[#345239]',
+                            ? 'border-[#5b8ab0]/45 bg-[#14283b] text-[#e6f4ff]'
+                            : 'border-[#9fbad0] bg-[#eef6fc] text-[#2f4f68]',
                         )}
                       />
 
@@ -1535,7 +1432,7 @@ export function MessengerApp() {
                     </div>
 
                     {DEV_UI_ENABLED && activeRoom?.lastError ? (
-                      <p className={cn('mt-2 text-xs', shellDark ? 'text-amber-200' : 'text-amber-700')}>
+                      <p className={cn('mt-2 text-xs', shellDark ? 'text-rose-200' : 'text-rose-700')}>
                         Last room error: {activeRoom.lastError}
                       </p>
                     ) : null}
@@ -1544,84 +1441,83 @@ export function MessengerApp() {
                   <div
                     className={cn(
                       'mt-3 flex min-h-0 flex-1 flex-col rounded-[24px] border p-3',
-                      shellDark ? 'border-amber-100/20 bg-black/20' : 'border-slate-400/35 bg-white/45',
+                      shellDark ? 'border-[#32506a] bg-[#0f1a27]/70' : 'border-slate-400/35 bg-white/45',
                     )}
                   >
-                    <div
-                      ref={messageListRef}
-                      className="messenger-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto pr-2"
-                    >
-                      {activeRoom ? (
-                        activeRoom.connected ? (
-                          visibleRoomMessages.length > 0 ? (
-                            <ul className="space-y-3">
-                              {visibleRoomMessages.map((message) => (
-                                <li
-                                  key={message.id}
-                                  className={cn('flex gap-2', message.outgoing ? 'justify-end' : 'justify-start')}
-                                >
-                                  {!message.outgoing ? (
-                                    <AvatarCircle
-                                      src={message.avatar}
-                                      name={message.sender}
-                                      size={34}
-                                      className={cn(
-                                        shellDark
-                                          ? 'border-[#8fb371]/40 bg-[#1a2618] text-[#ddf8ce]'
-                                          : 'border-[#8fa88e] bg-[#eaf5e7] text-[#345239]',
-                                      )}
-                                    />
-                                  ) : null}
-
-                                  <div
-                                    className={cn(
-                                      'max-w-[min(70ch,84%)] rounded-2xl border px-3 py-2',
-                                      message.outgoing
-                                        ? shellDark
-                                          ? 'border-amber-300/30 bg-amber-300/10 text-amber-50'
-                                          : 'border-amber-500/40 bg-amber-100 text-amber-900'
-                                        : shellDark
-                                          ? 'border-amber-100/20 bg-[#15100a] text-[#f4e2c0]'
-                                          : 'border-slate-400/35 bg-white text-slate-900',
-                                    )}
+                    <ExternalScrollArea className="min-h-0 flex-1" viewportClassName="h-full pr-3" viewportRef={messageListRef}>
+                      <div className="space-y-3">
+                        {activeRoom ? (
+                          activeRoom.connected ? (
+                            visibleRoomMessages.length > 0 ? (
+                              <ul className="space-y-3">
+                                {visibleRoomMessages.map((message) => (
+                                  <li
+                                    key={message.id}
+                                    className={cn('flex gap-2', message.outgoing ? 'justify-end' : 'justify-start')}
                                   >
-                                    <div className={cn('mb-1 flex items-center gap-2 text-xs', textDim)}>
-                                      <span className="font-semibold">{message.sender}</span>
-                                      <span>{formatShortTime(message.ts)}</span>
+                                    {!message.outgoing ? (
+                                      <AvatarCircle
+                                        src={message.avatar}
+                                        name={message.sender}
+                                        size={34}
+                                        className={cn(
+                                          shellDark
+                                            ? 'border-[#5b8ab0]/40 bg-[#14283b] text-[#e6f4ff]'
+                                            : 'border-[#9fbad0] bg-[#eef6fc] text-[#2f4f68]',
+                                        )}
+                                      />
+                                    ) : null}
+
+                                    <div
+                                      className={cn(
+                                        'max-w-[min(70ch,84%)] rounded-2xl border px-3 py-2',
+                                        message.outgoing
+                                          ? shellDark
+                                            ? 'border-sky-300/30 bg-sky-300/12 text-sky-50'
+                                            : 'border-sky-500/35 bg-sky-100 text-sky-900'
+                                          : shellDark
+                                            ? 'border-[#32506a] bg-[#121d2b] text-[#e7f2fd]'
+                                            : 'border-slate-400/35 bg-white text-slate-900',
+                                      )}
+                                    >
+                                      <div className={cn('mb-1 flex items-center gap-2 text-xs', textDim)}>
+                                        <span className="font-semibold">{message.sender}</span>
+                                        <span>{formatShortTime(message.ts)}</span>
+                                      </div>
+                                      <div className="whitespace-pre-wrap break-words text-sm">
+                                        {message.text}
+                                      </div>
                                     </div>
-                                    <div className="whitespace-pre-wrap break-words text-sm">
-                                      {message.text}
-                                    </div>
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <div className={cn('pt-20 text-center text-sm', textDim)}>No messages yet</div>
+                            )
                           ) : (
-                            <div className={cn('pt-20 text-center text-sm', textDim)}>No messages yet</div>
+                            <div
+                              className={cn(
+                                'rounded-2xl border border-dashed px-4 py-12 text-center text-sm',
+                                shellDark
+                                  ? 'border-slate-200/20 bg-[#0f1a27]/45 text-slate-100/85'
+                                  : 'border-slate-400/40 bg-slate-100 text-slate-700',
+                              )}
+                            >
+                              Join the room to see messages.
+                            </div>
                           )
                         ) : (
-                          <div
-                            className={cn(
-                              'rounded-2xl border border-dashed px-4 py-12 text-center text-sm',
-                              shellDark
-                                ? 'border-amber-100/25 bg-black/20 text-amber-100/85'
-                                : 'border-slate-400/40 bg-slate-100 text-slate-700',
-                            )}
-                          >
-                            Join the room to see messages.
-                          </div>
-                        )
-                      ) : (
-                        <div className={cn('pt-20 text-center text-sm', textDim)}>No room selected</div>
-                      )}
-                    </div>
+                          <div className={cn('pt-20 text-center text-sm', textDim)}>No room selected</div>
+                        )}
+                      </div>
+                    </ExternalScrollArea>
                   </div>
 
                   <div
                     aria-label="Message composer"
                     className={cn(
                       'mt-3 rounded-[24px] border p-3',
-                      shellDark ? 'border-amber-100/20 bg-black/20' : 'border-slate-400/35 bg-white/45',
+                      shellDark ? 'border-[#32506a] bg-[#101b29]/80' : 'border-slate-400/35 bg-white/45',
                     )}
                   >
                     <div className="flex items-end gap-2">
@@ -1631,12 +1527,13 @@ export function MessengerApp() {
                         size={42}
                         className={cn(
                           shellDark
-                            ? 'border-[#8db16f]/45 bg-[#1a2618] text-[#ddf8ce]'
-                            : 'border-[#8fa88e] bg-[#eaf5e7] text-[#345239]',
+                            ? 'border-[#5b8ab0]/45 bg-[#14283b] text-[#e6f4ff]'
+                            : 'border-[#9fbad0] bg-[#eef6fc] text-[#2f4f68]',
                         )}
                       />
-                      <textarea
-                        className={cn(inputClass, 'min-h-[62px] flex-1 resize-y')}
+                      <AutoSizeTextarea
+                        className={cn(inputClass, 'min-h-[62px] flex-1')}
+                        maxHeight={180}
                         value={composer}
                         onChange={(event) => setComposer(event.target.value)}
                         onKeyDown={handleComposerKeyDown}
@@ -1667,8 +1564,8 @@ export function MessengerApp() {
                       viewportClassName={cn(
                         'h-full rounded-[22px] border p-3 pr-4 font-mono text-xs',
                         shellDark
-                          ? 'border-amber-100/20 bg-[#0f0b06] text-[#f1ddb5]'
-                          : 'border-slate-400/35 bg-[#faf7f0] text-[#3d3222]',
+                          ? 'border-[#32506a] bg-[#0a1420] text-[#dcebff]'
+                          : 'border-slate-400/35 bg-[#f7fbff] text-[#2a4258]',
                       )}
                     >
                         {terminalLines.length === 0 ? (
@@ -1689,10 +1586,10 @@ export function MessengerApp() {
                                         : 'text-red-700'
                                       : line.level === 'warn'
                                         ? shellDark
-                                          ? 'text-amber-300'
-                                          : 'text-amber-700'
+                                          ? 'text-sky-300'
+                                          : 'text-sky-700'
                                         : shellDark
-                                          ? 'text-lime-300'
+                                          ? 'text-emerald-300'
                                           : 'text-emerald-700',
                                   )}
                                 >
@@ -1710,18 +1607,6 @@ export function MessengerApp() {
             </div>
           ) : null}
         </section>
-
-        <aside className="relative hidden min-h-0 items-end justify-start pb-8 pl-3 2xl:flex">
-          <KnobPod side="right">
-            <RadioKnob
-              title="Language"
-              leftLabel="EN"
-              rightLabel="RU"
-              activeRight={messengerLocale === 'ru'}
-              onClick={() => handleLocaleSwitch(messengerLocale === 'ru' ? 'en' : 'ru')}
-            />
-          </KnobPod>
-        </aside>
       </div>
     </main>
   );

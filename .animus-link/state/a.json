@@ -1,119 +1,730 @@
 {
-  "version": 1,
-  "namespaces": [
+  "version": 2,
+  "local_identity": {
+    "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+    "device_identity_id": "794294c391a82023bad685c88d044bba",
+    "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+    "created_at_unix_secs": 1773522118
+  },
+  "meshes": [
     {
-      "namespace_id": "f9cca71261a36f1c469ec4f090b76dd8",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1772982089
+      "config": {
+        "mesh_id": "f9cca71261a36f1c469ec4f090b76dd8",
+        "mesh_name": "mesh-f9cca712",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1772982089
+      },
+      "memberships": [
+        {
+          "mesh_id": "f9cca71261a36f1c469ec4f090b76dd8",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1772982089,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "adbeb256d3291849789c686200f499ab"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "c1748f862b7cf5041effe07a30f21a0c",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1772982099
+      "config": {
+        "mesh_id": "c1748f862b7cf5041effe07a30f21a0c",
+        "mesh_name": "mesh-c1748f86",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1772982099
+      },
+      "memberships": [
+        {
+          "mesh_id": "c1748f862b7cf5041effe07a30f21a0c",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1772982099,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "e341536cc0dcc058ef91287305a48387"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "180a33b9625901aca3c15a9f60b7f8c5",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1772982105
+      "config": {
+        "mesh_id": "180a33b9625901aca3c15a9f60b7f8c5",
+        "mesh_name": "mesh-180a33b9",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1772982105
+      },
+      "memberships": [
+        {
+          "mesh_id": "180a33b9625901aca3c15a9f60b7f8c5",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1772982105,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "971b6d62e24fa688756328c142c925e6"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "c9fd1722335ea427aed0ac50b4a547f5",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1772982108
+      "config": {
+        "mesh_id": "c9fd1722335ea427aed0ac50b4a547f5",
+        "mesh_name": "mesh-c9fd1722",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1772982108
+      },
+      "memberships": [
+        {
+          "mesh_id": "c9fd1722335ea427aed0ac50b4a547f5",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1772982108,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "92c05b614c109afc5b0b70f02d42a8ce"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "6565c055a8ae02b3b78ded543adcde00",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1772990933
+      "config": {
+        "mesh_id": "6565c055a8ae02b3b78ded543adcde00",
+        "mesh_name": "mesh-6565c055",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1772990933
+      },
+      "memberships": [
+        {
+          "mesh_id": "6565c055a8ae02b3b78ded543adcde00",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1772990933,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "b9e2a13d81464b000df9889621109496"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "a16ae1892f3c5ca937d914cd6fa7f0fc",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1772991101
+      "config": {
+        "mesh_id": "a16ae1892f3c5ca937d914cd6fa7f0fc",
+        "mesh_name": "mesh-a16ae189",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1772991101
+      },
+      "memberships": [
+        {
+          "mesh_id": "a16ae1892f3c5ca937d914cd6fa7f0fc",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1772991101,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "c9005fd292b7e32fe0a4d94b227ba294"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "724f8559df33bc350a608c2853e6788b",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1772992680
+      "config": {
+        "mesh_id": "724f8559df33bc350a608c2853e6788b",
+        "mesh_name": "mesh-724f8559",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1772992680
+      },
+      "memberships": [
+        {
+          "mesh_id": "724f8559df33bc350a608c2853e6788b",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1772992680,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "e8374c4dda31cf9622b085e4e399e823"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "78c0ae7270d07cb7c5164d8794e8a23d",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1772993142
+      "config": {
+        "mesh_id": "78c0ae7270d07cb7c5164d8794e8a23d",
+        "mesh_name": "mesh-78c0ae72",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1772993142
+      },
+      "memberships": [
+        {
+          "mesh_id": "78c0ae7270d07cb7c5164d8794e8a23d",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1772993142,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "0e7f6e3b79b52a4c08d16b17f9850eeb"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "e7329b65eae5446e5e37fac2c369cff1",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1773093259
+      "config": {
+        "mesh_id": "e7329b65eae5446e5e37fac2c369cff1",
+        "mesh_name": "mesh-e7329b65",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773093259
+      },
+      "memberships": [
+        {
+          "mesh_id": "e7329b65eae5446e5e37fac2c369cff1",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773093259,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "e589cd7bcfc1cd7c653ebd5ea5071b65"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "a820e9db7eb7584eadc3e0e6f0bdfa7a",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1773493455
+      "config": {
+        "mesh_id": "a820e9db7eb7584eadc3e0e6f0bdfa7a",
+        "mesh_name": "mesh-a820e9db",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773493455
+      },
+      "memberships": [
+        {
+          "mesh_id": "a820e9db7eb7584eadc3e0e6f0bdfa7a",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773493455,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "c1a6070fafd6ea5a046086ac1034db35"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "261930b487a087ae8f0eda3a9a0ca2eb",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1773495306
+      "config": {
+        "mesh_id": "261930b487a087ae8f0eda3a9a0ca2eb",
+        "mesh_name": "mesh-261930b4",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773495306
+      },
+      "memberships": [
+        {
+          "mesh_id": "261930b487a087ae8f0eda3a9a0ca2eb",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773495306,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "0b1444a66ad673ce31b0cb9db9c54122"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "6292a7384d7953ce454b6a470542e34c",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1773495319
+      "config": {
+        "mesh_id": "6292a7384d7953ce454b6a470542e34c",
+        "mesh_name": "mesh-6292a738",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773495319
+      },
+      "memberships": [
+        {
+          "mesh_id": "6292a7384d7953ce454b6a470542e34c",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773495319,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "94528319e311bd60405d9abab61d9456"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "fc39b9589cb999eeb8f2592c6123765d",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1773495320
+      "config": {
+        "mesh_id": "fc39b9589cb999eeb8f2592c6123765d",
+        "mesh_name": "mesh-fc39b958",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773495320
+      },
+      "memberships": [
+        {
+          "mesh_id": "fc39b9589cb999eeb8f2592c6123765d",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773495320,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "f4cfc0af72077a5233c72f7fb3e941c9"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "4f17736d38809805ad88008117cb2644",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1773495321
+      "config": {
+        "mesh_id": "4f17736d38809805ad88008117cb2644",
+        "mesh_name": "mesh-4f17736d",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773495321
+      },
+      "memberships": [
+        {
+          "mesh_id": "4f17736d38809805ad88008117cb2644",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773495321,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "ae692a4289bee94774d2d23c4daf6fe2"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "891638a90d15345d31d2838ed0986163",
-      "invite_secret": null,
-      "invite_exp_unix_secs": null,
-      "joined_at_unix_secs": 1773498899
+      "config": {
+        "mesh_id": "891638a90d15345d31d2838ed0986163",
+        "mesh_name": "mesh-891638a9",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773498899
+      },
+      "memberships": [
+        {
+          "mesh_id": "891638a90d15345d31d2838ed0986163",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773498899,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "01405b3f6a6fbfa7d29b221cb5fec257"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "fcd692a5090ee19e3b9e07a7b9e88484",
-      "invite_secret": "b39efded6802f061ad26a5633732bfb7",
-      "invite_exp_unix_secs": 1773505321,
-      "joined_at_unix_secs": 1773501721
+      "config": {
+        "mesh_id": "fcd692a5090ee19e3b9e07a7b9e88484",
+        "mesh_name": "mesh-fcd692a5",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773501721
+      },
+      "memberships": [
+        {
+          "mesh_id": "fcd692a5090ee19e3b9e07a7b9e88484",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773501721,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "0b1bad5c0798701d3be1814a83b621d3"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "7caed7d088e362e89c3e313f5994b37a",
-      "invite_secret": "902dfd54b0e20cc2e652ef52f1205685",
-      "invite_exp_unix_secs": 1773506767,
-      "joined_at_unix_secs": 1773503167
+      "config": {
+        "mesh_id": "7caed7d088e362e89c3e313f5994b37a",
+        "mesh_name": "mesh-7caed7d0",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773503167
+      },
+      "memberships": [
+        {
+          "mesh_id": "7caed7d088e362e89c3e313f5994b37a",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773503167,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "1d0ac33c20a79edb66ac03f660752f39"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "66d3cebe68a56114c5612135b107beec",
-      "invite_secret": "b1f5d72c05e48c45971efefb8a9eb630",
-      "invite_exp_unix_secs": 1773506837,
-      "joined_at_unix_secs": 1773503237
+      "config": {
+        "mesh_id": "66d3cebe68a56114c5612135b107beec",
+        "mesh_name": "mesh-66d3cebe",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773503237
+      },
+      "memberships": [
+        {
+          "mesh_id": "66d3cebe68a56114c5612135b107beec",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773503237,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "1959f15e5493fac3f2e800b6c3b334ef"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     },
     {
-      "namespace_id": "bea21650a2dae283a1f2d654e498945b",
-      "invite_secret": "b81680126d294dfafee504e13dc497dc",
-      "invite_exp_unix_secs": 1773506911,
-      "joined_at_unix_secs": 1773503311
+      "config": {
+        "mesh_id": "bea21650a2dae283a1f2d654e498945b",
+        "mesh_name": "mesh-bea21650",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773503311
+      },
+      "memberships": [
+        {
+          "mesh_id": "bea21650a2dae283a1f2d654e498945b",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773503311,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "a9f0817994b250c09ee83f41b2de274f"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
+    },
+    {
+      "config": {
+        "mesh_id": "a21f1451ca24a3376c55f20a49c11cc0",
+        "mesh_name": "mesh-a21f1451",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773519832
+      },
+      "memberships": [
+        {
+          "mesh_id": "a21f1451ca24a3376c55f20a49c11cc0",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773519832,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "4827a7669ea63eea278f8e70e5ebb653"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
+    },
+    {
+      "config": {
+        "mesh_id": "ebfbd18a6bd37d600306792ede10472a",
+        "mesh_name": "mesh-ebfbd18a",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773520472
+      },
+      "memberships": [
+        {
+          "mesh_id": "ebfbd18a6bd37d600306792ede10472a",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773520472,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "404e02625f685added09a431762df291"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
+    },
+    {
+      "config": {
+        "mesh_id": "ee9d363af8f1be0cbe12e8ffcccbae1c",
+        "mesh_name": "mesh-ee9d363a",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773520478
+      },
+      "memberships": [
+        {
+          "mesh_id": "ee9d363af8f1be0cbe12e8ffcccbae1c",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773520478,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "80f17a3a5a9084cd33651a5aa7cbfbc0"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
+    },
+    {
+      "config": {
+        "mesh_id": "2f880acf7acbeb957d0f3c7e7be81ed1",
+        "mesh_name": "mesh-2f880acf",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773520561
+      },
+      "memberships": [
+        {
+          "mesh_id": "2f880acf7acbeb957d0f3c7e7be81ed1",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773520561,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "b7aad9a237cfd9fa903c7d337fa7aff0"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
     }
-  ]
+  ],
+  "route_policies": [],
+  "decision_logs": [],
+  "conversations": [],
+  "messages": [],
+  "app_bindings": [],
+  "next_nonce": 1
 }

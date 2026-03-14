@@ -19,3 +19,21 @@ export ANIMUS_RELAY_MAX_ALLOC_PER_SUBJECT=64
 export ANIMUS_RELAY_MAX_BINDINGS_PER_ALLOC=16
 docker compose -f deploy/docker-compose.yml up --build
 ```
+
+VPS relay deployment:
+
+1. Copy `deploy/.env.relay.example` to `deploy/.env.relay`
+2. Set `ANIMUS_RELAY_TOKEN_ISSUER_PUBKEY_HEX`
+3. Open `UDP 7777` in the VPS firewall/security group
+4. Start:
+
+```bash
+docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml up -d --build
+```
+
+Useful checks:
+
+```bash
+docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml ps
+docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml logs -f relay
+```
