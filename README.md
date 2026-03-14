@@ -145,11 +145,17 @@ Reproducible local verification scripts:
 - `bash scripts/verify-full-tunnel-linux.sh`
 - `bash scripts/verify-release-artifacts.sh dist`
 
+Desktop shell docs:
+- `docs/desktop-development.md`
+- `docs/desktop-sidecar-model.md`
+- `docs/desktop-release-signing.md`
+
 ## Repo layout
 - `spec/` — normative specs (wire, state machine, identity, relay, node security)
 - `conformance/` — vectors + harness
 - `crates/` — Fabric libraries
 - `apps/` — binaries: relay server, link daemon/cli, fabric cli
+- `apps/link-desktop/` — Tauri 2 desktop shell over the local `link-daemon` sidecar
 - `codex/` — agent playbooks + task lists
 
 > NOTE: This scaffold intentionally ships with **TODO markers** where implementation decisions must be finalized

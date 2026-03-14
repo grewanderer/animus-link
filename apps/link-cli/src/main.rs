@@ -1,6 +1,10 @@
 mod client;
 mod cmd_info;
 mod cmd_invite;
+mod cmd_mesh;
+mod cmd_messenger;
+mod cmd_node;
+mod cmd_relay;
 mod cmd_service;
 mod cmd_tunnel;
 mod errors;
@@ -13,6 +17,10 @@ use clap::{Parser, Subcommand};
 use crate::{
     client::DaemonClient,
     cmd_invite::InviteCommand,
+    cmd_mesh::MeshCommand,
+    cmd_messenger::MessengerCommand,
+    cmd_node::NodeCommand,
+    cmd_relay::RelayCommand,
     cmd_service::ServiceCommand,
     cmd_tunnel::TunnelCommand,
     errors::CliError,
@@ -47,9 +55,25 @@ enum Command {
         #[command(subcommand)]
         command: InviteCommand,
     },
+    Mesh {
+        #[command(subcommand)]
+        command: MeshCommand,
+    },
+    Node {
+        #[command(subcommand)]
+        command: NodeCommand,
+    },
+    Relay {
+        #[command(subcommand)]
+        command: RelayCommand,
+    },
     Service {
         #[command(subcommand)]
         command: ServiceCommand,
+    },
+    Messenger {
+        #[command(subcommand)]
+        command: MessengerCommand,
     },
     Tunnel {
         #[command(subcommand)]
@@ -84,7 +108,11 @@ async fn run() -> Result<(), CliError> {
         Command::Diagnostics => cmd_info::diagnostics(&client).await?,
         Command::Metrics => cmd_info::metrics(&client).await?,
         Command::Invite { command } => cmd_invite::run(&client, command).await?,
+        Command::Mesh { command } => cmd_mesh::run(&client, command).await?,
+        Command::Node { command } => cmd_node::run(&client, command).await?,
+        Command::Relay { command } => cmd_relay::run(&client, command).await?,
         Command::Service { command } => cmd_service::run(&client, command).await?,
+        Command::Messenger { command } => cmd_messenger::run(&client, command).await?,
         Command::Tunnel { command } => cmd_tunnel::run(&client, command).await?,
     };
 

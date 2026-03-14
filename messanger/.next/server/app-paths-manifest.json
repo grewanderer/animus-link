@@ -1,0 +1,4 @@
+{
+  "/api/messenger/route": "app/api/messenger/route.js",
+  "/link/page": "app/link/page.js"
+}

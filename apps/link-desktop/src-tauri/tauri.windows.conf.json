@@ -1,0 +1,10 @@
+{
+  "bundle": {
+    "windows": {
+      "digestAlgorithm": "sha256",
+      "wix": {
+        "language": "en-US"
+      }
+    }
+  }
+}

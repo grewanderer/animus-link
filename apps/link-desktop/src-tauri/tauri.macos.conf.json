@@ -1,0 +1,10 @@
+{
+  "bundle": {
+    "macOS": {
+      "minimumSystemVersion": "13.0",
+      "exceptionDomain": "",
+      "entitlements": null,
+      "signingIdentity": null
+    }
+  }
+}

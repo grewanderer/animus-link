@@ -12,5 +12,11 @@
   - Platform/job root-cause matrix with before/after status for CI stabilization.
 - [Known Limitations](./known-limitations.md)
   - Runtime constraints for TUN privileges, mobile entitlements, and VPN prompts in public beta.
+- [Desktop Development](./desktop-development.md)
+  - Local Tauri/React desktop workflow, supported platforms, and current desktop limitations.
+- [Desktop Sidecar Model](./desktop-sidecar-model.md)
+  - Why the daemon remains authoritative and how the desktop shell supervises it.
+- [Desktop Release, Signing, and Updater Setup](./desktop-release-signing.md)
+  - GitHub Actions, signing secrets, updater readiness, and draft desktop release flow.
 - [Design Tokens](../design/README.md)
   - Cross-platform token source and deterministic generation for web/android/ios outputs.

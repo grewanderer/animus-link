@@ -163,6 +163,16 @@ pub struct MessengerStreamView {
     pub messages: Vec<MessengerMessageRecord>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeshRuntimeSnapshot {
+    pub mesh: MeshConfig,
+    pub memberships: Vec<MeshMembership>,
+    pub relay_offers: Vec<RelayOffer>,
+    pub services: Vec<ServiceDescriptor>,
+    pub conversations: Vec<MessengerConversationRecord>,
+    pub messages: Vec<MessengerMessageRecord>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct LegacyNamespaceStoreFile {
     version: u16,
@@ -736,14 +746,14 @@ impl ControlPlaneStore {
                 }
             }
             RoutingMode::DirectFirstRelaySecond => {
-                if input.direct_candidate {
-                    (RoutePath::Direct, None, "direct_candidate_available")
-                } else if let Some(offer) = preferred_offer.clone() {
+                if let Some(offer) = preferred_offer.clone() {
                     (
                         relay_offer_path(&offer),
                         Some(offer.node_id),
                         "preferred_relay_selected",
                     )
+                } else if input.direct_candidate {
+                    (RoutePath::Direct, None, "direct_candidate_available")
                 } else if let Some(offer) = fallback_offer.clone() {
                     (
                         relay_offer_path(&offer),
@@ -927,6 +937,12 @@ impl ControlPlaneStore {
         let mesh = self
             .find_mesh_mut(mesh_id)
             .ok_or_else(|| ApiError::new(ApiErrorCode::NotFound, "mesh not found"))?;
+        let consumer_allowed = mesh.memberships.iter().any(|membership| {
+            membership.peer_id == local_peer_id && membership.trust == TrustPolicy::Allow
+        });
+        if !consumer_allowed {
+            return Err(ApiError::new(ApiErrorCode::Denied, "service denied"));
+        }
 
         let binding = ServiceBinding {
             binding_id,
@@ -1111,6 +1127,132 @@ impl ControlPlaneStore {
 
     pub fn messenger_presence(&self, mesh_id: &str) -> Result<Vec<PeerStatus>, ApiError> {
         self.list_mesh_peers(mesh_id)
+    }
+
+    pub fn mesh_runtime_snapshot(&self, mesh_id: &str) -> Result<MeshRuntimeSnapshot, ApiError> {
+        let mesh = self
+            .find_mesh(mesh_id)
+            .ok_or_else(|| ApiError::new(ApiErrorCode::NotFound, "mesh not found"))?;
+        Ok(MeshRuntimeSnapshot {
+            mesh: mesh.config.clone(),
+            memberships: mesh.memberships.clone(),
+            relay_offers: mesh.relay_offers.clone(),
+            services: mesh.services.clone(),
+            conversations: self
+                .data
+                .conversations
+                .iter()
+                .filter(|conversation| conversation.mesh_id == mesh_id)
+                .cloned()
+                .collect(),
+            messages: self
+                .data
+                .messages
+                .iter()
+                .filter(|message| message.mesh_id == mesh_id)
+                .cloned()
+                .collect(),
+        })
+    }
+
+    pub fn import_mesh_runtime_snapshot(
+        &mut self,
+        snapshot: &MeshRuntimeSnapshot,
+    ) -> Result<(), ApiError> {
+        let mesh_index = match self.find_mesh_index(snapshot.mesh.mesh_id.as_str()) {
+            Some(index) => index,
+            None => {
+                self.data.meshes.push(StoredMesh {
+                    config: snapshot.mesh.clone(),
+                    memberships: Vec::new(),
+                    relay_offers: Vec::new(),
+                    services: Vec::new(),
+                    service_bindings: Vec::new(),
+                });
+                self.data.meshes.len() - 1
+            }
+        };
+
+        {
+            let mesh = &mut self.data.meshes[mesh_index];
+            mesh.config.mesh_name = snapshot.mesh.mesh_name.clone();
+            mesh.config.created_by_peer_id = snapshot.mesh.created_by_peer_id.clone();
+            mesh.config.invite_ttl_secs = snapshot.mesh.invite_ttl_secs;
+
+            for membership in &snapshot.memberships {
+                if membership.mesh_id != snapshot.mesh.mesh_id {
+                    continue;
+                }
+                let merged = ensure_membership(&mut mesh.memberships, membership.clone());
+                merge_membership(merged, membership);
+            }
+
+            for offer in &snapshot.relay_offers {
+                if offer.mesh_id != snapshot.mesh.mesh_id {
+                    continue;
+                }
+                upsert_by_key(&mut mesh.relay_offers, offer.clone(), |item| {
+                    item.relay_id.clone()
+                });
+            }
+
+            for service in &snapshot.services {
+                if service.mesh_id != snapshot.mesh.mesh_id {
+                    continue;
+                }
+                upsert_by_key(&mut mesh.services, service.clone(), |item| {
+                    item.service_id.clone()
+                });
+            }
+        }
+
+        for conversation in &snapshot.conversations {
+            if conversation.mesh_id != snapshot.mesh.mesh_id {
+                continue;
+            }
+            upsert_by_key(&mut self.data.conversations, conversation.clone(), |item| {
+                item.conversation_id.clone()
+            });
+        }
+
+        for message in &snapshot.messages {
+            if message.mesh_id != snapshot.mesh.mesh_id {
+                continue;
+            }
+            upsert_by_key(&mut self.data.messages, message.clone(), |item| {
+                item.message_id.clone()
+            });
+        }
+
+        self.persist()
+    }
+
+    pub fn import_conversation(
+        &mut self,
+        conversation: MessengerConversationRecord,
+    ) -> Result<MessengerConversationRecord, ApiError> {
+        if self.find_mesh(conversation.mesh_id.as_str()).is_none() {
+            return Err(ApiError::new(ApiErrorCode::NotFound, "mesh not found"));
+        }
+        upsert_by_key(&mut self.data.conversations, conversation.clone(), |item| {
+            item.conversation_id.clone()
+        });
+        self.persist()?;
+        Ok(conversation)
+    }
+
+    pub fn import_message(
+        &mut self,
+        message: MessengerMessageRecord,
+    ) -> Result<MessengerMessageRecord, ApiError> {
+        if self.find_mesh(message.mesh_id.as_str()).is_none() {
+            return Err(ApiError::new(ApiErrorCode::NotFound, "mesh not found"));
+        }
+        upsert_by_key(&mut self.data.messages, message.clone(), |item| {
+            item.message_id.clone()
+        });
+        self.persist()?;
+        Ok(message)
     }
 
     pub fn bind_app(&mut self, binding: AppAdapterBinding) -> Result<AppAdapterBinding, ApiError> {
@@ -1422,6 +1564,25 @@ fn ensure_membership(
     memberships.push(membership);
     let index = memberships.len() - 1;
     &mut memberships[index]
+}
+
+fn merge_membership(existing: &mut MeshMembership, incoming: &MeshMembership) {
+    existing.device_id = incoming.device_id.clone();
+    existing.node_id = incoming.node_id.clone();
+    existing.root_identity_id = incoming.root_identity_id.clone();
+    existing.roles = canonicalize_roles(incoming.roles.clone());
+    if incoming.trust == TrustPolicy::Deny || existing.trust != TrustPolicy::Deny {
+        existing.trust = incoming.trust;
+    }
+    existing.joined_at_unix_secs = existing
+        .joined_at_unix_secs
+        .min(incoming.joined_at_unix_secs);
+    existing.revoked_at_unix_secs =
+        match (existing.revoked_at_unix_secs, incoming.revoked_at_unix_secs) {
+            (Some(left), Some(right)) => Some(left.max(right)),
+            (None, value) | (value, None) => value,
+        };
+    existing.membership_signature = incoming.membership_signature.clone();
 }
 
 fn upsert_by_key<T, F>(values: &mut Vec<T>, value: T, key: F)
