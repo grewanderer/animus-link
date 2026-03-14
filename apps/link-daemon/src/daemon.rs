@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     net::{IpAddr, SocketAddr, TcpListener as StdTcpListener},
     sync::{
         atomic::{AtomicU64, Ordering},
@@ -9,6 +9,10 @@ use std::{
 
 use fabric_crypto::{simple_hash32, DeterministicPrimitives};
 use fabric_security::redact::Secret;
+use fabric_service::{
+    AppAdapterBinding, DecisionTargetKind, MeshConfig, NodeRole, PeerStatus, PreferredRoutePolicy,
+    RoutePath, RoutingMode, ServiceBindingState, ServiceDescriptor,
+};
 use fabric_session::{
     limits::PreAuthLimits,
     mux::{decode_mux_frame, encode_mux_frame, MuxFrame},
@@ -39,13 +43,17 @@ use tokio::{
 };
 
 use crate::{
+    control_store::{
+        ControlPlaneStore, MeshJoinResult, MeshView, MessengerConversationRecord,
+        MessengerMessageRecord, MessengerStreamView, NodeRoleSummary, RelayStatusView,
+        RouteDecisionInput, RoutingStatusView,
+    },
     diagnostics::{
         DiagnosticsCounters, DiagnosticsInput, DnsCapabilitiesInfo, MobilePolicy,
         RecentErrorSummary, RuntimeCapabilitiesInfo, SelfCheckInputs,
     },
     errors::{ApiError, ApiErrorCode},
-    invite::{generate_invite, now_unix_secs, parse_invite},
-    namespace_store::NamespaceStore,
+    invite::{now_unix_secs, parse_invite},
     relay_token::RelayTokenIssuer,
 };
 
@@ -202,12 +210,159 @@ pub struct ConnectResponse {
     pub connection_id: u64,
     pub stream_id: u32,
     pub local_addr: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub binding_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub route_path: Option<RoutePath>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub selected_relay_node_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct HealthResponse {
     pub ok: bool,
     pub relay_configured: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct MeshCreateRequest {
+    pub mesh_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MeshCreateResponse {
+    pub mesh: MeshConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct MeshJoinApiRequest {
+    pub invite: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MeshListResponse {
+    pub meshes: Vec<MeshView>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MeshPeersResponse {
+    pub mesh_id: String,
+    pub peers: Vec<PeerStatus>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MeshRevokeResponse {
+    pub revoked: bool,
+    pub membership: fabric_service::MeshMembership,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct NodeRolesRequest {
+    pub mesh_id: String,
+    pub roles: Vec<NodeRole>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RelayAdvertiseRequest {
+    pub mesh_id: String,
+    pub node_id: Option<String>,
+    #[serde(default)]
+    pub managed: bool,
+    #[serde(default)]
+    pub forced_only: bool,
+    #[serde(default)]
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RelaySelectRequest {
+    pub mesh_id: String,
+    pub target_kind: DecisionTargetKind,
+    pub target_id: String,
+    #[serde(default)]
+    pub forced: bool,
+    pub relay_node_id: Option<String>,
+    pub fallback_relay_node_id: Option<String>,
+    #[serde(default)]
+    pub allow_managed_relay: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RelayClearSelectionRequest {
+    pub mesh_id: String,
+    pub target_kind: DecisionTargetKind,
+    pub target_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct MeshScopedServiceExposeRequest {
+    pub mesh_id: String,
+    pub service_name: String,
+    pub local_addr: String,
+    #[serde(default)]
+    pub allowed_peers: Vec<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    pub app_protocol: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ServiceExposeResponse {
+    pub descriptor: ServiceDescriptor,
+    pub stream_id: u32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct MeshScopedServiceConnectRequest {
+    pub mesh_id: String,
+    pub service_id: Option<String>,
+    pub service_name: Option<String>,
+    pub local_listener: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ServicesListResponse {
+    pub services: Vec<ServiceDescriptor>,
+    pub bindings: Vec<fabric_service::ServiceBinding>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RoutingDecisionLogResponse {
+    pub decisions: Vec<fabric_service::DecisionLog>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct MessengerConversationCreateRequest {
+    pub mesh_id: String,
+    pub participants: Vec<String>,
+    pub title: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MessengerConversationListResponse {
+    pub conversations: Vec<MessengerConversationRecord>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct MessengerSendRequest {
+    pub conversation_id: String,
+    pub body: String,
+    pub attachment_service_id: Option<String>,
+    #[serde(default)]
+    pub control_stream: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct AppRustdeskBindRequest {
+    pub mesh_id: String,
+    pub service_id: Option<String>,
+    pub local_addr: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub metadata: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone)]
@@ -740,7 +895,7 @@ fn append_gauge(out: &mut String, name: &str, help: &str, value: u64) {
 }
 
 pub struct LinkDaemon {
-    namespace_store: NamespaceStore,
+    control_store: ControlPlaneStore,
     relay: Option<RelayConfig>,
     services: HashMap<String, ServiceRecord>,
     gateway_exit: Option<GatewayExitConfig>,
@@ -761,9 +916,10 @@ pub struct LinkDaemon {
 impl LinkDaemon {
     pub fn new(state_file: &std::path::Path, relay: Option<RelayConfig>) -> Result<Self, ApiError> {
         let metrics = Arc::new(LinkMetrics::new());
+        let now = now_unix_secs();
         metrics.set_relay_reachable(relay.is_some());
         Ok(Self {
-            namespace_store: NamespaceStore::load_or_create(state_file)?,
+            control_store: ControlPlaneStore::load_or_create(state_file, now)?,
             relay,
             services: HashMap::new(),
             gateway_exit: None,
@@ -778,7 +934,7 @@ impl LinkDaemon {
             api_bind: "127.0.0.1:0"
                 .parse()
                 .expect("static loopback socket must parse"),
-            started_unix: now_unix_secs(),
+            started_unix: now,
             token_issuer_configured: false,
             recent_errors: ErrorLedger::default(),
         })
@@ -792,10 +948,15 @@ impl LinkDaemon {
     pub fn status(&mut self) -> StatusResponse {
         self.refresh_tunnel_from_client();
         self.refresh_prewarm_from_handle();
-        let now = now_unix_secs();
+        let peer_count = self
+            .control_store
+            .active_mesh_id()
+            .and_then(|mesh_id| self.control_store.list_mesh_peers(mesh_id.as_str()).ok())
+            .map(|peers| peers.len().min(u32::MAX as usize) as u32)
+            .unwrap_or(0);
         StatusResponse {
             running: true,
-            peer_count: self.namespace_store.namespace_count(now),
+            peer_count,
             path: if self.relay.is_some() {
                 "relay".to_string()
             } else {
@@ -828,13 +989,11 @@ impl LinkDaemon {
     pub fn self_check_inputs(&mut self) -> SelfCheckInputs {
         self.refresh_tunnel_from_client();
         self.refresh_prewarm_from_handle();
-        let now = now_unix_secs();
         let dns_capabilities = self.current_dns_capabilities();
         let runtime_capabilities = self.current_runtime_capabilities();
-        let (namespace_store_rw_ok, namespace_count) = match self.namespace_store.health_check(now)
-        {
+        let (namespace_store_rw_ok, namespace_count) = match self.control_store.health_check() {
             Ok(count) => (true, count),
-            Err(_) => (false, self.namespace_store.namespace_count(now)),
+            Err(_) => (false, self.control_store.mesh_count()),
         };
         SelfCheckInputs {
             api_bind: self.api_bind,
@@ -867,12 +1026,11 @@ impl LinkDaemon {
     pub fn diagnostics_input(&mut self) -> DiagnosticsInput {
         self.refresh_tunnel_from_client();
         self.refresh_prewarm_from_handle();
-        let now = now_unix_secs();
         DiagnosticsInput {
             relay_configured: self.relay.is_some(),
             relay_name: self.relay.as_ref().map(|relay| relay.relay_name.clone()),
             token_issuer_configured: self.token_issuer_configured,
-            namespace_count: self.namespace_store.namespace_count(now),
+            namespace_count: self.control_store.mesh_count(),
             counters: self.metrics.snapshot(),
             recent_errors: self.recent_errors.snapshot(),
             started_unix: self.started_unix,
@@ -890,8 +1048,10 @@ impl LinkDaemon {
 
     pub fn invite_create(&mut self) -> Result<InviteCreateResponse, ApiError> {
         let now = now_unix_secs();
-        let invite = generate_invite(now);
-        self.namespace_store.upsert_from_invite(&invite, now)?;
+        let mesh_id = self.control_store.ensure_default_mesh(now)?;
+        let invite = self
+            .control_store
+            .create_mesh_invite(mesh_id.as_str(), now)?;
         Ok(InviteCreateResponse {
             invite: invite.to_string_repr(),
         })
@@ -900,47 +1060,294 @@ impl LinkDaemon {
     pub fn invite_join(&mut self, request: InviteJoinRequest) -> Result<(), ApiError> {
         let now = now_unix_secs();
         let invite = parse_invite(request.invite.as_str(), now)?;
-        self.namespace_store.upsert_from_invite(&invite, now)?;
+        let _ = self.control_store.join_mesh(&invite, now)?;
         Ok(())
     }
 
+    pub fn mesh_create(
+        &mut self,
+        request: MeshCreateRequest,
+    ) -> Result<MeshCreateResponse, ApiError> {
+        let mesh = self
+            .control_store
+            .create_mesh(request.mesh_name, now_unix_secs())?;
+        Ok(MeshCreateResponse { mesh })
+    }
+
+    pub fn mesh_invite(&mut self, mesh_id: &str) -> Result<InviteCreateResponse, ApiError> {
+        let invite = self
+            .control_store
+            .create_mesh_invite(mesh_id, now_unix_secs())?;
+        Ok(InviteCreateResponse {
+            invite: invite.to_string_repr(),
+        })
+    }
+
+    pub fn mesh_join(&mut self, request: MeshJoinApiRequest) -> Result<MeshJoinResult, ApiError> {
+        let now = now_unix_secs();
+        let invite = parse_invite(request.invite.as_str(), now)?;
+        self.control_store.join_mesh(&invite, now)
+    }
+
+    pub fn meshes(&self) -> MeshListResponse {
+        MeshListResponse {
+            meshes: self.control_store.list_meshes(),
+        }
+    }
+
+    pub fn mesh_peers(&self, mesh_id: &str) -> Result<MeshPeersResponse, ApiError> {
+        Ok(MeshPeersResponse {
+            mesh_id: mesh_id.to_string(),
+            peers: self.control_store.list_mesh_peers(mesh_id)?,
+        })
+    }
+
+    pub fn revoke_mesh_peer(
+        &mut self,
+        mesh_id: &str,
+        peer_id: &str,
+    ) -> Result<MeshRevokeResponse, ApiError> {
+        let membership = self
+            .control_store
+            .revoke_peer(mesh_id, peer_id, now_unix_secs())?;
+        Ok(MeshRevokeResponse {
+            revoked: true,
+            membership,
+        })
+    }
+
+    pub fn set_node_roles(
+        &mut self,
+        node_id: &str,
+        request: NodeRolesRequest,
+    ) -> Result<fabric_service::MeshMembership, ApiError> {
+        self.control_store.set_node_roles(
+            request.mesh_id.as_str(),
+            node_id,
+            request.roles,
+            now_unix_secs(),
+        )
+    }
+
+    pub fn node_roles(&self, node_id: &str) -> Result<NodeRoleSummary, ApiError> {
+        self.control_store.get_node_roles(node_id)
+    }
+
+    pub fn advertise_relay(
+        &mut self,
+        request: RelayAdvertiseRequest,
+    ) -> Result<fabric_service::RelayOffer, ApiError> {
+        self.control_store.advertise_relay(
+            request.mesh_id.as_str(),
+            request.node_id.as_deref(),
+            request.managed,
+            request.forced_only,
+            request.tags,
+            now_unix_secs(),
+        )
+    }
+
+    pub fn select_relay(
+        &mut self,
+        request: RelaySelectRequest,
+    ) -> Result<PreferredRoutePolicy, ApiError> {
+        self.control_store
+            .select_route_policy(PreferredRoutePolicy {
+                mesh_id: request.mesh_id,
+                target_kind: request.target_kind,
+                target_id: request.target_id,
+                mode: if request.forced {
+                    RoutingMode::ForcedRelay
+                } else {
+                    RoutingMode::DirectFirstRelaySecond
+                },
+                preferred_relay_node_id: request.relay_node_id,
+                fallback_relay_node_id: request.fallback_relay_node_id,
+                allow_managed_relay: request.allow_managed_relay,
+            })
+    }
+
+    pub fn clear_relay_selection(
+        &mut self,
+        request: RelayClearSelectionRequest,
+    ) -> Result<(), ApiError> {
+        self.control_store.clear_route_policy(
+            request.mesh_id.as_str(),
+            request.target_kind,
+            request.target_id.as_str(),
+        )
+    }
+
+    pub fn relay_status(&self) -> RelayStatusView {
+        self.control_store.relay_status(self.relay.is_some())
+    }
+
+    pub fn routing_status(&self) -> RoutingStatusView {
+        self.control_store.routing_status(self.relay.is_some())
+    }
+
+    pub fn routing_decision_log(&self) -> RoutingDecisionLogResponse {
+        RoutingDecisionLogResponse {
+            decisions: self.control_store.decision_logs(),
+        }
+    }
+
+    pub fn services_list(&self, mesh_id: Option<&str>) -> ServicesListResponse {
+        ServicesListResponse {
+            services: self.control_store.services(mesh_id),
+            bindings: self.control_store.service_bindings(mesh_id),
+        }
+    }
+
+    pub fn delete_service(&mut self, service_id: &str) -> Result<ServiceDescriptor, ApiError> {
+        let descriptor = self.control_store.delete_service(service_id)?;
+        let runtime_key = service_runtime_key(
+            descriptor.mesh_id.as_str(),
+            descriptor.service_name.as_str(),
+        );
+        self.services.remove(runtime_key.as_str());
+        Ok(descriptor)
+    }
+
+    pub fn messenger_create_conversation(
+        &mut self,
+        request: MessengerConversationCreateRequest,
+    ) -> Result<MessengerConversationRecord, ApiError> {
+        self.control_store.create_conversation(
+            request.mesh_id.as_str(),
+            request.participants,
+            request.title,
+            request.tags,
+            now_unix_secs(),
+        )
+    }
+
+    pub fn messenger_list_conversations(
+        &self,
+        mesh_id: Option<&str>,
+    ) -> MessengerConversationListResponse {
+        MessengerConversationListResponse {
+            conversations: self.control_store.list_conversations(mesh_id),
+        }
+    }
+
+    pub fn messenger_send(
+        &mut self,
+        request: MessengerSendRequest,
+    ) -> Result<MessengerMessageRecord, ApiError> {
+        let conversation = self
+            .control_store
+            .list_conversations(None)
+            .into_iter()
+            .find(|conversation| conversation.conversation_id == request.conversation_id)
+            .ok_or_else(|| ApiError::new(ApiErrorCode::NotFound, "conversation not found"))?;
+        let route = self.control_store.decide_route(
+            RouteDecisionInput {
+                mesh_id: conversation.mesh_id.clone(),
+                target_kind: DecisionTargetKind::Conversation,
+                target_id: conversation.conversation_id.clone(),
+                direct_candidate: true,
+                managed_relay_available: self.relay.is_some(),
+            },
+            now_unix_secs(),
+        )?;
+        self.control_store.send_message(
+            request.conversation_id.as_str(),
+            request.body.as_str(),
+            request.attachment_service_id,
+            request.control_stream,
+            Some(route.log.decision_id),
+            now_unix_secs(),
+        )
+    }
+
+    pub fn messenger_stream(&self, conversation_id: Option<&str>) -> MessengerStreamView {
+        self.control_store.messenger_stream(conversation_id)
+    }
+
+    pub fn messenger_presence(&self, mesh_id: &str) -> Result<MeshPeersResponse, ApiError> {
+        Ok(MeshPeersResponse {
+            mesh_id: mesh_id.to_string(),
+            peers: self.control_store.messenger_presence(mesh_id)?,
+        })
+    }
+
+    pub fn rustdesk_bind(
+        &mut self,
+        request: AppRustdeskBindRequest,
+    ) -> Result<AppAdapterBinding, ApiError> {
+        let binding = self.control_store.next_app_binding(
+            request.mesh_id.as_str(),
+            request.service_id,
+            request.local_addr,
+            request.tags,
+            request.metadata,
+            now_unix_secs(),
+        );
+        self.control_store.bind_app(binding)
+    }
+
+    pub fn rustdesk_unbind(&mut self, binding_id: &str) -> Result<AppAdapterBinding, ApiError> {
+        self.control_store.delete_app_binding(binding_id)
+    }
+
     pub fn expose(&mut self, request: ExposeRequest) -> Result<ExposeResponse, ApiError> {
+        let mesh_id = self.control_store.ensure_default_mesh(now_unix_secs())?;
+        let response = self.expose_service(MeshScopedServiceExposeRequest {
+            mesh_id,
+            service_name: request.service_name,
+            local_addr: request.local_addr,
+            allowed_peers: request.allowed_peers.unwrap_or_default(),
+            tags: Vec::new(),
+            app_protocol: None,
+        })?;
+        Ok(ExposeResponse {
+            stream_id: response.stream_id,
+        })
+    }
+
+    pub fn expose_service(
+        &mut self,
+        request: MeshScopedServiceExposeRequest,
+    ) -> Result<ServiceExposeResponse, ApiError> {
         validate_service_name(request.service_name.as_str())?;
 
         let local_addr: SocketAddr = request
             .local_addr
             .parse()
             .map_err(|_| ApiError::new(ApiErrorCode::InvalidInput, "invalid local_addr"))?;
-        let allowed_peers = request
-            .allowed_peers
-            .ok_or_else(|| ApiError::new(ApiErrorCode::Denied, "explicit allow policy required"))?;
-        if allowed_peers.is_empty() || allowed_peers.iter().any(|peer| peer.trim().is_empty()) {
-            return Err(ApiError::new(
-                ApiErrorCode::Denied,
-                "explicit allow policy required",
-            ));
-        }
-
-        if self.services.contains_key(request.service_name.as_str()) {
+        let runtime_key =
+            service_runtime_key(request.mesh_id.as_str(), request.service_name.as_str());
+        if self.services.contains_key(runtime_key.as_str()) {
             return Err(ApiError::new(
                 ApiErrorCode::Conflict,
                 "service already exposed",
             ));
         }
+        let descriptor = self.control_store.register_service(
+            request.mesh_id.as_str(),
+            request.service_name.as_str(),
+            request.local_addr.as_str(),
+            request.allowed_peers.clone(),
+            request.tags,
+            request.app_protocol,
+            now_unix_secs(),
+        )?;
 
         let stream_id = self.next_stream_id;
         self.next_stream_id = self.next_stream_id.saturating_add(1);
-
-        let namespace_id = self.active_namespace_id();
-        let conn_id = derive_conn_id(namespace_id.as_deref(), request.service_name.as_str());
+        let conn_id = derive_conn_id(
+            Some(request.mesh_id.as_str()),
+            request.service_name.as_str(),
+        );
         let service_name = request.service_name;
 
         self.services.insert(
-            service_name.clone(),
+            runtime_key,
             ServiceRecord {
                 stream_id,
                 _local_addr: local_addr,
-                _allowed_peers: allowed_peers,
+                _allowed_peers: request.allowed_peers,
                 _conn_id: conn_id,
             },
         );
@@ -948,7 +1355,7 @@ impl LinkDaemon {
         if let Some(relay) = self.relay.clone() {
             let relay_token = self.mint_relay_token(
                 relay.relay_name.as_str(),
-                namespace_id.as_deref().unwrap_or("anonymous"),
+                request.mesh_id.as_str(),
                 relay.token_ttl_secs,
             )?;
             let metrics = Arc::clone(&self.metrics);
@@ -967,7 +1374,10 @@ impl LinkDaemon {
             }
         }
 
-        Ok(ExposeResponse { stream_id })
+        Ok(ServiceExposeResponse {
+            descriptor,
+            stream_id,
+        })
     }
 
     pub fn gateway_expose(
@@ -995,12 +1405,12 @@ impl LinkDaemon {
             .map(str::parse)
             .transpose()
             .map_err(|_| ApiError::new(ApiErrorCode::InvalidInput, "invalid listen address"))?;
-        let namespace_id = self.active_namespace_id();
-        let conn_id = derive_conn_id(namespace_id.as_deref(), DEFAULT_GATEWAY_SERVICE);
+        let mesh_id = self.control_store.ensure_default_mesh(now_unix_secs())?;
+        let conn_id = derive_conn_id(Some(mesh_id.as_str()), DEFAULT_GATEWAY_SERVICE);
         let stream_id = self.next_stream_id;
         self.next_stream_id = self.next_stream_id.saturating_add(1);
         self.services.insert(
-            DEFAULT_GATEWAY_SERVICE.to_string(),
+            service_runtime_key(mesh_id.as_str(), DEFAULT_GATEWAY_SERVICE),
             ServiceRecord {
                 stream_id,
                 _local_addr: listen.unwrap_or_else(|| {
@@ -1024,7 +1434,7 @@ impl LinkDaemon {
         if let (Some(relay), Some(gateway)) = (self.relay.clone(), self.gateway_exit.clone()) {
             let relay_token = self.mint_relay_token(
                 relay.relay_name.as_str(),
-                namespace_id.as_deref().unwrap_or("anonymous"),
+                mesh_id.as_str(),
                 relay.token_ttl_secs,
             )?;
             let metrics = Arc::clone(&self.metrics);
@@ -1096,11 +1506,11 @@ impl LinkDaemon {
                 .status(self.current_dns_capabilities(), runtime_capabilities));
         };
 
-        let namespace_id = self.active_namespace_id();
-        let conn_id = derive_conn_id(namespace_id.as_deref(), request.gateway_service.as_str());
+        let mesh_id = self.control_store.ensure_default_mesh(now_unix_secs())?;
+        let conn_id = derive_conn_id(Some(mesh_id.as_str()), request.gateway_service.as_str());
         let relay_token = self.mint_relay_token(
             relay.relay_name.as_str(),
-            namespace_id.as_deref().unwrap_or("anonymous"),
+            mesh_id.as_str(),
             relay.token_ttl_secs,
         )?;
         let config = TunnelClientConfig {
@@ -1110,7 +1520,7 @@ impl LinkDaemon {
             relay_ttl_secs: relay.token_ttl_secs.max(1),
             conn_id,
             gateway_service: request.gateway_service,
-            peer_id: namespace_id.unwrap_or_else(|| "anonymous".to_string()),
+            peer_id: mesh_id,
             fail_mode: to_client_fail_mode(request.fail_mode),
             dns_mode: to_client_dns_mode(request.dns_mode),
             exclude_cidrs: request.exclude_cidrs,
@@ -1236,7 +1646,35 @@ impl LinkDaemon {
     }
 
     pub fn connect(&mut self, request: ConnectRequest) -> Result<ConnectPlan, ApiError> {
-        validate_service_name(request.service_name.as_str())?;
+        let mesh_id = self.control_store.ensure_default_mesh(now_unix_secs())?;
+        self.connect_service(MeshScopedServiceConnectRequest {
+            mesh_id,
+            service_id: None,
+            service_name: Some(request.service_name),
+            local_listener: None,
+        })
+    }
+
+    pub fn connect_service(
+        &mut self,
+        request: MeshScopedServiceConnectRequest,
+    ) -> Result<ConnectPlan, ApiError> {
+        let service_name = request
+            .service_name
+            .clone()
+            .or_else(|| {
+                request.service_id.as_ref().and_then(|service_id| {
+                    self.control_store
+                        .resolve_service(request.mesh_id.as_str(), Some(service_id.as_str()), None)
+                        .ok()
+                        .flatten()
+                        .map(|descriptor| descriptor.service_name)
+                })
+            })
+            .ok_or_else(|| {
+                ApiError::new(ApiErrorCode::InvalidInput, "service selector required")
+            })?;
+        validate_service_name(service_name.as_str())?;
 
         let connection_id = self.next_connection_id;
         self.next_connection_id = self.next_connection_id.saturating_add(1);
@@ -1251,8 +1689,39 @@ impl LinkDaemon {
                 "failed to transition session after discovery",
             )
         })?;
+        let descriptor = self.control_store.resolve_service(
+            request.mesh_id.as_str(),
+            request.service_id.as_deref(),
+            Some(service_name.as_str()),
+        )?;
+        let runtime_key = service_runtime_key(request.mesh_id.as_str(), service_name.as_str());
+        let route = self.control_store.decide_route(
+            RouteDecisionInput {
+                mesh_id: request.mesh_id.clone(),
+                target_kind: DecisionTargetKind::Service,
+                target_id: descriptor
+                    .as_ref()
+                    .map(|descriptor| descriptor.service_id.clone())
+                    .unwrap_or_else(|| service_name.clone()),
+                direct_candidate: self.services.contains_key(runtime_key.as_str()),
+                managed_relay_available: self.relay.is_some(),
+            },
+            now_unix_secs(),
+        )?;
+        let binding = self.control_store.register_service_binding(
+            request.mesh_id.as_str(),
+            descriptor.as_ref(),
+            service_name.as_str(),
+            request.local_listener.clone(),
+            &route,
+            now_unix_secs(),
+        )?;
 
-        if let Some(relay) = self.relay.clone() {
+        if route.path != RoutePath::Direct {
+            let relay = self
+                .relay
+                .clone()
+                .ok_or_else(|| ApiError::new(ApiErrorCode::NotReady, "relay path unavailable"))?;
             machine.on_probe_failure().map_err(|_| {
                 ApiError::new(
                     ApiErrorCode::Internal,
@@ -1266,11 +1735,10 @@ impl LinkDaemon {
                 )
             })?;
 
-            let namespace_id = self.active_namespace_id();
-            let conn_id = derive_conn_id(namespace_id.as_deref(), request.service_name.as_str());
+            let conn_id = derive_conn_id(Some(request.mesh_id.as_str()), service_name.as_str());
             let relay_token = self.mint_relay_token(
                 relay.relay_name.as_str(),
-                namespace_id.as_deref().unwrap_or("anonymous"),
+                request.mesh_id.as_str(),
                 relay.token_ttl_secs,
             )?;
             let listener = StdTcpListener::bind("127.0.0.1:0")
@@ -1282,7 +1750,6 @@ impl LinkDaemon {
                 ApiError::new(ApiErrorCode::Internal, "failed to read local proxy addr")
             })?;
 
-            let service_name = request.service_name;
             let metrics = Arc::clone(&self.metrics);
             if tokio::runtime::Handle::try_current().is_ok() {
                 tokio::spawn(async move {
@@ -1305,20 +1772,26 @@ impl LinkDaemon {
                     machine,
                 },
             );
+            let _ = self.control_store.update_service_binding_state(
+                binding.binding_id.as_str(),
+                ServiceBindingState::Active,
+            );
             self.metrics.inc_connect_success();
             return Ok(ConnectPlan {
                 response: ConnectResponse {
                     connection_id,
                     stream_id: 1,
                     local_addr: Some(local_addr.to_string()),
+                    binding_id: Some(binding.binding_id),
+                    route_path: Some(route.path),
+                    selected_relay_node_id: route.selected_relay_node_id,
                 },
             });
         }
 
-        let service = self
-            .services
-            .get(request.service_name.as_str())
-            .ok_or_else(|| ApiError::new(ApiErrorCode::NotFound, "service not exposed"))?;
+        let service = self.services.get(runtime_key.as_str()).ok_or_else(|| {
+            ApiError::new(ApiErrorCode::NotReady, "direct service path unavailable")
+        })?;
         machine.on_probe_success().map_err(|_| {
             ApiError::new(
                 ApiErrorCode::Internal,
@@ -1333,6 +1806,9 @@ impl LinkDaemon {
                 machine,
             },
         );
+        let _ = self
+            .control_store
+            .update_service_binding_state(binding.binding_id.as_str(), ServiceBindingState::Active);
         self.metrics.inc_connect_success();
 
         Ok(ConnectPlan {
@@ -1340,6 +1816,9 @@ impl LinkDaemon {
                 connection_id,
                 stream_id: service.stream_id,
                 local_addr: None,
+                binding_id: Some(binding.binding_id),
+                route_path: Some(route.path),
+                selected_relay_node_id: route.selected_relay_node_id,
             },
         })
     }
@@ -1350,26 +1829,19 @@ impl LinkDaemon {
             .map(|record| record.machine.state())
     }
 
-    fn active_namespace_id(&mut self) -> Option<String> {
-        self.namespace_store.primary_namespace_id(now_unix_secs())
-    }
-
     fn mint_relay_token(
         &self,
         relay_name: &str,
-        namespace_id: &str,
+        mesh_id: &str,
         ttl_secs: u32,
     ) -> Result<Secret<String>, ApiError> {
         let relay = self
             .relay
             .as_ref()
             .ok_or_else(|| ApiError::new(ApiErrorCode::NotReady, "relay path unavailable"))?;
-        relay.token_issuer.mint_relay_token(
-            relay_name,
-            namespace_id,
-            Some(ttl_secs),
-            now_unix_secs(),
-        )
+        relay
+            .token_issuer
+            .mint_relay_token(relay_name, mesh_id, Some(ttl_secs), now_unix_secs())
     }
 
     pub fn metrics_handle(&self) -> Arc<LinkMetrics> {
@@ -2219,6 +2691,10 @@ fn derive_conn_id(namespace_id: Option<&str>, service_name: &str) -> u64 {
     conn_id_bytes.copy_from_slice(&hash[..8]);
     let conn_id = u64::from_le_bytes(conn_id_bytes);
     conn_id.max(1)
+}
+
+fn service_runtime_key(mesh_id: &str, service_name: &str) -> String {
+    format!("{mesh_id}::{service_name}")
 }
 
 fn seed_for_role(role: &str, conn_id: u64) -> [u8; 32] {

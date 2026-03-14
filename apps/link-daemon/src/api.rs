@@ -13,8 +13,12 @@ use tokio::{
 
 use crate::{
     daemon::{
-        ConnectPlan, ConnectRequest, ExposeRequest, GatewayExposeRequest, InviteJoinRequest,
-        LinkDaemon, RelayConfig, TunnelEnableRequest,
+        AppRustdeskBindRequest, ConnectPlan, ConnectRequest, ExposeRequest, GatewayExposeRequest,
+        InviteJoinRequest, LinkDaemon, MeshCreateRequest, MeshJoinApiRequest,
+        MeshScopedServiceConnectRequest, MeshScopedServiceExposeRequest,
+        MessengerConversationCreateRequest, MessengerSendRequest, NodeRolesRequest,
+        RelayAdvertiseRequest, RelayClearSelectionRequest, RelayConfig, RelaySelectRequest,
+        TunnelEnableRequest,
     },
     diagnostics::{build_diagnostics, run_self_check},
     errors::{error_envelope, ApiEnvelope, ApiError, ApiErrorCode},
@@ -146,12 +150,13 @@ async fn handle_connection(
 }
 
 async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> HttpResponse {
-    let response = match (request.method.as_str(), request.path.as_str()) {
-        ("GET", "/v1/health") => {
+    let segments = path_segments(request.path.as_str());
+    let response = match (request.method.as_str(), segments.as_slice()) {
+        ("GET", ["v1", "health"]) => {
             let state = state.lock().await;
             ok_json(state.health())
         }
-        ("GET", "/v1/self_check") => {
+        ("GET", ["v1", "self_check"]) => {
             let inputs = {
                 let mut state = state.lock().await;
                 state.self_check_inputs()
@@ -167,26 +172,26 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
             }
             ok_json_raw(result)
         }
-        ("GET", "/v1/diagnostics") => {
+        ("GET", ["v1", "diagnostics"]) => {
             let response = {
                 let mut state = state.lock().await;
                 build_diagnostics(state.diagnostics_input())
             };
             ok_json_raw(response)
         }
-        ("GET", "/v1/metrics") => {
+        ("GET", ["v1", "metrics"]) => {
             let mut state = state.lock().await;
             text_response(200, state.metrics())
         }
-        ("GET", "/v1/status") => {
+        ("GET", ["v1", "status"]) => {
             let mut state = state.lock().await;
             ok_json(state.status())
         }
-        ("GET", "/v1/tunnel/status") => {
+        ("GET", ["v1", "tunnel", "status"]) => {
             let mut state = state.lock().await;
             ok_json(state.tunnel_status())
         }
-        ("POST", "/v1/invite/create") => {
+        ("POST", ["v1", "invite", "create"]) => {
             let mut state = state.lock().await;
             match state.invite_create() {
                 Ok(body) => ok_json(body),
@@ -196,7 +201,7 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
                 }
             }
         }
-        ("POST", "/v1/invite/join") => {
+        ("POST", ["v1", "invite", "join"]) => {
             let parsed: Result<InviteJoinRequest, ApiError> = parse_json_body(&request.body);
             let mut state = state.lock().await;
             match parsed.and_then(|body| state.invite_join(body)) {
@@ -207,7 +212,116 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
                 }
             }
         }
-        ("POST", "/v1/expose") => {
+        ("POST", ["v1", "meshes"]) => {
+            let parsed: Result<MeshCreateRequest, ApiError> = parse_json_body(&request.body);
+            let mut state = state.lock().await;
+            match parsed.and_then(|body| state.mesh_create(body)) {
+                Ok(body) => ok_json(body),
+                Err(error) => {
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("GET", ["v1", "meshes"]) => {
+            let state = state.lock().await;
+            ok_json(state.meshes())
+        }
+        ("POST", ["v1", "meshes", "join"]) => {
+            let parsed: Result<MeshJoinApiRequest, ApiError> = parse_json_body(&request.body);
+            let mut state = state.lock().await;
+            match parsed.and_then(|body| state.mesh_join(body)) {
+                Ok(body) => ok_json(body),
+                Err(error) => {
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("POST", ["v1", "meshes", mesh_id, "invite"]) => {
+            let mut state = state.lock().await;
+            match state.mesh_invite(mesh_id) {
+                Ok(body) => ok_json(body),
+                Err(error) => {
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("GET", ["v1", "meshes", mesh_id, "peers"]) => {
+            let state = state.lock().await;
+            match state.mesh_peers(mesh_id) {
+                Ok(body) => ok_json(body),
+                Err(error) => error_json(error),
+            }
+        }
+        ("POST", ["v1", "meshes", mesh_id, "peers", peer_id, "revoke"]) => {
+            let mut state = state.lock().await;
+            match state.revoke_mesh_peer(mesh_id, peer_id) {
+                Ok(body) => ok_json(body),
+                Err(error) => {
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("POST", ["v1", "nodes", node_id, "roles"]) => {
+            let parsed: Result<NodeRolesRequest, ApiError> = parse_json_body(&request.body);
+            let mut state = state.lock().await;
+            match parsed.and_then(|body| state.set_node_roles(node_id, body)) {
+                Ok(body) => ok_json(body),
+                Err(error) => {
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("GET", ["v1", "nodes", node_id, "roles"]) => {
+            let state = state.lock().await;
+            match state.node_roles(node_id) {
+                Ok(body) => ok_json(body),
+                Err(error) => error_json(error),
+            }
+        }
+        ("POST", ["v1", "relays", "advertise"]) => {
+            let parsed: Result<RelayAdvertiseRequest, ApiError> = parse_json_body(&request.body);
+            let mut state = state.lock().await;
+            match parsed.and_then(|body| state.advertise_relay(body)) {
+                Ok(body) => ok_json(body),
+                Err(error) => {
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("POST", ["v1", "relays", "select"]) => {
+            let parsed: Result<RelaySelectRequest, ApiError> = parse_json_body(&request.body);
+            let mut state = state.lock().await;
+            match parsed.and_then(|body| state.select_relay(body)) {
+                Ok(body) => ok_json(body),
+                Err(error) => {
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("POST", ["v1", "relays", "clear-selection"]) => {
+            let parsed: Result<RelayClearSelectionRequest, ApiError> =
+                parse_json_body(&request.body);
+            let mut state = state.lock().await;
+            match parsed.and_then(|body| state.clear_relay_selection(body)) {
+                Ok(()) => ok_json(serde_json::json!({ "cleared": true })),
+                Err(error) => {
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("GET", ["v1", "relays", "status"]) => {
+            let state = state.lock().await;
+            ok_json(state.relay_status())
+        }
+        ("POST", ["v1", "expose"]) => {
             state.lock().await.metrics_handle().inc_expose_attempts();
             let parsed: Result<ExposeRequest, ApiError> = parse_json_body(&request.body);
             let mut state = state.lock().await;
@@ -222,7 +336,37 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
                 }
             }
         }
-        ("POST", "/v1/gateway/expose") => {
+        ("POST", ["v1", "services", "expose"]) => {
+            state.lock().await.metrics_handle().inc_expose_attempts();
+            let parsed: Result<MeshScopedServiceExposeRequest, ApiError> =
+                parse_json_body(&request.body);
+            let mut state = state.lock().await;
+            match parsed.and_then(|body| state.expose_service(body)) {
+                Ok(body) => ok_json(body),
+                Err(error) => {
+                    if error.code == ApiErrorCode::Denied {
+                        state.metrics_handle().inc_expose_denied();
+                    }
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("GET", ["v1", "services"]) => {
+            let state = state.lock().await;
+            ok_json(state.services_list(None))
+        }
+        ("DELETE", ["v1", "services", service_id]) => {
+            let mut state = state.lock().await;
+            match state.delete_service(service_id) {
+                Ok(body) => ok_json(body),
+                Err(error) => {
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("POST", ["v1", "gateway", "expose"]) => {
             let parsed: Result<GatewayExposeRequest, ApiError> = parse_json_body(&request.body);
             let mut state = state.lock().await;
             match parsed.and_then(|body| state.gateway_expose(body)) {
@@ -236,7 +380,7 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
                 }
             }
         }
-        ("POST", "/v1/tunnel/enable") => {
+        ("POST", ["v1", "tunnel", "enable"]) => {
             let parsed: Result<TunnelEnableRequest, ApiError> = parse_json_body(&request.body);
             let mut state = state.lock().await;
             match parsed.and_then(|body| state.tunnel_enable(body)) {
@@ -247,11 +391,11 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
                 }
             }
         }
-        ("POST", "/v1/tunnel/disable") => {
+        ("POST", ["v1", "tunnel", "disable"]) => {
             let mut state = state.lock().await;
             ok_json(state.tunnel_disable())
         }
-        ("POST", "/v1/connect") => {
+        ("POST", ["v1", "connect"]) => {
             state.lock().await.metrics_handle().inc_connect_attempts();
             let parsed: Result<ConnectRequest, ApiError> = parse_json_body(&request.body);
             let plan_result: Result<ConnectPlan, ApiError> = {
@@ -269,7 +413,101 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
                 }
             }
         }
-        ("GET", _) | ("POST", _) => {
+        ("POST", ["v1", "services", "connect"]) => {
+            state.lock().await.metrics_handle().inc_connect_attempts();
+            let parsed: Result<MeshScopedServiceConnectRequest, ApiError> =
+                parse_json_body(&request.body);
+            let plan_result: Result<ConnectPlan, ApiError> = {
+                let mut state = state.lock().await;
+                parsed.and_then(|body| state.connect_service(body))
+            };
+
+            match plan_result {
+                Ok(plan) => ok_json(plan.response),
+                Err(error) => {
+                    let mut state = state.lock().await;
+                    state.metrics_handle().inc_connect_fail();
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("GET", ["v1", "routing", "decision-log"]) => {
+            let state = state.lock().await;
+            ok_json(state.routing_decision_log())
+        }
+        ("GET", ["v1", "routing", "status"]) => {
+            let state = state.lock().await;
+            ok_json(state.routing_status())
+        }
+        ("POST", ["v1", "messenger", "conversations"]) => {
+            let parsed: Result<MessengerConversationCreateRequest, ApiError> =
+                parse_json_body(&request.body);
+            let mut state = state.lock().await;
+            match parsed.and_then(|body| state.messenger_create_conversation(body)) {
+                Ok(body) => ok_json(body),
+                Err(error) => {
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("GET", ["v1", "messenger", "conversations"]) => {
+            let state = state.lock().await;
+            ok_json(state.messenger_list_conversations(None))
+        }
+        ("POST", ["v1", "messenger", "send"]) => {
+            let parsed: Result<MessengerSendRequest, ApiError> = parse_json_body(&request.body);
+            let mut state = state.lock().await;
+            match parsed.and_then(|body| state.messenger_send(body)) {
+                Ok(body) => ok_json(body),
+                Err(error) => {
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("GET", ["v1", "messenger", "stream"]) => {
+            let state = state.lock().await;
+            ok_json(state.messenger_stream(None))
+        }
+        ("GET", ["v1", "messenger", "presence"]) => {
+            let state = state.lock().await;
+            let mesh_id = state
+                .meshes()
+                .meshes
+                .first()
+                .map(|mesh| mesh.config.mesh_id.clone());
+            match mesh_id {
+                Some(mesh_id) => match state.messenger_presence(mesh_id.as_str()) {
+                    Ok(body) => ok_json(body),
+                    Err(error) => error_json(error),
+                },
+                None => error_json(ApiError::new(ApiErrorCode::NotFound, "mesh not found")),
+            }
+        }
+        ("POST", ["v1", "apps", "rustdesk", "bind"]) => {
+            let parsed: Result<AppRustdeskBindRequest, ApiError> = parse_json_body(&request.body);
+            let mut state = state.lock().await;
+            match parsed.and_then(|body| state.rustdesk_bind(body)) {
+                Ok(body) => ok_json(body),
+                Err(error) => {
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("DELETE", ["v1", "apps", "rustdesk", "bind", binding_id]) => {
+            let mut state = state.lock().await;
+            match state.rustdesk_unbind(binding_id) {
+                Ok(body) => ok_json(body),
+                Err(error) => {
+                    state.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
+        ("GET", _) | ("POST", _) | ("DELETE", _) => {
             let mut state = state.lock().await;
             let error = ApiError::new(ApiErrorCode::NotFound, "route not found");
             state.record_error(error.code);
@@ -462,6 +700,13 @@ async fn write_response(stream: &mut TcpStream, response: HttpResponse) -> Resul
 
 fn find_header_end(buf: &[u8]) -> Option<usize> {
     buf.windows(4).position(|window| window == b"\r\n\r\n")
+}
+
+fn path_segments(path: &str) -> Vec<&str> {
+    path.trim_start_matches('/')
+        .split('/')
+        .filter(|segment| !segment.is_empty())
+        .collect()
 }
 
 #[cfg(test)]
@@ -1092,6 +1337,236 @@ mod tests {
         let body = extract_body(raw_response.as_str());
         let parsed: Value = serde_json::from_str(body).expect("error body json");
         assert_eq!(parsed["error"]["code"], "denied");
+
+        let _ = shutdown_tx.send(());
+        let _ = server.await;
+    }
+
+    #[tokio::test]
+    async fn mesh_native_endpoints_cover_roles_routing_services_and_messenger() {
+        let listener = match TcpListener::bind("127.0.0.1:0").await {
+            Ok(listener) => listener,
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => return,
+            Err(error) => panic!("bind listener: {error}"),
+        };
+        let addr = listener.local_addr().expect("local addr");
+        let state_file = temp_state_path("mesh-native-api");
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let server = tokio::spawn(async move {
+            run_api_server_with_listener(
+                listener,
+                test_config(addr, state_file, None),
+                Some(shutdown_rx),
+            )
+            .await
+        });
+
+        let mesh_body = r#"{"mesh_name":"lab"}"#;
+        let mesh_response = send_http(
+            addr,
+            format!(
+                "POST /v1/meshes HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                mesh_body.len(),
+                mesh_body
+            )
+            .as_str(),
+        )
+        .await;
+        assert!(mesh_response.starts_with("HTTP/1.1 200 OK"));
+        let mesh_json: Value =
+            serde_json::from_str(extract_body(mesh_response.as_str())).expect("mesh json");
+        let mesh_id = mesh_json["mesh"]["mesh_id"]
+            .as_str()
+            .expect("mesh_id")
+            .to_string();
+        let node_id = mesh_json["mesh"]["local_node_id"]
+            .as_str()
+            .expect("node_id")
+            .to_string();
+
+        let roles_body = format!(r#"{{"mesh_id":"{mesh_id}","roles":["relay","service_host"]}}"#);
+        let roles_response = send_http(
+            addr,
+            format!(
+                "POST /v1/nodes/{node_id}/roles HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                roles_body.len(),
+                roles_body
+            )
+            .as_str(),
+        )
+        .await;
+        assert!(roles_response.starts_with("HTTP/1.1 200 OK"));
+
+        let advertise_body = format!(r#"{{"mesh_id":"{mesh_id}","tags":["home"]}}"#);
+        let advertise_response = send_http(
+            addr,
+            format!(
+                "POST /v1/relays/advertise HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                advertise_body.len(),
+                advertise_body
+            )
+            .as_str(),
+        )
+        .await;
+        assert!(advertise_response.starts_with("HTTP/1.1 200 OK"));
+
+        let select_body = format!(
+            r#"{{"mesh_id":"{mesh_id}","target_kind":"service","target_id":"chat","relay_node_id":"{node_id}"}}"#
+        );
+        let select_response = send_http(
+            addr,
+            format!(
+                "POST /v1/relays/select HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                select_body.len(),
+                select_body
+            )
+            .as_str(),
+        )
+        .await;
+        assert!(select_response.starts_with("HTTP/1.1 200 OK"));
+
+        let service_body = format!(
+            r#"{{"mesh_id":"{mesh_id}","service_name":"chat","local_addr":"127.0.0.1:19180","allowed_peers":["peer-b"],"tags":["msg"]}}"#
+        );
+        let service_response = send_http(
+            addr,
+            format!(
+                "POST /v1/services/expose HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                service_body.len(),
+                service_body
+            )
+            .as_str(),
+        )
+        .await;
+        assert!(service_response.starts_with("HTTP/1.1 200 OK"));
+        let service_json: Value =
+            serde_json::from_str(extract_body(service_response.as_str())).expect("service json");
+        assert_eq!(service_json["descriptor"]["mesh_id"], mesh_id);
+
+        let conversation_body =
+            format!(r#"{{"mesh_id":"{mesh_id}","participants":["peer-b"],"title":"dm"}}"#);
+        let conversation_response = send_http(
+            addr,
+            format!(
+                "POST /v1/messenger/conversations HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                conversation_body.len(),
+                conversation_body
+            )
+            .as_str(),
+        )
+        .await;
+        assert!(conversation_response.starts_with("HTTP/1.1 200 OK"));
+        let conversation_json: Value =
+            serde_json::from_str(extract_body(conversation_response.as_str()))
+                .expect("conversation json");
+        let conversation_id = conversation_json["conversation_id"]
+            .as_str()
+            .expect("conversation_id");
+
+        let send_body =
+            format!(r#"{{"conversation_id":"{conversation_id}","body":"hello over animus"}}"#);
+        let send_response = send_http(
+            addr,
+            format!(
+                "POST /v1/messenger/send HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                send_body.len(),
+                send_body
+            )
+            .as_str(),
+        )
+        .await;
+        assert!(send_response.starts_with("HTTP/1.1 200 OK"));
+        let send_json: Value =
+            serde_json::from_str(extract_body(send_response.as_str())).expect("send json");
+        assert_eq!(send_json["body"], "hello over animus");
+        assert!(send_json["decision_id"].is_string());
+
+        let relay_status = send_http(
+            addr,
+            "GET /v1/relays/status HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+        )
+        .await;
+        let relay_json: Value =
+            serde_json::from_str(extract_body(relay_status.as_str())).expect("relay status json");
+        assert_eq!(relay_json["offers"].as_array().expect("offers").len(), 1);
+
+        let routing_log = send_http(
+            addr,
+            "GET /v1/routing/decision-log HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+        )
+        .await;
+        let routing_json: Value =
+            serde_json::from_str(extract_body(routing_log.as_str())).expect("routing json");
+        assert!(!routing_json["decisions"]
+            .as_array()
+            .expect("decisions")
+            .is_empty());
+
+        let stream_response = send_http(
+            addr,
+            "GET /v1/messenger/stream HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+        )
+        .await;
+        let stream_json: Value =
+            serde_json::from_str(extract_body(stream_response.as_str())).expect("stream json");
+        assert_eq!(
+            stream_json["messages"].as_array().expect("messages").len(),
+            1
+        );
+
+        let _ = shutdown_tx.send(());
+        let _ = server.await;
+    }
+
+    #[tokio::test]
+    async fn relay_advertise_requires_local_relay_role() {
+        let listener = match TcpListener::bind("127.0.0.1:0").await {
+            Ok(listener) => listener,
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => return,
+            Err(error) => panic!("bind listener: {error}"),
+        };
+        let addr = listener.local_addr().expect("local addr");
+        let state_file = temp_state_path("relay-advertise-denied");
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let server = tokio::spawn(async move {
+            run_api_server_with_listener(
+                listener,
+                test_config(addr, state_file, None),
+                Some(shutdown_rx),
+            )
+            .await
+        });
+
+        let mesh_body = r#"{"mesh_name":"lab"}"#;
+        let mesh_response = send_http(
+            addr,
+            format!(
+                "POST /v1/meshes HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                mesh_body.len(),
+                mesh_body
+            )
+            .as_str(),
+        )
+        .await;
+        let mesh_json: Value =
+            serde_json::from_str(extract_body(mesh_response.as_str())).expect("mesh json");
+        let mesh_id = mesh_json["mesh"]["mesh_id"].as_str().expect("mesh_id");
+
+        let advertise_body = format!(r#"{{"mesh_id":"{mesh_id}"}}"#);
+        let advertise_response = send_http(
+            addr,
+            format!(
+                "POST /v1/relays/advertise HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                advertise_body.len(),
+                advertise_body
+            )
+            .as_str(),
+        )
+        .await;
+        assert!(advertise_response.starts_with("HTTP/1.1 403 Forbidden"));
+        let denied_json: Value =
+            serde_json::from_str(extract_body(advertise_response.as_str())).expect("deny json");
+        assert_eq!(denied_json["error"]["code"], "denied");
 
         let _ = shutdown_tx.send(());
         let _ = server.await;

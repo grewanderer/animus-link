@@ -1,30 +1,46 @@
-# Discovery (MVP)
+# Discovery (Mesh MVP)
 
-Default is **invite-first private namespaces**.
+Default is **invite-first private meshes**.
 
-An invite creates:
-- namespace_id (128-bit random)
-- namespace_secret (used to authenticate writes; specifics are implementation-defined for MVP)
+Mesh lifecycle:
+- A mesh is created locally through Link daemon control APIs.
+- A mesh invite is scoped to one mesh and MUST carry:
+  - `mesh_id`
+  - inviter `peer_id`
+  - inviter `node_id`
+  - invite secret
+  - expiry time
+- Mesh peers are visible only inside the mesh.
+- Joining a mesh creates a local membership record and imports the inviter peer record.
 
-Nodes publish signed announcements with short TTL (5-15 minutes):
-- node_id
-- endpoints (transport type + addr)
-- expires_at
-- signature (DK)
+Identity and membership records:
+- `peer_id` is the stable root identity reference for a participant.
+- `device_id` is the device-scoped identity reference.
+- `node_id` is the currently active connectivity node identity.
+- Membership records MUST include:
+  - `mesh_id`
+  - `peer_id`
+  - `device_id`
+  - `node_id`
+  - `roles`
+  - `trust`
+  - `joined_at_unix_secs`
+  - optional `revoked_at_unix_secs`
+  - deterministic membership signature / record digest
 
-Discovery record format (v1):
-- `ver` (number): MUST be `1`
-- `namespace_id` (string)
-- `node_id` (string)
-- `endpoints` (array of `{transport, addr}`)
-- `expires_at` (u64 unix seconds)
+Role-scoped discovery:
+- Any node MAY advertise relay capability inside a mesh after it has the `relay` role.
+- Relay advertisements are mesh-scoped by default and MUST NOT become globally visible unless explicitly configured.
+- Managed relays are optional external infrastructure and are never the source of peer identity semantics.
 
-Canonical encoding and signatures:
-- Records MUST be encoded deterministically before signing.
-- MVP canonical form is deterministic JSON with fixed field order:
-  - `ver`, `namespace_id`, `node_id`, `endpoints`, `expires_at`
-  - endpoint field order: `transport`, `addr`
-- Signature algorithm: Ed25519 over canonical JSON bytes.
-- Any field modification MUST invalidate signature verification.
+Signed announcements:
+- Nodes MAY publish short-lived signed announcements with:
+  - `mesh_id`
+  - `node_id`
+  - endpoints (transport type + addr)
+  - `expires_at`
+  - signature
+- The signed form MUST be deterministic.
+- Relay and discovery transports MUST NOT weaken Fabric end-to-end secrecy.
 
-Public DHT mode is out-of-scope for MVP unless explicitly enabled.
+Public DHT mode remains out-of-scope for MVP unless explicitly enabled.

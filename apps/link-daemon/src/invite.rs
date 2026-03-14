@@ -10,25 +10,38 @@ use crate::errors::{ApiError, ApiErrorCode};
 pub const INVITE_PREFIX: &str = "animus://invite/v1/";
 pub const INVITE_NAMESPACE_LEN: usize = 32;
 pub const INVITE_SECRET_LEN: usize = 32;
+pub const INVITE_IDENTITY_LEN: usize = 32;
 pub const INVITE_DEFAULT_TTL_SECS: u64 = 3_600;
 
 static INVITE_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Invite {
-    pub namespace_id: String,
+    pub mesh_id: String,
+    pub issuer_peer_id: Option<String>,
+    pub issuer_node_id: Option<String>,
     pub secret: Secret<String>,
     pub exp_unix_secs: u64,
 }
 
 impl Invite {
     pub fn to_string_repr(&self) -> String {
-        format!(
-            "{INVITE_PREFIX}{}.{}.{}",
-            self.namespace_id,
-            self.secret.expose(),
-            self.exp_unix_secs
-        )
+        match (&self.issuer_peer_id, &self.issuer_node_id) {
+            (Some(peer_id), Some(node_id)) => format!(
+                "{INVITE_PREFIX}{}.{}.{}.{}.{}",
+                self.mesh_id,
+                peer_id,
+                node_id,
+                self.secret.expose(),
+                self.exp_unix_secs
+            ),
+            _ => format!(
+                "{INVITE_PREFIX}{}.{}.{}",
+                self.mesh_id,
+                self.secret.expose(),
+                self.exp_unix_secs
+            ),
+        }
     }
 }
 
@@ -48,36 +61,79 @@ pub fn generate_invite(now_unix_secs: u64) -> Invite {
     );
 
     Invite {
-        namespace_id,
+        mesh_id: namespace_id,
+        issuer_peer_id: None,
+        issuer_node_id: None,
         secret: Secret::new(secret),
         exp_unix_secs: now_unix_secs.saturating_add(INVITE_DEFAULT_TTL_SECS),
     }
 }
 
-pub fn parse_invite(invite: &str, now_unix_secs: u64) -> Result<Invite, ApiError> {
-    let payload = invite
-        .strip_prefix(INVITE_PREFIX)
-        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidInput, "invalid invite format"))?;
-    let mut parts = payload.split('.');
-
-    let namespace_id = parts
-        .next()
-        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidInput, "invalid invite format"))?;
-    let secret = parts
-        .next()
-        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidInput, "invalid invite format"))?;
-    let exp = parts
-        .next()
-        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidInput, "invalid invite format"))?;
-    if parts.next().is_some() {
+pub fn generate_mesh_invite(
+    mesh_id: &str,
+    issuer_peer_id: &str,
+    issuer_node_id: &str,
+    now_unix_secs: u64,
+) -> Result<Invite, ApiError> {
+    if !is_hex_with_len(mesh_id, INVITE_NAMESPACE_LEN)
+        || !is_hex_with_len(issuer_peer_id, INVITE_IDENTITY_LEN)
+        || !is_hex_with_len(issuer_node_id, INVITE_IDENTITY_LEN)
+    {
         return Err(ApiError::new(
             ApiErrorCode::InvalidInput,
             "invalid invite format",
         ));
     }
 
-    if !is_hex_with_len(namespace_id, INVITE_NAMESPACE_LEN)
+    let counter = INVITE_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let entropy_base = now_unix_secs ^ counter ^ u64::from(std::process::id());
+    let secret_seed = entropy_base.rotate_left(11) ^ 0x9e37_79b9_7f4a_7c15;
+    let secret = format!(
+        "{:016x}{:016x}",
+        mix64(secret_seed),
+        mix64(secret_seed ^ 0x5a)
+    );
+
+    Ok(Invite {
+        mesh_id: mesh_id.to_string(),
+        issuer_peer_id: Some(issuer_peer_id.to_string()),
+        issuer_node_id: Some(issuer_node_id.to_string()),
+        secret: Secret::new(secret),
+        exp_unix_secs: now_unix_secs.saturating_add(INVITE_DEFAULT_TTL_SECS),
+    })
+}
+
+pub fn parse_invite(invite: &str, now_unix_secs: u64) -> Result<Invite, ApiError> {
+    let payload = invite
+        .strip_prefix(INVITE_PREFIX)
+        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidInput, "invalid invite format"))?;
+    let parts = payload.split('.').collect::<Vec<_>>();
+
+    let (mesh_id, issuer_peer_id, issuer_node_id, secret, exp) = match parts.as_slice() {
+        [mesh_id, secret, exp] => (*mesh_id, None, None, *secret, *exp),
+        [mesh_id, issuer_peer_id, issuer_node_id, secret, exp] => (
+            *mesh_id,
+            Some((*issuer_peer_id).to_string()),
+            Some((*issuer_node_id).to_string()),
+            *secret,
+            *exp,
+        ),
+        _ => {
+            return Err(ApiError::new(
+                ApiErrorCode::InvalidInput,
+                "invalid invite format",
+            ))
+        }
+    };
+
+    if !is_hex_with_len(mesh_id, INVITE_NAMESPACE_LEN)
         || !is_hex_with_len(secret, INVITE_SECRET_LEN)
+        || issuer_peer_id
+            .as_deref()
+            .is_some_and(|peer_id| !is_hex_with_len(peer_id, INVITE_IDENTITY_LEN))
+        || issuer_node_id
+            .as_deref()
+            .is_some_and(|node_id| !is_hex_with_len(node_id, INVITE_IDENTITY_LEN))
     {
         return Err(ApiError::new(
             ApiErrorCode::InvalidInput,
@@ -93,7 +149,9 @@ pub fn parse_invite(invite: &str, now_unix_secs: u64) -> Result<Invite, ApiError
     }
 
     Ok(Invite {
-        namespace_id: namespace_id.to_string(),
+        mesh_id: mesh_id.to_string(),
+        issuer_peer_id,
+        issuer_node_id,
         secret: Secret::new(secret.to_string()),
         exp_unix_secs,
     })
@@ -120,15 +178,31 @@ fn mix64(mut x: u64) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{generate_invite, parse_invite, INVITE_PREFIX};
+    use super::{generate_invite, generate_mesh_invite, parse_invite, INVITE_PREFIX};
 
     #[test]
     fn generated_invite_roundtrips() {
         let invite = generate_invite(1_700_000_000);
         let text = invite.to_string_repr();
         let parsed = parse_invite(&text, 1_700_000_001).expect("invite should parse");
-        assert_eq!(parsed.namespace_id, invite.namespace_id);
+        assert_eq!(parsed.mesh_id, invite.mesh_id);
         assert_eq!(parsed.secret.expose(), invite.secret.expose());
+    }
+
+    #[test]
+    fn mesh_invite_roundtrips_with_issuer_metadata() {
+        let invite = generate_mesh_invite(
+            "0123456789abcdef0123456789abcdef",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            1_700_000_000,
+        )
+        .expect("mesh invite");
+        let parsed = parse_invite(invite.to_string_repr().as_str(), 1_700_000_001)
+            .expect("invite should parse");
+        assert_eq!(parsed.mesh_id, invite.mesh_id);
+        assert_eq!(parsed.issuer_peer_id, invite.issuer_peer_id);
+        assert_eq!(parsed.issuer_node_id, invite.issuer_node_id);
     }
 
     #[test]

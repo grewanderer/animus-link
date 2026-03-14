@@ -13,6 +13,7 @@ fabric-identity = { path = "../../crates/fabric-identity" }
 fabric-relay-client = { path = "../../crates/fabric-relay-client" }
 fabric-relay-proto = { path = "../../crates/fabric-relay-proto" }
 fabric-security = { path = "../../crates/fabric-security" }
+fabric-service = { path = "../../crates/fabric-service" }
 fabric-session = { path = "../../crates/fabric-session" }
 fabric-tunnel-proto = { path = "../../crates/fabric-tunnel-proto" }
 link-gateway = { path = "../../crates/link-gateway" }
