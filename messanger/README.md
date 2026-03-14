@@ -32,6 +32,7 @@ Backend actions use local `link-daemon` HTTP API:
 Optional env:
 
 - `ANIMUS_MESSENGER_STATE_FILE` (default `.animus-link/messenger-web/state.json`)
+- `NEXT_PUBLIC_MESSENGER_ADVANCED_UI=1` enables advanced network fields (`Daemon API`, service/listen/allowed peers inputs)
 
 ## Prerequisites
 
@@ -104,6 +105,7 @@ cargo run -p link-daemon -- --api-bind 127.0.0.1:10000 --state-file .animus-link
 cd C:\Users\Red\Desktop\animus-link\messanger
 npm.cmd ci
 $env:NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+$env:NEXT_PUBLIC_MESSENGER_ADVANCED_UI="1"
 npm.cmd run dev
 ```
 
@@ -119,6 +121,70 @@ npm.cmd run dev
 - In A: `Start Host`
 - In B: `Join Room`
 - Send messages both ways
+
+## How To Use The App
+
+After opening `http://localhost:3000/link`, the page is split into two panels:
+
+- Left: profile, daemon API, invite controls, rooms list
+- Right: selected room settings, connection actions, message timeline, composer
+
+By default, advanced network fields are hidden for end-user UX.
+Set `NEXT_PUBLIC_MESSENGER_ADVANCED_UI=1` in local dev to expose them.
+
+### Main fields
+
+- `Profile`: your display name in chat messages.
+- `Avatar`: optional profile image (`Upload Avatar` / `Remove`).
+  - Supported formats: PNG/JPG/WEBP/GIF.
+  - Max local upload size: 192 KB.
+- `Daemon API`: local Link daemon endpoint for this browser session.
+  - Example A: `http://127.0.0.1:9999`
+  - Example B: `http://127.0.0.1:10000`
+- `Invite`: invite string used to pair peers (`Create Invite` / `Join Invite`).
+- Room settings:
+  - `Room title`: UI label.
+  - `Service name`: network service id used by daemon `expose/connect`.
+  - `Listen address`: host-side local TCP bind, for example `127.0.0.1:19180`.
+  - `Allowed peers CSV`: comma-separated peer ids allowed to connect.
+
+### Typical 1-to-1 flow
+
+1. In browser A, set `Daemon API` to daemon A and click `Create Invite`.
+2. Copy invite text to browser B.
+3. In browser B, set `Daemon API` to daemon B, paste invite, click `Join Invite`.
+4. In browser A, choose room and click `Start Host`.
+5. In browser B, choose same room/service and click `Join Room`.
+6. Wait for status badge:
+   - A: `Hosting`
+   - B: `Joined`
+7. Type message in the bottom textarea and click `Send Message`.
+8. If you changed avatar/profile, click `Save` before invite/join to persist and propagate updates.
+
+### Rooms
+
+- `Add Room`: creates local room config/history.
+- `Save`: persists profile + daemon API + selected room settings.
+- `Delete`: removes selected room and local history (at least one room must remain).
+- `Disconnect`: closes current host/join connection for selected room.
+
+### Message timeline
+
+- `system` messages show connection events (`joined`, `left`, `connection closed`).
+- Outgoing messages are styled differently from incoming.
+- Message list auto-refreshes periodically.
+
+### Local persistence
+
+- UI settings and room history are persisted to:
+  - default: `.animus-link/messenger-web/state.json`
+  - override: `ANIMUS_MESSENGER_STATE_FILE`
+
+### Important behavior
+
+- One active runtime connection is expected at a time.
+- If daemon is unreachable, invite/host/join actions return API errors in the UI.
+- `Start Host` calls daemon `expose`; `Join Room` calls daemon `connect`.
 
 ## Windows Notes
 

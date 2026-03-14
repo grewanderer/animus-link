@@ -9,6 +9,7 @@ const MAX_ROOM_MESSAGES = 2000;
 const DEFAULT_DAEMON_API = 'http://127.0.0.1:9999';
 const DEFAULT_STATE_FILE = '.animus-link/messenger-web/state.json';
 const MAX_MESSAGE_TEXT = 1024;
+const MAX_AVATAR_DATA_URL_LENGTH = 256 * 1024;
 
 export type ConnectionMode = 'idle' | 'host' | 'joined';
 
@@ -17,6 +18,7 @@ export type MessengerMessage = {
   id: string;
   ts: number;
   sender: string;
+  avatar: string | null;
   text: string;
   outgoing: boolean;
   system: boolean;
@@ -37,6 +39,7 @@ export type MessengerRoom = {
 
 export type MessengerSnapshot = {
   profileName: string;
+  profileAvatar: string | null;
   daemonApi: string;
   rooms: MessengerRoom[];
 };
@@ -46,6 +49,7 @@ type PersistedMessage = {
   id: string;
   ts: number;
   sender: string;
+  avatar: string | null;
   text: string;
   outgoing: boolean;
   system: boolean;
@@ -63,6 +67,7 @@ type PersistedRoom = {
 
 type PersistedState = {
   profileName: string;
+  profileAvatar: string | null;
   daemonApi: string;
   rooms: PersistedRoom[];
 };
@@ -73,6 +78,7 @@ type HostRuntime = {
   sockets: Set<net.Socket>;
   socketBuffers: Map<net.Socket, string>;
   peerNames: Map<net.Socket, string>;
+  peerAvatars: Map<net.Socket, string | null>;
 };
 
 type JoinedRuntime = {
@@ -107,6 +113,20 @@ function sanitizeServiceName(value: string): string {
 function sanitizeText(value: string): string | null {
   const clean = value.replace(/\r/g, '').replace(/\n/g, '').trim().slice(0, MAX_MESSAGE_TEXT);
   return clean.length > 0 ? clean : null;
+}
+
+function sanitizeAvatar(value: string): string | null {
+  const clean = value.trim();
+  if (!clean) {
+    return null;
+  }
+  if (clean.length > MAX_AVATAR_DATA_URL_LENGTH) {
+    return null;
+  }
+  if (!/^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=]+$/i.test(clean)) {
+    return null;
+  }
+  return clean;
 }
 
 function parseHostPort(value: string): { host: string; port: number } {
@@ -205,6 +225,7 @@ export class MessengerRuntime {
   snapshot(): MessengerSnapshot {
     return {
       profileName: this.state.profileName,
+      profileAvatar: this.state.profileAvatar,
       daemonApi: this.state.daemonApi,
       rooms: this.state.rooms.map((room) => ({ ...room, messages: room.messages.slice(-120) })),
     };
@@ -271,6 +292,7 @@ export class MessengerRuntime {
               id: message.id || randomUUID(),
               ts: Number.isFinite(message.ts) ? message.ts : nowUnix(),
               sender: sanitizeName(message.sender || 'user'),
+              avatar: sanitizeAvatar(message.avatar || ''),
               text: sanitizeText(message.text || '') || '',
               outgoing: Boolean(message.outgoing),
               system: Boolean(message.system),
@@ -286,6 +308,7 @@ export class MessengerRuntime {
       const rooms = roomsRaw.length > 0 ? roomsRaw.map(roomFromPersisted) : [makeDefaultRoom()];
       return {
         profileName: sanitizeName(typeof parsed.profileName === 'string' ? parsed.profileName : 'user'),
+        profileAvatar: sanitizeAvatar(typeof parsed.profileAvatar === 'string' ? parsed.profileAvatar : ''),
         daemonApi:
           typeof parsed.daemonApi === 'string' && parsed.daemonApi.trim().length > 0
             ? parsed.daemonApi.trim()
@@ -295,6 +318,7 @@ export class MessengerRuntime {
     } catch {
       return {
         profileName: 'user',
+        profileAvatar: null,
         daemonApi: DEFAULT_DAEMON_API,
         rooms: [makeDefaultRoom()],
       };
@@ -314,6 +338,7 @@ export class MessengerRuntime {
   private persistNow(): void {
     const persisted: PersistedState = {
       profileName: this.state.profileName,
+      profileAvatar: this.state.profileAvatar,
       daemonApi: this.state.daemonApi,
       rooms: this.state.rooms.map((room) => ({
         id: room.id,
@@ -351,6 +376,15 @@ export class MessengerRuntime {
   private updateSettings(payload: Record<string, unknown>): void {
     if (typeof payload.profileName === 'string') {
       this.state.profileName = sanitizeName(payload.profileName);
+    }
+    if (payload.profileAvatar === null) {
+      this.state.profileAvatar = null;
+    } else if (typeof payload.profileAvatar === 'string') {
+      const avatar = sanitizeAvatar(payload.profileAvatar);
+      if (payload.profileAvatar.trim().length > 0 && !avatar) {
+        throw new Error('invalid avatar image');
+      }
+      this.state.profileAvatar = avatar;
     }
     if (typeof payload.daemonApi === 'string' && payload.daemonApi.trim().length > 0) {
       this.state.daemonApi = payload.daemonApi.trim();
@@ -434,7 +468,7 @@ export class MessengerRuntime {
     roomId: string,
     sender: string,
     text: string,
-    options: { outgoing: boolean; system: boolean },
+    options: { outgoing: boolean; system: boolean; avatar?: string | null },
   ): void {
     const room = this.state.rooms.find((item) => item.id === roomId);
     if (!room) {
@@ -450,6 +484,7 @@ export class MessengerRuntime {
       id: randomUUID(),
       ts: nowUnix(),
       sender: options.system ? 'system' : sanitizeName(sender),
+      avatar: options.system ? null : sanitizeAvatar(options.avatar || ''),
       text: cleanText,
       outgoing: options.outgoing,
       system: options.system,
@@ -496,7 +531,9 @@ export class MessengerRuntime {
         const type = parsed.type;
         if (type === 'join') {
           const peer = sanitizeName(typeof parsed.name === 'string' ? parsed.name : 'peer');
+          const peerAvatar = sanitizeAvatar(typeof parsed.avatar === 'string' ? parsed.avatar : '');
           runtime.peerNames.set(socket, peer);
+          runtime.peerAvatars.set(socket, peerAvatar);
           this.appendMessage(roomId, 'system', `${peer} joined`, {
             outgoing: false,
             system: true,
@@ -506,6 +543,10 @@ export class MessengerRuntime {
         }
         if (type === 'chat') {
           const peer = runtime.peerNames.get(socket) ?? 'peer';
+          if (typeof parsed.avatar === 'string') {
+            runtime.peerAvatars.set(socket, sanitizeAvatar(parsed.avatar));
+          }
+          const peerAvatar = runtime.peerAvatars.get(socket) ?? null;
           const text = sanitizeText(typeof parsed.text === 'string' ? parsed.text : '');
           if (!text) {
             continue;
@@ -513,8 +554,9 @@ export class MessengerRuntime {
           this.appendMessage(roomId, peer, text, {
             outgoing: false,
             system: false,
+            avatar: peerAvatar,
           });
-          this.broadcastHost(runtime, { type: 'chat', from: peer, text, ts: nowUnix() });
+          this.broadcastHost(runtime, { type: 'chat', from: peer, avatar: peerAvatar, text, ts: nowUnix() });
         }
       }
     });
@@ -528,6 +570,7 @@ export class MessengerRuntime {
       runtime.socketBuffers.delete(socket);
       const peer = runtime.peerNames.get(socket);
       runtime.peerNames.delete(socket);
+      runtime.peerAvatars.delete(socket);
       if (peer) {
         this.appendMessage(roomId, 'system', `${peer} left`, {
           outgoing: false,
@@ -590,6 +633,7 @@ export class MessengerRuntime {
       sockets: new Set(),
       socketBuffers: new Map(),
       peerNames: new Map(),
+      peerAvatars: new Map(),
     };
 
     runtime.server.on('connection', (socket) => {
@@ -653,7 +697,11 @@ export class MessengerRuntime {
 
     socket.on('connect', () => {
       this.setRoomConnection(room, 'joined', true);
-      this.sendLine(socket, { type: 'join', name: this.state.profileName });
+      this.sendLine(socket, {
+        type: 'join',
+        name: this.state.profileName,
+        avatar: this.state.profileAvatar,
+      });
       this.appendMessage(roomId, 'system', 'joined room', {
         outgoing: false,
         system: true,
@@ -679,6 +727,7 @@ export class MessengerRuntime {
         const type = parsed.type;
         if (type === 'chat') {
           const sender = sanitizeName(typeof parsed.from === 'string' ? parsed.from : 'peer');
+          const senderAvatar = sanitizeAvatar(typeof parsed.avatar === 'string' ? parsed.avatar : '');
           const text = sanitizeText(typeof parsed.text === 'string' ? parsed.text : '');
           if (!text) {
             continue;
@@ -686,6 +735,7 @@ export class MessengerRuntime {
           this.appendMessage(roomId, sender, text, {
             outgoing: sender === this.state.profileName,
             system: false,
+            avatar: senderAvatar,
           });
           continue;
         }
@@ -740,12 +790,13 @@ export class MessengerRuntime {
 
     if (runtime.mode === 'host') {
       const sender = this.state.profileName;
-      this.appendMessage(roomId, sender, text, { outgoing: true, system: false });
-      this.broadcastHost(runtime, { type: 'chat', from: sender, text, ts: nowUnix() });
+      const senderAvatar = this.state.profileAvatar;
+      this.appendMessage(roomId, sender, text, { outgoing: true, system: false, avatar: senderAvatar });
+      this.broadcastHost(runtime, { type: 'chat', from: sender, avatar: senderAvatar, text, ts: nowUnix() });
       return;
     }
 
-    this.sendLine(runtime.socket, { type: 'chat', text });
+    this.sendLine(runtime.socket, { type: 'chat', text, avatar: this.state.profileAvatar });
   }
 }
 

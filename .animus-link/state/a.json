@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "namespaces": [
+    {
+      "namespace_id": "f9cca71261a36f1c469ec4f090b76dd8",
+      "invite_secret": null,
+      "invite_exp_unix_secs": null,
+      "joined_at_unix_secs": 1772982089
+    },
+    {
+      "namespace_id": "c1748f862b7cf5041effe07a30f21a0c",
+      "invite_secret": null,
+      "invite_exp_unix_secs": null,
+      "joined_at_unix_secs": 1772982099
+    },
+    {
+      "namespace_id": "180a33b9625901aca3c15a9f60b7f8c5",
+      "invite_secret": null,
+      "invite_exp_unix_secs": null,
+      "joined_at_unix_secs": 1772982105
+    },
+    {
+      "namespace_id": "c9fd1722335ea427aed0ac50b4a547f5",
+      "invite_secret": null,
+      "invite_exp_unix_secs": null,
+      "joined_at_unix_secs": 1772982108
+    },
+    {
+      "namespace_id": "6565c055a8ae02b3b78ded543adcde00",
+      "invite_secret": null,
+      "invite_exp_unix_secs": null,
+      "joined_at_unix_secs": 1772990933
+    },
+    {
+      "namespace_id": "a16ae1892f3c5ca937d914cd6fa7f0fc",
+      "invite_secret": null,
+      "invite_exp_unix_secs": null,
+      "joined_at_unix_secs": 1772991101
+    },
+    {
+      "namespace_id": "724f8559df33bc350a608c2853e6788b",
+      "invite_secret": null,
+      "invite_exp_unix_secs": null,
+      "joined_at_unix_secs": 1772992680
+    },
+    {
+      "namespace_id": "78c0ae7270d07cb7c5164d8794e8a23d",
+      "invite_secret": null,
+      "invite_exp_unix_secs": null,
+      "joined_at_unix_secs": 1772993142
+    },
+    {
+      "namespace_id": "e7329b65eae5446e5e37fac2c369cff1",
+      "invite_secret": "82029310760f081e055c81978d1dee02",
+      "invite_exp_unix_secs": 1773096859,
+      "joined_at_unix_secs": 1773093259
+    }
+  ]
+}
