@@ -32,7 +32,8 @@ Backend actions use local `link-daemon` HTTP API:
 Optional env:
 
 - `ANIMUS_MESSENGER_STATE_FILE` (default `.animus-link/messenger-web/state.json`)
-- `NEXT_PUBLIC_MESSENGER_ADVANCED_UI=1` enables advanced network fields (`Daemon API`, service/listen/allowed peers inputs)
+- `NEXT_PUBLIC_MESSENGER_ADVANCED_UI=1` enables advanced fields (`Daemon API`, service name inputs)
+- `NEXT_PUBLIC_MESSENGER_DEV_UI=1` enables developer fields (`listen address`, `allowed peers`, `SSH Terminal`) and also turns on advanced fields
 
 ## Prerequisites
 
@@ -124,29 +125,39 @@ npm.cmd run dev
 
 ## How To Use The App
 
-After opening `http://localhost:3000/link`, the page is split into two panels:
+After opening `http://localhost:3000/link`, the page is split into:
 
-- Left: profile, daemon API, invite controls, rooms list
+- Left: profile, invite controls, rooms list
 - Right: selected room settings, connection actions, message timeline, composer
+- Bottom-right in `dev` mode: `SSH Terminal` event log panel
 
-By default, advanced network fields are hidden for end-user UX.
-Set `NEXT_PUBLIC_MESSENGER_ADVANCED_UI=1` in local dev to expose them.
+Top bar also has a `Dark Theme` / `Light Theme` toggle.
+
+UI modes:
+
+- Default: end-user mode, only core chat controls are visible
+- `NEXT_PUBLIC_MESSENGER_ADVANCED_UI=1`: shows advanced configuration (`Daemon API`, `service name`)
+- `NEXT_PUBLIC_MESSENGER_DEV_UI=1`: shows developer networking tools (`listen address`, `allowed peers`, `SSH Terminal`)
 
 ### Main fields
 
 - `Profile`: your display name in chat messages.
-- `Avatar`: optional profile image (`Upload Avatar` / `Remove`).
+- `Avatar`: optional profile image (`Avatar` / `Remove`).
   - Supported formats: PNG/JPG/WEBP/GIF.
   - Max local upload size: 192 KB.
 - `Daemon API`: local Link daemon endpoint for this browser session.
   - Example A: `http://127.0.0.1:9999`
   - Example B: `http://127.0.0.1:10000`
+  - Visible in `advanced` / `dev` mode.
 - `Invite`: invite string used to pair peers (`Create Invite` / `Join Invite`).
 - Room settings:
   - `Room title`: UI label.
   - `Service name`: network service id used by daemon `expose/connect`.
+    - Visible in `advanced` / `dev` mode.
   - `Listen address`: host-side local TCP bind, for example `127.0.0.1:19180`.
+    - Visible only in `dev` mode.
   - `Allowed peers CSV`: comma-separated peer ids allowed to connect.
+    - Visible only in `dev` mode.
 
 ### Typical 1-to-1 flow
 
@@ -156,15 +167,18 @@ Set `NEXT_PUBLIC_MESSENGER_ADVANCED_UI=1` in local dev to expose them.
 4. In browser A, choose room and click `Start Host`.
 5. In browser B, choose same room/service and click `Join Room`.
 6. Wait for status badge:
-   - A: `Hosting`
-   - B: `Joined`
-7. Type message in the bottom textarea and click `Send Message`.
-8. If you changed avatar/profile, click `Save` before invite/join to persist and propagate updates.
+   - A: `HOST`
+   - B: `JOINED`
+7. Type message in the bottom textarea and click `Send`.
+8. If you changed avatar/profile, open `Edit Profile` and click `Save` before invite/join.
+9. If you changed room title/service/listen/allowed peers fields, click `Save Room` before host/join.
 
 ### Rooms
 
 - `Add Room`: creates local room config/history.
-- `Save`: persists profile + daemon API + selected room settings.
+- `Edit Profile`: opens inline profile editor in the upper-left card.
+- `Save API`: persists `Daemon API` in advanced/dev mode.
+- `Save Room`: persists selected room settings.
 - `Delete`: removes selected room and local history (at least one room must remain).
 - `Disconnect`: closes current host/join connection for selected room.
 
@@ -173,6 +187,9 @@ Set `NEXT_PUBLIC_MESSENGER_ADVANCED_UI=1` in local dev to expose them.
 - `system` messages show connection events (`joined`, `left`, `connection closed`).
 - Outgoing messages are styled differently from incoming.
 - Message list auto-refreshes periodically.
+- If room is disconnected, the message area shows a join notice (`Join the room to see messages.`).
+- Lower `SSH Terminal` panel shows API/network events and recent warnings/errors.
+  - Visible only in `dev` mode.
 
 ### Local persistence
 

@@ -88,6 +88,129 @@ body {
   overflow-x: hidden;
 }
 
+html.messenger-route,
+body.messenger-route {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body.messenger-route .site-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body.messenger-route .site-shell-content {
+  height: 100%;
+  overflow: hidden;
+}
+
+.messenger-theme-dark {
+  --messenger-scroll-track: rgba(23, 15, 9, 0.92);
+  --messenger-scroll-track-border: rgba(212, 173, 90, 0.16);
+  --messenger-scroll-thumb: #8f6b34;
+  --messenger-scroll-thumb-hover: #c99a4a;
+  --messenger-scroll-thumb-shine: rgba(248, 230, 192, 0.14);
+}
+
+.messenger-theme-light {
+  --messenger-scroll-track: rgba(232, 220, 198, 0.86);
+  --messenger-scroll-track-border: rgba(125, 95, 48, 0.16);
+  --messenger-scroll-thumb: #aa8747;
+  --messenger-scroll-thumb-hover: #8f6d33;
+  --messenger-scroll-thumb-shine: rgba(255, 248, 230, 0.38);
+}
+
+.messenger-scrollbar {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--messenger-scroll-thumb) var(--messenger-scroll-track);
+}
+
+.messenger-native-scroll-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.messenger-native-scroll-hidden::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.messenger-external-rail {
+  position: relative;
+  min-height: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--messenger-scroll-track) 74%, transparent 26%);
+  border: 1px solid color-mix(in srgb, var(--messenger-scroll-track-border) 60%, transparent 40%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.messenger-external-thumb {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: 1px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--messenger-scroll-thumb) 78%, white 22%),
+    var(--messenger-scroll-thumb)
+  );
+  box-shadow:
+    inset 0 0 0 1px var(--messenger-scroll-thumb-shine),
+    0 0 0 1px rgba(0, 0, 0, 0.08);
+  cursor: grab;
+}
+
+.messenger-external-thumb:active {
+  cursor: grabbing;
+}
+
+.messenger-scrollbar::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.messenger-scrollbar::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.messenger-scrollbar::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: var(--messenger-scroll-track);
+  border: 1px solid var(--messenger-scroll-track-border);
+}
+
+.messenger-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 2px solid var(--messenger-scroll-track);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--messenger-scroll-thumb) 78%, white 22%),
+    var(--messenger-scroll-thumb)
+  );
+  box-shadow: inset 0 0 0 1px var(--messenger-scroll-thumb-shine);
+}
+
+.messenger-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--messenger-scroll-thumb-hover) 84%, white 16%),
+    var(--messenger-scroll-thumb-hover)
+  );
+}
+
+.messenger-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 canvas[data-frame-canvas='scene'] {
   width: 100%;
   height: 100%;

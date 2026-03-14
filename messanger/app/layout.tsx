@@ -1,8 +1,9 @@
 import '@/styles/globals.css';
 import { headers } from 'next/headers';
 
-import { TopTabs } from '@/components/navigation/top-tabs';
+import { SiteHeaderShell } from '@/components/navigation/site-header-shell';
 import { LiveFrame } from '@/sections/landing/live-frame';
+import { cn } from '@/lib/utils';
 import { defaultSiteLocale, stripSiteLocalePrefix } from '@/lib/site-locale';
 import { getRequestSiteLocale } from '@/lib/site-request-locale';
 import { baseMetadata } from '@/lib/seo';
@@ -36,14 +37,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale}>
       <body className="min-h-[100dvh] min-h-screen bg-[#040910] text-white">
-        <div className={isLegacyDatalab ? undefined : 'marketing-shell'}>
+        <div className={isLegacyDatalab ? undefined : 'marketing-shell site-shell'}>
           {!isLegacyDatalab ? <LiveFrame /> : null}
-          <div className={isLegacyDatalab ? undefined : 'relative z-10'}>
-            <div className="relative z-30 mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-7 lg:px-10">
-              <header className="rounded-[30px] border border-white/8 bg-[#0b1626]/72 px-5 py-3.5 text-sm shadow-[0_10px_26px_rgba(4,10,20,0.3)] backdrop-blur-[1px]">
-                <TopTabs initialLocale={locale} />
-              </header>
-            </div>
+          <div className={cn(isLegacyDatalab ? undefined : 'site-shell-content relative z-10')}>
+            {!isLegacyDatalab ? <SiteHeaderShell initialLocale={locale} /> : null}
             {children}
           </div>
         </div>
