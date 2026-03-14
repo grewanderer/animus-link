@@ -10,6 +10,7 @@
 		A10000000000000000000001 /* AnimusLinkIOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011 /* AnimusLinkIOSApp.swift */; };
 		A10000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* ContentView.swift */; };
 		A10000000000000000000003 /* animus_link.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* animus_link.swift */; };
+		A10000000000000000000004 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016 /* Theme.swift */; };
 		A20000000000000000000001 /* PacketTunnelProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* PacketTunnelProvider.swift */; };
 		A20000000000000000000002 /* animus_link.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* animus_link.swift */; };
 		A20000000000000000000003 /* AnimusLinkTunnelExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A20000000000000000000010 /* AnimusLinkTunnelExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -32,6 +33,7 @@
 		A10000000000000000000013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A10000000000000000000014 /* animus_link.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = animus_link.swift; sourceTree = "<group>"; };
 		A10000000000000000000015 /* AnimusLinkIOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AnimusLinkIOS.entitlements; sourceTree = "<group>"; };
+		A10000000000000000000016 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		A20000000000000000000010 /* AnimusLinkTunnelExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AnimusLinkTunnelExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000011 /* PacketTunnelProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PacketTunnelProvider.swift; sourceTree = "<group>"; };
 		A20000000000000000000012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -85,6 +87,7 @@
 			children = (
 				A10000000000000000000011 /* AnimusLinkIOSApp.swift */,
 				A10000000000000000000012 /* ContentView.swift */,
+				A10000000000000000000016 /* Theme.swift */,
 				A10000000000000000000013 /* Info.plist */,
 				A10000000000000000000015 /* AnimusLinkIOS.entitlements */,
 			);
@@ -259,6 +262,7 @@
 				A10000000000000000000003 /* animus_link.swift in Sources */,
 				A10000000000000000000001 /* AnimusLinkIOSApp.swift in Sources */,
 				A10000000000000000000002 /* ContentView.swift in Sources */,
+				A10000000000000000000004 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

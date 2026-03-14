@@ -1,23 +1,33 @@
 use std::{net::SocketAddr, time::Duration};
 
 use fabric_crypto::DeterministicPrimitives;
+use fabric_relay_proto::{derive_public_key, mint_token, RelayTokenClaims};
 use fabric_session::{
     relay_channel::RelayDatagramChannel,
     secure_session::{SecureSession, SessionEvent},
 };
-use relay_server::{run_udp_with_ready, RelayRuntimeConfig};
+use relay_server::{relay::RelayEngineConfig, run_udp_with_ready, RelayRuntimeConfig};
 use tokio::{sync::oneshot, time::timeout};
 
 const CI_TIMEOUT: Duration = Duration::from_secs(8);
+const RELAY_PATH_TIMEOUT: Duration = Duration::from_secs(2);
 const MSG1_RETRY_ATTEMPTS: usize = 3;
+const RELAY_TOKEN_ISSUER_SEED: [u8; 32] = [0x42; 32];
+const RELAY_NAME: &str = "test-relay";
+const RELAY_TOKEN_SUBJECT: &str = "relay-e2e-subject";
 
 #[tokio::test]
 async fn relay_loopback_establishes_secure_session_and_exchanges_data() {
+    let issuer_pub_hex = encode_hex(&derive_public_key(RELAY_TOKEN_ISSUER_SEED));
     let (ready_tx, ready_rx) = oneshot::channel();
     let relay_task = tokio::spawn(async move {
         let config = RelayRuntimeConfig {
             bind: "127.0.0.1:0".parse().expect("parse relay bind"),
-            dev_allow_unsigned_tokens: true,
+            engine: RelayEngineConfig {
+                relay_name: RELAY_NAME.to_string(),
+                ..RelayEngineConfig::default()
+            },
+            token_issuer_public_keys_hex: vec![issuer_pub_hex],
             ..RelayRuntimeConfig::default()
         };
         let _ = run_udp_with_ready(config, Some(ready_tx)).await;
@@ -56,18 +66,15 @@ async fn relay_loopback_establishes_secure_session_and_exchanges_data() {
     .await
     .expect("bind channel b");
 
-    let token = format!(
-        "v=1;exp={};uid=e2e;relay=default-relay;sig=dev-only-unsigned",
-        unix_now().saturating_add(3600)
+    let token = mint_signed_token(
+        RELAY_NAME,
+        RELAY_TOKEN_SUBJECT,
+        unix_now().saturating_add(3600),
+        RELAY_TOKEN_ISSUER_SEED,
     );
-    channel_a
-        .allocate_and_bind(token.as_str(), 120)
-        .await
-        .expect("allocate/bind a");
-    channel_b
-        .allocate_and_bind(token.as_str(), 120)
-        .await
-        .expect("allocate/bind b");
+    assert_allocate_and_bind_ok("a", &channel_a, token.as_str(), relay_addr, conn_id).await;
+    assert_allocate_and_bind_ok("b", &channel_b, token.as_str(), relay_addr, conn_id).await;
+    assert_allocate_bind_path_ready(&channel_a, &channel_b, relay_addr, conn_id).await;
 
     let mut initiator = SecureSession::new_initiator(
         conn_id,
@@ -151,6 +158,71 @@ async fn relay_loopback_establishes_secure_session_and_exchanges_data() {
     let _ = relay_task.await;
 }
 
+async fn assert_allocate_and_bind_ok(
+    label: &str,
+    channel: &RelayDatagramChannel,
+    token: &str,
+    relay_addr: SocketAddr,
+    conn_id: u64,
+) {
+    if let Err(error) = channel.allocate_and_bind(token, 120).await {
+        panic!("allocate/bind {label} failed: {error}; relay_addr={relay_addr}; conn_id={conn_id}");
+    }
+}
+
+async fn assert_allocate_bind_path_ready(
+    channel_a: &RelayDatagramChannel,
+    channel_b: &RelayDatagramChannel,
+    relay_addr: SocketAddr,
+    conn_id: u64,
+) {
+    let probe_ab = b"relay-probe-a-to-b";
+    channel_a
+        .send(probe_ab)
+        .await
+        .expect("send allocate/bind probe a->b");
+    let (_, recv_ab) = match timeout(RELAY_PATH_TIMEOUT, channel_b.recv()).await {
+        Ok(Ok(packet)) => packet,
+        Ok(Err(error)) => panic!(
+            "allocate/bind verification failed receiving a->b probe: {error}; \
+             relay_addr={relay_addr}; conn_id={conn_id}"
+        ),
+        Err(_) => panic!(
+            "allocate/bind verification timeout on a->b probe after {}s; \
+             relay_addr={relay_addr}; conn_id={conn_id}",
+            RELAY_PATH_TIMEOUT.as_secs()
+        ),
+    };
+    assert_eq!(
+        recv_ab.as_slice(),
+        probe_ab,
+        "allocate/bind verification payload mismatch for a->b; relay_addr={relay_addr}; conn_id={conn_id}"
+    );
+
+    let probe_ba = b"relay-probe-b-to-a";
+    channel_b
+        .send(probe_ba)
+        .await
+        .expect("send allocate/bind probe b->a");
+    let (_, recv_ba) = match timeout(RELAY_PATH_TIMEOUT, channel_a.recv()).await {
+        Ok(Ok(packet)) => packet,
+        Ok(Err(error)) => panic!(
+            "allocate/bind verification failed receiving b->a probe: {error}; \
+             relay_addr={relay_addr}; conn_id={conn_id}"
+        ),
+        Err(_) => panic!(
+            "allocate/bind verification timeout on b->a probe after {}s; \
+             relay_addr={relay_addr}; conn_id={conn_id}",
+            RELAY_PATH_TIMEOUT.as_secs()
+        ),
+    };
+    assert_eq!(
+        recv_ba.as_slice(),
+        probe_ba,
+        "allocate/bind verification payload mismatch for b->a; relay_addr={relay_addr}; conn_id={conn_id}"
+    );
+}
+
 async fn recv_msg1_with_retry(
     sender: &RelayDatagramChannel,
     receiver: &RelayDatagramChannel,
@@ -217,4 +289,30 @@ fn unix_now() -> u64 {
         Ok(duration) => duration.as_secs(),
         Err(_) => 0,
     }
+}
+
+fn mint_signed_token(relay_name: &str, subject: &str, exp: u64, seed: [u8; 32]) -> String {
+    mint_token(
+        &RelayTokenClaims {
+            ver: 1,
+            sub: subject.to_string(),
+            relay_name: relay_name.to_string(),
+            exp,
+            nbf: None,
+            nonce: Some("relay-e2e".to_string()),
+            scopes: Some(vec!["relay:allocate".to_string()]),
+        },
+        seed,
+    )
+    .expect("mint signed relay token")
+}
+
+fn encode_hex(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        out.push(HEX[(byte >> 4) as usize] as char);
+        out.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    out
 }

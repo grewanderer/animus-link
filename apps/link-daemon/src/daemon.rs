@@ -2277,10 +2277,13 @@ mod tests {
 
     use fabric_session::state_machine::{SessionState, TransportPath};
 
+    #[cfg(target_os = "linux")]
+    use super::TunnelDnsMode;
     use super::{
         ConnectRequest, ExposeRequest, GatewayExposeRequest, GatewayMode, LinkDaemon, RelayConfig,
-        TunnelDnsMode, TunnelEnableRequest, TunnelFailMode, TunnelState,
+        TunnelEnableRequest, TunnelFailMode, TunnelState,
     };
+    #[cfg(target_os = "linux")]
     use crate::diagnostics::RuntimeCapabilitiesInfo;
     use crate::errors::ApiErrorCode;
     use crate::relay_token::{RelayTokenIssuer, RelayTokenIssuerConfig, DEFAULT_TOKEN_TTL_SECS};

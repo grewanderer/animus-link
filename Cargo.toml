@@ -22,4 +22,5 @@ members = [
   "apps/link-daemon",
   "apps/link-cli",
   "apps/conformance-runner",
+  "apps/design-token-gen",
 ]

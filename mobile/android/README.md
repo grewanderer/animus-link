@@ -15,7 +15,14 @@ FFI linkage (UniFFI):
 Build (CI/MVP):
 - Generate UniFFI Kotlin bindings.
 - Build Rust shared libraries for required ABIs.
-- Run `testDebugUnitTest assembleDebug`.
+- Run `./gradlew --no-daemon --stacktrace :app:compileDebugKotlin`.
+- Run `./gradlew --no-daemon --stacktrace :app:testDebugUnitTest`.
+- Run `./gradlew --no-daemon --stacktrace :app:assembleDebug`.
+- Use project Gradle Wrapper only (`mobile/android/gradlew` + `gradle/wrapper/*`), not a global Gradle install.
+- CI fallback runner: `mobile/android/scripts/run-gradle-with-fallback.sh`.
+- Optional local/offline distribution cache file used by CI fallback:
+  - `mobile/android/gradle/wrapper/gradle-8.7-bin.zip`
+  - enabled via `ANIMUS_GRADLE_DIST_LOCAL=1` (set only after online attempt fails)
 
 Relay/security notes:
 - Full-tunnel uses `AnimusVpnService` + UniFFI tunnel controls in-process.

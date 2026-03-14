@@ -466,7 +466,14 @@ fn find_header_end(buf: &[u8]) -> Option<usize> {
 
 #[cfg(test)]
 mod tests {
-    use std::{fmt::Write as _, io, net::SocketAddr, path::PathBuf, time::Duration};
+    use std::{
+        fmt::Write as _,
+        io,
+        net::SocketAddr,
+        path::PathBuf,
+        sync::{Arc, Mutex},
+        time::Duration,
+    };
 
     use fabric_crypto::{simple_hash32, DeterministicPrimitives};
     use fabric_relay_proto::derive_public_key;
@@ -485,7 +492,8 @@ mod tests {
         io::{AsyncReadExt, AsyncWriteExt},
         net::{TcpListener, TcpStream},
         sync::oneshot,
-        time::sleep,
+        task::AbortHandle,
+        time::{sleep, timeout, Instant},
     };
 
     use super::{run_api_server_with_listener, ApiServerConfig};
@@ -493,6 +501,63 @@ mod tests {
 
     const TEST_RELAY_SIGNING_SEED_HEX: &str =
         "1111111111111111111111111111111111111111111111111111111111111111";
+    const HTTP_IO_TIMEOUT: Duration = Duration::from_secs(5);
+    const GATEWAY_ROUNDTRIP_TIMEOUT: Duration = Duration::from_secs(15);
+    const RELAY_RECV_POLL_TIMEOUT: Duration = Duration::from_millis(200);
+
+    #[derive(Debug, Clone)]
+    struct GatewayRoundtripProgress {
+        stage: &'static str,
+        relay_addr: Option<SocketAddr>,
+        api_addr_a: Option<SocketAddr>,
+        api_addr_b: Option<SocketAddr>,
+        http_addr: Option<SocketAddr>,
+        auth_ok: bool,
+        saw_response: bool,
+    }
+
+    impl Default for GatewayRoundtripProgress {
+        fn default() -> Self {
+            Self {
+                stage: "init",
+                relay_addr: None,
+                api_addr_a: None,
+                api_addr_b: None,
+                http_addr: None,
+                auth_ok: false,
+                saw_response: false,
+            }
+        }
+    }
+
+    #[derive(Default)]
+    struct TaskAbortGuard {
+        handles: Vec<AbortHandle>,
+    }
+
+    impl TaskAbortGuard {
+        fn track<T>(&mut self, handle: &tokio::task::JoinHandle<T>) {
+            self.handles.push(handle.abort_handle());
+        }
+    }
+
+    impl Drop for TaskAbortGuard {
+        fn drop(&mut self) {
+            for handle in &self.handles {
+                handle.abort();
+            }
+        }
+    }
+
+    fn update_roundtrip_progress(
+        progress: &Arc<Mutex<GatewayRoundtripProgress>>,
+        f: impl FnOnce(&mut GatewayRoundtripProgress),
+    ) {
+        let mut guard = progress
+            .lock()
+            .expect("gateway roundtrip progress mutex poisoned");
+        f(&mut guard);
+    }
 
     fn temp_state_path(name: &str) -> PathBuf {
         let now_ns = std::time::SystemTime::now()
@@ -1247,11 +1312,45 @@ mod tests {
 
     #[tokio::test]
     async fn relay_gateway_tunnel_roundtrip_http_via_ip_packets() {
+        let progress = Arc::new(Mutex::new(GatewayRoundtripProgress::default()));
+        let progress_for_run = Arc::clone(&progress);
+        let result = timeout(
+            GATEWAY_ROUNDTRIP_TIMEOUT,
+            relay_gateway_tunnel_roundtrip_http_via_ip_packets_inner(progress_for_run),
+        )
+        .await;
+        if result.is_err() {
+            let snapshot = progress
+                .lock()
+                .expect("gateway roundtrip progress mutex poisoned")
+                .clone();
+            panic!(
+                "relay gateway roundtrip timed out after {}s; stage={}; relay_addr={:?}; api_addr_a={:?}; \
+                 api_addr_b={:?}; http_addr={:?}; auth_ok={}; saw_response={}",
+                GATEWAY_ROUNDTRIP_TIMEOUT.as_secs(),
+                snapshot.stage,
+                snapshot.relay_addr,
+                snapshot.api_addr_a,
+                snapshot.api_addr_b,
+                snapshot.http_addr,
+                snapshot.auth_ok,
+                snapshot.saw_response,
+            );
+        }
+    }
+
+    async fn relay_gateway_tunnel_roundtrip_http_via_ip_packets_inner(
+        progress: Arc<Mutex<GatewayRoundtripProgress>>,
+    ) {
+        update_roundtrip_progress(&progress, |state| state.stage = "reserve_relay_addr");
         let relay_addr = match reserve_udp_addr().await {
             Ok(addr) => addr,
             Err(error) if error.kind() == io::ErrorKind::PermissionDenied => return,
             Err(error) => panic!("reserve relay addr: {error}"),
         };
+        update_roundtrip_progress(&progress, |state| state.relay_addr = Some(relay_addr));
+        let mut task_guard = TaskAbortGuard::default();
+        update_roundtrip_progress(&progress, |state| state.stage = "start_relay_task");
         let relay_task = tokio::spawn(async move {
             let config = RelayRuntimeConfig {
                 bind: relay_addr,
@@ -1261,8 +1360,10 @@ mod tests {
             };
             let _ = run_udp(config).await;
         });
+        task_guard.track(&relay_task);
         sleep(Duration::from_millis(50)).await;
 
+        update_roundtrip_progress(&progress, |state| state.stage = "start_http_listener");
         let http_listener = match TcpListener::bind("127.0.0.1:0").await {
             Ok(listener) => listener,
             Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {
@@ -1272,6 +1373,7 @@ mod tests {
             Err(error) => panic!("bind http listener: {error}"),
         };
         let http_addr = http_listener.local_addr().expect("http addr");
+        update_roundtrip_progress(&progress, |state| state.http_addr = Some(http_addr));
         let http_task = tokio::spawn(async move {
             loop {
                 let Ok((mut stream, _)) = http_listener.accept().await else {
@@ -1287,7 +1389,9 @@ mod tests {
                 });
             }
         });
+        task_guard.track(&http_task);
 
+        update_roundtrip_progress(&progress, |state| state.stage = "start_api_servers");
         let listener_a = match TcpListener::bind("127.0.0.1:0").await {
             Ok(listener) => listener,
             Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {
@@ -1308,6 +1412,10 @@ mod tests {
         };
         let addr_a = listener_a.local_addr().expect("addr a");
         let addr_b = listener_b.local_addr().expect("addr b");
+        update_roundtrip_progress(&progress, |state| {
+            state.api_addr_a = Some(addr_a);
+            state.api_addr_b = Some(addr_b);
+        });
         let state_a = temp_state_path("relay-gateway-a");
         let state_b = temp_state_path("relay-gateway-b");
 
@@ -1329,7 +1437,10 @@ mod tests {
             )
             .await
         });
+        task_guard.track(&server_a);
+        task_guard.track(&server_b);
 
+        update_roundtrip_progress(&progress, |state| state.stage = "gateway_expose");
         let gateway_payload =
             r#"{"mode":"exit","listen":"0.0.0.0:0","nat":true,"allowed_peers":["peer-b"]}"#;
         let gateway_response = send_http(
@@ -1348,6 +1459,7 @@ mod tests {
         assert_eq!(gateway_body["gateway_service"], "gateway-exit");
         assert_eq!(gateway_body["ready"], true);
 
+        update_roundtrip_progress(&progress, |state| state.stage = "tunnel_enable");
         let enable_payload = r#"{"gateway_service":"gateway-exit","fail_mode":"open_fast","dns_mode":"remote_best_effort","exclude_cidrs":["10.0.0.0/8"],"allow_lan":true}"#;
         let enable_response = send_http(
             addr_b,
@@ -1363,6 +1475,7 @@ mod tests {
 
         let conn_id = derive_conn_id_for_service("gateway-exit");
         let relay_token = mint_test_token("gateway-client");
+        update_roundtrip_progress(&progress, |state| state.stage = "relay_channel_bind");
         let channel =
             RelayDatagramChannel::bind(loopback_datagram_addr(relay_addr), relay_addr, conn_id)
                 .await
@@ -1381,8 +1494,23 @@ mod tests {
             .start_handshake(b"link-tunnel")
             .expect("start handshake");
         channel.send(start.as_slice()).await.expect("send msg1");
+        update_roundtrip_progress(&progress, |state| state.stage = "session_handshake");
+        let handshake_deadline = Instant::now() + Duration::from_secs(3);
         while !session.is_established() {
-            let (_src, packet) = channel.recv().await.expect("recv handshake");
+            if Instant::now() >= handshake_deadline {
+                panic!(
+                    "gateway session handshake timeout; relay_addr={relay_addr}; conn_id={conn_id}"
+                );
+            }
+            let wait_for = RELAY_RECV_POLL_TIMEOUT
+                .min(handshake_deadline.saturating_duration_since(Instant::now()));
+            let (_src, packet) = match timeout(wait_for, channel.recv()).await {
+                Ok(Ok(packet)) => packet,
+                Ok(Err(error)) => panic!(
+                    "recv handshake failed: {error}; relay_addr={relay_addr}; conn_id={conn_id}"
+                ),
+                Err(_) => continue,
+            };
             let handled = session
                 .handle_incoming(packet.as_slice())
                 .expect("handle handshake packet");
@@ -1415,9 +1543,18 @@ mod tests {
         .await;
 
         let mut auth_ok = false;
+        update_roundtrip_progress(&progress, |state| state.stage = "wait_auth_ok");
         let auth_deadline = tokio::time::Instant::now() + Duration::from_secs(2);
         while tokio::time::Instant::now() < auth_deadline {
-            let (_src, packet) = channel.recv().await.expect("recv auth");
+            let wait_for = RELAY_RECV_POLL_TIMEOUT
+                .min(auth_deadline.saturating_duration_since(Instant::now()));
+            let (_src, packet) = match timeout(wait_for, channel.recv()).await {
+                Ok(Ok(packet)) => packet,
+                Ok(Err(error)) => {
+                    panic!("recv auth failed: {error}; relay_addr={relay_addr}; conn_id={conn_id}")
+                }
+                Err(_) => continue,
+            };
             let handled = session
                 .handle_incoming(packet.as_slice())
                 .expect("handle auth response");
@@ -1450,8 +1587,10 @@ mod tests {
                 break;
             }
         }
+        update_roundtrip_progress(&progress, |state| state.auth_ok = auth_ok);
         assert!(auth_ok, "gateway auth must succeed");
 
+        update_roundtrip_progress(&progress, |state| state.stage = "send_http_ip_packet");
         let request_packet = build_ipv4_tcp_packet(
             "10.0.0.2".parse().expect("src ip"),
             "127.0.0.1".parse().expect("dst ip"),
@@ -1471,9 +1610,18 @@ mod tests {
         .await;
 
         let mut saw_response = false;
+        update_roundtrip_progress(&progress, |state| state.stage = "wait_http_response");
         let response_deadline = tokio::time::Instant::now() + Duration::from_secs(3);
         while tokio::time::Instant::now() < response_deadline {
-            let (_src, packet) = channel.recv().await.expect("recv response");
+            let wait_for = RELAY_RECV_POLL_TIMEOUT
+                .min(response_deadline.saturating_duration_since(Instant::now()));
+            let (_src, packet) = match timeout(wait_for, channel.recv()).await {
+                Ok(Ok(packet)) => packet,
+                Ok(Err(error)) => panic!(
+                    "recv response failed: {error}; relay_addr={relay_addr}; conn_id={conn_id}"
+                ),
+                Err(_) => continue,
+            };
             let handled = session
                 .handle_incoming(packet.as_slice())
                 .expect("handle response");
@@ -1513,8 +1661,10 @@ mod tests {
                 break;
             }
         }
+        update_roundtrip_progress(&progress, |state| state.saw_response = saw_response);
         assert!(saw_response, "expected HTTP response over gateway tunnel");
 
+        update_roundtrip_progress(&progress, |state| state.stage = "tunnel_disable");
         let disable_response = send_http(
             addr_b,
             "POST /v1/tunnel/disable HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
@@ -1526,24 +1676,40 @@ mod tests {
         assert_eq!(disable_body["state"], "disabled");
         assert_eq!(disable_body["enabled"], false);
 
+        update_roundtrip_progress(&progress, |state| state.stage = "shutdown");
         let _ = shutdown_a_tx.send(());
         let _ = shutdown_b_tx.send(());
         let _ = server_a.await;
         let _ = server_b.await;
         relay_task.abort();
+        let _ = relay_task.await;
         http_task.abort();
+        let _ = http_task.await;
     }
 
     async fn send_http(addr: SocketAddr, request: &str) -> String {
-        let mut stream = TcpStream::connect(addr).await.expect("connect");
-        stream
-            .write_all(request.as_bytes())
+        let mut stream = timeout(HTTP_IO_TIMEOUT, TcpStream::connect(addr))
             .await
+            .expect("connect timeout")
+            .expect("connect");
+        timeout(HTTP_IO_TIMEOUT, stream.write_all(request.as_bytes()))
+            .await
+            .expect("write request timeout")
             .expect("write request");
-        stream.flush().await.expect("flush request");
+        timeout(HTTP_IO_TIMEOUT, stream.flush())
+            .await
+            .expect("flush request timeout")
+            .expect("flush request");
+        timeout(HTTP_IO_TIMEOUT, stream.shutdown())
+            .await
+            .expect("shutdown request timeout")
+            .expect("shutdown request");
 
         let mut buf = Vec::new();
-        stream.read_to_end(&mut buf).await.expect("read response");
+        timeout(HTTP_IO_TIMEOUT, stream.read_to_end(&mut buf))
+            .await
+            .expect("read response timeout")
+            .expect("read response");
         String::from_utf8(buf).expect("response utf8")
     }
 

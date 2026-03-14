@@ -12,3 +12,5 @@
   - Platform/job root-cause matrix with before/after status for CI stabilization.
 - [Known Limitations](./known-limitations.md)
   - Runtime constraints for TUN privileges, mobile entitlements, and VPN prompts in public beta.
+- [Design Tokens](../design/README.md)
+  - Cross-platform token source and deterministic generation for web/android/ios outputs.
