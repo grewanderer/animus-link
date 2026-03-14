@@ -508,6 +508,8 @@ dependencies = [
 name = "fabric-service"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
  "thiserror",
 ]
 
@@ -681,6 +683,7 @@ dependencies = [
  "fabric-relay-client",
  "fabric-relay-proto",
  "fabric-security",
+ "fabric-service",
  "fabric-session",
  "fabric-tunnel-proto",
  "link-gateway",
