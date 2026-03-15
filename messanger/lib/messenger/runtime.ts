@@ -30,6 +30,7 @@ export type MessengerRoom = {
   serviceName: string;
   listenAddr: string;
   allowedPeersCsv: string;
+  meshId: string | null;
   connection: ConnectionMode;
   connected: boolean;
   lastError: string | null;
@@ -61,6 +62,7 @@ type PersistedRoom = {
   serviceName: string;
   listenAddr: string;
   allowedPeersCsv: string;
+  meshId: string | null;
   currentSeq: number;
   messages: PersistedMessage[];
 };
@@ -88,6 +90,11 @@ type JoinedRuntime = {
 };
 
 type RoomRuntime = HostRuntime | JoinedRuntime;
+
+type MeshSummary = {
+  meshId: string;
+  meshName: string | null;
+};
 
 function nowUnix(): number {
   return Math.floor(Date.now() / 1000);
@@ -162,6 +169,43 @@ function parseAllowedPeers(csv: string): string[] {
   return peers;
 }
 
+function normalizeOptionalString(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function parseInviteInput(value: string): { invite: string; bootstrapUrl: string | null } {
+  const trimmed = value.trim();
+  const marker = '#bootstrap=';
+  const markerIndex = trimmed.indexOf(marker);
+  if (markerIndex === -1) {
+    return { invite: trimmed, bootstrapUrl: null };
+  }
+
+  const invite = trimmed.slice(0, markerIndex).trim();
+  const rawBootstrap = trimmed.slice(markerIndex + marker.length).trim();
+  if (!rawBootstrap) {
+    return { invite, bootstrapUrl: null };
+  }
+
+  try {
+    return { invite, bootstrapUrl: decodeURIComponent(rawBootstrap) };
+  } catch {
+    return { invite, bootstrapUrl: rawBootstrap };
+  }
+}
+
+function formatInviteOutput(invite: string): string {
+  const bootstrapUrl = normalizeOptionalString(process.env.ANIMUS_MESSENGER_BOOTSTRAP_URL);
+  if (!bootstrapUrl) {
+    return invite;
+  }
+  return `${invite}#bootstrap=${encodeURIComponent(bootstrapUrl)}`;
+}
+
 function stateFilePath(): string {
   return process.env.ANIMUS_MESSENGER_STATE_FILE?.trim() || DEFAULT_STATE_FILE;
 }
@@ -173,6 +217,7 @@ function makeDefaultRoom(): MessengerRoom {
     serviceName: 'chat',
     listenAddr: '127.0.0.1:19180',
     allowedPeersCsv: 'peer-b',
+    meshId: null,
     connection: 'idle',
     connected: false,
     lastError: null,
@@ -207,6 +252,24 @@ async function daemonPost(
     const code = String((error as { code?: unknown }).code ?? 'unknown');
     const message = String((error as { message?: unknown }).message ?? 'unknown');
     throw new Error(`${code}: ${message}`);
+  }
+  return parsed;
+}
+
+async function daemonGet(daemonApi: string, endpoint: string): Promise<Record<string, unknown>> {
+  const response = await fetch(`${daemonApi}${endpoint}`, {
+    method: 'GET',
+    cache: 'no-store',
+  });
+  const parsed = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!response.ok) {
+    const error = parsed.error;
+    if (typeof error === 'object' && error !== null) {
+      const code = String((error as { code?: unknown }).code ?? 'unknown');
+      const message = String((error as { message?: unknown }).message ?? 'unknown');
+      throw new Error(`daemon ${response.status}: ${code}: ${message}`);
+    }
+    throw new Error(`daemon ${response.status}`);
   }
   return parsed;
 }
@@ -251,7 +314,7 @@ export class MessengerRuntime {
         await this.deleteRoom(payload);
         return { ok: true, snapshot: this.snapshot() };
       case 'invite_create': {
-        const invite = await this.inviteCreate();
+        const invite = await this.inviteCreate(payload);
         return { ok: true, invite, snapshot: this.snapshot() };
       }
       case 'invite_join':
@@ -281,6 +344,7 @@ export class MessengerRuntime {
       serviceName: sanitizeServiceName(room.serviceName || room.title || 'chat'),
       listenAddr: room.listenAddr || '127.0.0.1:19180',
       allowedPeersCsv: room.allowedPeersCsv || 'peer-b',
+      meshId: normalizeOptionalString(room.meshId),
       connection: 'idle',
       connected: false,
       lastError: null,
@@ -346,6 +410,7 @@ export class MessengerRuntime {
         serviceName: room.serviceName,
         listenAddr: room.listenAddr,
         allowedPeersCsv: room.allowedPeersCsv,
+        meshId: room.meshId,
         currentSeq: room.currentSeq,
         messages: room.messages.slice(-MAX_ROOM_MESSAGES),
       })),
@@ -401,6 +466,7 @@ export class MessengerRuntime {
       serviceName: sanitizeServiceName(rawService || rawTitle),
       listenAddr: '127.0.0.1:19180',
       allowedPeersCsv: 'peer-b',
+      meshId: null,
       connection: 'idle',
       connected: false,
       lastError: null,
@@ -439,21 +505,142 @@ export class MessengerRuntime {
     this.queuePersist();
   }
 
-  private async inviteCreate(): Promise<string> {
+  private async inviteCreate(payload: Record<string, unknown>): Promise<string> {
+    const roomId = typeof payload.roomId === 'string' ? payload.roomId : null;
+    if (roomId) {
+      const room = this.getRoom(roomId);
+      const meshId = await this.ensureRoomMesh(room, { createIfMissing: true });
+      if (meshId) {
+        await this.syncMeshToBootstrap(meshId);
+        const response = await daemonPost(this.state.daemonApi, `/v1/meshes/${meshId}/invite`);
+        const invite = response.invite;
+        if (typeof invite !== 'string' || invite.length === 0) {
+          throw new Error('daemon returned invalid invite');
+        }
+        return formatInviteOutput(invite);
+      }
+    }
+
     const response = await daemonPost(this.state.daemonApi, '/v1/invite/create');
     const invite = response.invite;
     if (typeof invite !== 'string' || invite.length === 0) {
       throw new Error('daemon returned invalid invite');
     }
-    return invite;
+    return formatInviteOutput(invite);
   }
 
   private async inviteJoin(payload: Record<string, unknown>): Promise<void> {
-    const invite = this.getPayloadString(payload, 'invite').trim();
+    const parsedInvite = parseInviteInput(this.getPayloadString(payload, 'invite'));
+    const invite = parsedInvite.invite.trim();
     if (!invite) {
       throw new Error('invite is empty');
     }
+    if (parsedInvite.bootstrapUrl) {
+      const response = await daemonPost(this.state.daemonApi, '/v1/meshes/join', {
+        invite,
+        bootstrap_url: parsedInvite.bootstrapUrl,
+      });
+      const mesh = typeof response.mesh === 'object' && response.mesh !== null ? response.mesh : null;
+      const meshId = mesh ? normalizeOptionalString((mesh as { mesh_id?: unknown }).mesh_id) : null;
+      const roomId = typeof payload.roomId === 'string' ? payload.roomId : null;
+      if (meshId && roomId) {
+        const room = this.getRoom(roomId);
+        room.meshId = meshId;
+        this.queuePersist();
+      }
+      return;
+    }
     await daemonPost(this.state.daemonApi, '/v1/invite/join', { invite });
+  }
+
+  private async listMeshes(): Promise<MeshSummary[]> {
+    const response = await daemonGet(this.state.daemonApi, '/v1/meshes');
+    const meshes = Array.isArray(response.meshes) ? response.meshes : [];
+    return meshes
+      .map((mesh) => {
+        if (typeof mesh !== 'object' || mesh === null) {
+          return null;
+        }
+        const meshId = normalizeOptionalString((mesh as { mesh_id?: unknown }).mesh_id);
+        if (!meshId) {
+          return null;
+        }
+        return {
+          meshId,
+          meshName: normalizeOptionalString((mesh as { mesh_name?: unknown }).mesh_name),
+        } satisfies MeshSummary;
+      })
+      .filter((mesh): mesh is MeshSummary => Boolean(mesh));
+  }
+
+  private async listMeshPeerIds(meshId: string): Promise<string[]> {
+    const response = await daemonGet(this.state.daemonApi, `/v1/meshes/${meshId}/peers`);
+    const peers = Array.isArray(response.peers) ? response.peers : [];
+    const peerIds = peers
+      .map((peer) => {
+        if (typeof peer !== 'object' || peer === null) {
+          return null;
+        }
+        return normalizeOptionalString((peer as { peer_id?: unknown }).peer_id);
+      })
+      .filter((peerId): peerId is string => Boolean(peerId));
+    return [...new Set(peerIds)];
+  }
+
+  private async ensureRoomMesh(room: MessengerRoom, options?: { createIfMissing?: boolean }): Promise<string | null> {
+    const meshes = await this.listMeshes();
+    if (room.meshId && meshes.some((mesh) => mesh.meshId === room.meshId)) {
+      return room.meshId;
+    }
+
+    const normalizedTitle = room.title.trim().toLowerCase();
+    const matchedMesh =
+      meshes.find((mesh) => mesh.meshName?.trim().toLowerCase() === normalizedTitle) ?? meshes[0] ?? null;
+    if (matchedMesh) {
+      if (room.meshId !== matchedMesh.meshId) {
+        room.meshId = matchedMesh.meshId;
+        this.queuePersist();
+      }
+      return matchedMesh.meshId;
+    }
+
+    if (!options?.createIfMissing) {
+      return null;
+    }
+
+    const response = await daemonPost(this.state.daemonApi, '/v1/meshes', { mesh_name: room.title });
+    const mesh = typeof response.mesh === 'object' && response.mesh !== null ? response.mesh : null;
+    const meshId = mesh ? normalizeOptionalString((mesh as { mesh_id?: unknown }).mesh_id) : null;
+    if (!meshId) {
+      throw new Error('daemon returned invalid mesh');
+    }
+    room.meshId = meshId;
+    this.queuePersist();
+    return meshId;
+  }
+
+  private async syncMeshToBootstrap(meshId: string): Promise<void> {
+    const bootstrapUrl = normalizeOptionalString(process.env.ANIMUS_MESSENGER_BOOTSTRAP_URL);
+    if (!bootstrapUrl) {
+      return;
+    }
+    await daemonPost(this.state.daemonApi, `/v1/meshes/${meshId}/sync`, {
+      bootstrap_url: bootstrapUrl,
+    });
+  }
+
+  private async resolveAllowedPeers(room: MessengerRoom, meshId: string | null): Promise<string[]> {
+    const raw = room.allowedPeersCsv.trim();
+    const isPlaceholder = raw.length === 0 || raw === 'peer-b';
+    if (meshId && isPlaceholder) {
+      const peerIds = await this.listMeshPeerIds(meshId);
+      if (peerIds.length > 0) {
+        room.allowedPeersCsv = peerIds.join(',');
+        this.queuePersist();
+        return peerIds;
+      }
+    }
+    return parseAllowedPeers(room.allowedPeersCsv);
   }
 
   private setRoomConnection(room: MessengerRoom, mode: ConnectionMode, connected: boolean): void {
@@ -625,7 +812,8 @@ export class MessengerRuntime {
     await this.closeAllRuntimesExcept(roomId);
     await this.closeRuntime(roomId);
 
-    const allowedPeers = parseAllowedPeers(room.allowedPeersCsv);
+    const meshId = await this.ensureRoomMesh(room, { createIfMissing: true });
+    const allowedPeers = await this.resolveAllowedPeers(room, meshId);
     const { host, port } = parseHostPort(room.listenAddr);
     const runtime: HostRuntime = {
       mode: 'host',
@@ -657,11 +845,32 @@ export class MessengerRuntime {
     room.listenAddr = formatAddress(listen.address, listen.port);
 
     try {
-      await daemonPost(this.state.daemonApi, '/v1/expose', {
-        service_name: room.serviceName,
-        local_addr: room.listenAddr,
-        allowed_peers: allowedPeers,
-      });
+      let exposedViaMesh = false;
+      if (meshId) {
+        try {
+          await daemonPost(this.state.daemonApi, '/v1/services/expose', {
+            mesh_id: meshId,
+            service_name: room.serviceName,
+            local_addr: room.listenAddr,
+            allowed_peers: allowedPeers,
+            app_protocol: 'animus.link.messenger',
+          });
+          exposedViaMesh = true;
+        } catch {
+          // Mesh bootstrap is not always available in the current UX, so keep the legacy path alive.
+        }
+      }
+
+      if (!exposedViaMesh) {
+        await daemonPost(this.state.daemonApi, '/v1/expose', {
+          service_name: room.serviceName,
+          local_addr: room.listenAddr,
+          allowed_peers: allowedPeers,
+        });
+      }
+      if (meshId) {
+        await this.syncMeshToBootstrap(meshId);
+      }
     } catch (error) {
       await new Promise<void>((resolve) => runtime.server.close(() => resolve()));
       throw error;
@@ -682,9 +891,23 @@ export class MessengerRuntime {
     await this.closeAllRuntimesExcept(roomId);
     await this.closeRuntime(roomId);
 
-    const connect = await daemonPost(this.state.daemonApi, '/v1/connect', {
-      service_name: room.serviceName,
-    });
+    const meshId = await this.ensureRoomMesh(room);
+    let connect: Record<string, unknown> | null = null;
+    if (meshId) {
+      try {
+        connect = await daemonPost(this.state.daemonApi, '/v1/services/connect', {
+          mesh_id: meshId,
+          service_name: room.serviceName,
+        });
+      } catch {
+        connect = null;
+      }
+    }
+    if (!connect) {
+      connect = await daemonPost(this.state.daemonApi, '/v1/connect', {
+        service_name: room.serviceName,
+      });
+    }
     const localAddr = connect.local_addr;
     if (typeof localAddr !== 'string' || localAddr.length === 0) {
       throw new Error('daemon returned no local_addr');

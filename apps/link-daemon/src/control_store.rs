@@ -164,6 +164,16 @@ pub struct MessengerStreamView {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PeerEndpointSnapshot {
+    pub mesh_id: String,
+    pub peer_id: String,
+    pub node_id: String,
+    pub api_url: String,
+    pub runtime_addr: String,
+    pub last_seen_unix_secs: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MeshRuntimeSnapshot {
     pub mesh: MeshConfig,
     pub memberships: Vec<MeshMembership>,
@@ -171,6 +181,7 @@ pub struct MeshRuntimeSnapshot {
     pub services: Vec<ServiceDescriptor>,
     pub conversations: Vec<MessengerConversationRecord>,
     pub messages: Vec<MessengerMessageRecord>,
+    pub peer_endpoints: Vec<PeerEndpointSnapshot>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1152,6 +1163,7 @@ impl ControlPlaneStore {
                 .filter(|message| message.mesh_id == mesh_id)
                 .cloned()
                 .collect(),
+            peer_endpoints: Vec::new(),
         })
     }
 

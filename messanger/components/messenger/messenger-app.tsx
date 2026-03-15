@@ -651,13 +651,13 @@ export function MessengerApp() {
   }, [callAction, profileDraft.daemonApi]);
 
   const handleCreateInvite = useCallback(async () => {
-    const result = await callAction('invite_create');
+    const result = await callAction('invite_create', activeRoom ? { roomId: activeRoom.id } : {});
     if (typeof result.invite !== 'string' || !result.invite) {
       throw new Error('invite is missing');
     }
     setInviteDraft(result.invite);
     setNotice('Invite created');
-  }, [callAction]);
+  }, [activeRoom, callAction]);
 
   const handleJoinInvite = useCallback(async () => {
     const invite = inviteDraft.trim();
@@ -665,9 +665,9 @@ export function MessengerApp() {
       setError('Enter invite code');
       return;
     }
-    await callAction('invite_join', { invite });
+    await callAction('invite_join', activeRoom ? { invite, roomId: activeRoom.id } : { invite });
     setNotice('Invite accepted');
-  }, [callAction, inviteDraft]);
+  }, [activeRoom, callAction, inviteDraft]);
 
   const handleCreateRoom = useCallback(async () => {
     const result = await callAction('create_room', { title: newRoomTitle, serviceName: newRoomService });

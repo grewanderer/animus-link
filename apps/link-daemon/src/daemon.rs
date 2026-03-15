@@ -45,8 +45,8 @@ use tokio::{
 use crate::{
     control_store::{
         ControlPlaneStore, MeshJoinResult, MeshView, MessengerConversationRecord,
-        MessengerMessageRecord, MessengerStreamView, NodeRoleSummary, RelayStatusView,
-        RouteDecisionInput,
+        MessengerMessageRecord, MessengerStreamView, NodeRoleSummary, PeerEndpointSnapshot,
+        RelayStatusView, RouteDecisionInput,
     },
     diagnostics::{
         DiagnosticsCounters, DiagnosticsInput, DnsCapabilitiesInfo, MobilePolicy,
@@ -243,6 +243,11 @@ pub struct MeshCreateResponse {
 pub struct MeshJoinApiRequest {
     pub invite: String,
     pub bootstrap_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct MeshBootstrapSyncRequest {
+    pub bootstrap_url: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1125,7 +1130,20 @@ impl LinkDaemon {
     }
 
     pub fn mesh_sync_payload(&self, mesh_id: &str) -> Result<MeshSyncPayload, ApiError> {
-        let snapshot = self.control_store.mesh_runtime_snapshot(mesh_id)?;
+        let mut snapshot = self.control_store.mesh_runtime_snapshot(mesh_id)?;
+        snapshot.peer_endpoints = self
+            .peer_endpoints
+            .values()
+            .filter(|entry| entry.mesh_id == mesh_id)
+            .map(|entry| PeerEndpointSnapshot {
+                mesh_id: entry.mesh_id.clone(),
+                peer_id: entry.peer_id.clone(),
+                node_id: entry.node_id.clone(),
+                api_url: entry.api_url.clone(),
+                runtime_addr: entry.runtime_addr.to_string(),
+                last_seen_unix_secs: entry.last_seen_unix_secs,
+            })
+            .collect();
         Ok(MeshSyncPayload {
             mesh_id: mesh_id.to_string(),
             sender_peer_id: self.local_peer_id().to_string(),
@@ -1133,7 +1151,7 @@ impl LinkDaemon {
             sender_api_url: self.api_base_url(),
             sender_runtime_addr: self.runtime_bind.to_string(),
             sent_at_unix_secs: now_unix_secs(),
-            hops_remaining: 1,
+            hops_remaining: 2,
             snapshot,
         })
     }
@@ -1157,6 +1175,25 @@ impl LinkDaemon {
                 last_seen_unix_secs: payload.sent_at_unix_secs,
             },
         );
+        for endpoint in &payload.snapshot.peer_endpoints {
+            if endpoint.mesh_id != payload.mesh_id {
+                continue;
+            }
+            let Ok(runtime_addr) = endpoint.runtime_addr.parse() else {
+                continue;
+            };
+            self.peer_endpoints.insert(
+                peer_endpoint_key(endpoint.mesh_id.as_str(), endpoint.peer_id.as_str()),
+                PeerEndpointRecord {
+                    mesh_id: endpoint.mesh_id.clone(),
+                    peer_id: endpoint.peer_id.clone(),
+                    node_id: endpoint.node_id.clone(),
+                    api_url: endpoint.api_url.clone(),
+                    runtime_addr,
+                    last_seen_unix_secs: endpoint.last_seen_unix_secs,
+                },
+            );
+        }
         self.control_store
             .import_mesh_runtime_snapshot(&payload.snapshot)?;
         self.mesh_sync_payload(payload.mesh_id.as_str())
@@ -1881,7 +1918,7 @@ impl LinkDaemon {
             .transpose()
             .map_err(|_| ApiError::new(ApiErrorCode::InvalidInput, "invalid listen address"))?;
         let mesh_id = self.control_store.ensure_default_mesh(now_unix_secs())?;
-        let conn_id = derive_conn_id(Some(mesh_id.as_str()), DEFAULT_GATEWAY_SERVICE);
+        let conn_id = derive_conn_id(None, DEFAULT_GATEWAY_SERVICE);
         let stream_id = self.next_stream_id;
         self.next_stream_id = self.next_stream_id.saturating_add(1);
         self.services.insert(
@@ -1982,7 +2019,8 @@ impl LinkDaemon {
         };
 
         let mesh_id = self.control_store.ensure_default_mesh(now_unix_secs())?;
-        let conn_id = derive_conn_id(Some(mesh_id.as_str()), request.gateway_service.as_str());
+        let conn_id = derive_conn_id(None, request.gateway_service.as_str());
+        let local_peer_id = self.local_peer_id().to_string();
         let relay_token = self.mint_relay_token(
             relay.relay_name.as_str(),
             mesh_id.as_str(),
@@ -1995,7 +2033,7 @@ impl LinkDaemon {
             relay_ttl_secs: relay.token_ttl_secs.max(1),
             conn_id,
             gateway_service: request.gateway_service,
-            peer_id: mesh_id,
+            peer_id: local_peer_id,
             fail_mode: to_client_fail_mode(request.fail_mode),
             dns_mode: to_client_dns_mode(request.dns_mode),
             exclude_cidrs: request.exclude_cidrs,

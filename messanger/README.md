@@ -22,8 +22,14 @@ Node and npm versions are pinned and enforced:
 - Node backend/API: `app/api/messenger/route.ts`
 - Runtime state and networking: `lib/messenger/runtime.ts`
 
-Backend actions use local `link-daemon` HTTP API:
+Backend actions use local `link-daemon` HTTP API. The runtime prefers mesh-aware service endpoints from the updated core and falls back to legacy invite/expose/connect when mesh bootstrap is not available yet:
 
+- `GET /v1/meshes`
+- `POST /v1/meshes`
+- `POST /v1/meshes/join`
+- `POST /v1/meshes/{mesh_id}/sync`
+- `POST /v1/services/expose`
+- `POST /v1/services/connect`
 - `POST /v1/invite/create`
 - `POST /v1/invite/join`
 - `POST /v1/expose`
@@ -32,6 +38,7 @@ Backend actions use local `link-daemon` HTTP API:
 Optional env:
 
 - `ANIMUS_MESSENGER_STATE_FILE` (default `.animus-link/messenger-web/state.json`)
+- `ANIMUS_MESSENGER_BOOTSTRAP_URL` appends `#bootstrap=...` to generated invites and makes `Create Invite` / `Start Host` push mesh state to a public bootstrap daemon API
 - `NEXT_PUBLIC_MESSENGER_ADVANCED_UI=1` enables advanced fields (`Daemon API`, service name inputs)
 - `NEXT_PUBLIC_MESSENGER_DEV_UI=1` enables developer fields (`listen address`, `allowed peers`, `SSH Terminal`) and also turns on advanced fields
 
@@ -123,35 +130,38 @@ npm.cmd run dev
 - In B: `Join Room`
 - Send messages both ways
 
-### Mode C: Realistic remote test (2 different computers via VPS relay)
+### Mode C: Realistic remote test (2 different computers via VPS relay + bootstrap daemon)
 
-Use this mode when you want to test with another person over the internet.
+Use this mode when you want to test with another person over the internet without requiring a public IP on either client machine.
 
 Architecture:
 
-- VPS runs only `relay-server`
-- your machine runs `link-daemon` + `messanger`
-- friend machine runs `link-daemon` + `messanger`
+- VPS runs `relay-server`
+- VPS also runs one public `link-daemon` used only for mesh bootstrap/sync
+- your machine runs local `link-daemon` + `messanger`
+- friend machine runs local `link-daemon` + `messanger`
 
-This is the closest test to the real product flow today, because each user still has a local daemon and local messenger runtime.
+This stays close to the intended product shape (one daemon per user), but removes the home-network bootstrap problem.
 
 #### Step 1: start relay on VPS with Docker
 
-On the VPS:
+On the VPS create relay env if it does not exist:
 
 ```bash
 cd /opt/animus-link
-cp deploy/.env.relay.example deploy/.env.relay
-```
-
-Edit `deploy/.env.relay` and set:
-
-```env
+mkdir -p deploy
+cat > deploy/.env.relay <<'EOF'
 ANIMUS_RELAY_NAME=default-relay
 ANIMUS_RELAY_TOKEN_ISSUER_PUBKEY_HEX=d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a
+ANIMUS_RELAY_MAX_ALLOC_PER_ISSUER=256
+ANIMUS_RELAY_MAX_ALLOC_PER_SUBJECT=64
+ANIMUS_RELAY_MAX_BINDINGS_PER_ALLOC=16
+ANIMUS_RELAY_MAX_TOKEN_PAYLOAD_BYTES=1024
+ANIMUS_RELAY_MAX_PACKET_SIZE_BYTES=2048
+EOF
 ```
 
-Open `UDP 7777` in the VPS firewall/security group, then run:
+Start relay:
 
 ```bash
 docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml up -d --build
@@ -159,9 +169,36 @@ docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml ps
 docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml logs -f relay
 ```
 
+Stop / restart relay:
+
+```bash
+docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml down
+docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml up -d --build
+```
+
+Open `UDP 7777` in the VPS firewall/security group.
+
 Assume relay is reachable as `relay.example.com:7777`.
 
-#### Step 2: your machine
+#### Step 2: start public bootstrap daemon on VPS
+
+Quick run:
+
+```bash
+cd /opt/animus-link
+cargo run -p link-daemon -- --api-bind 0.0.0.0:9999 --state-file .animus-link/state/bootstrap.json --relay-addr 127.0.0.1:7777 --relay-name default-relay --relay-token-signing-seed-hex 9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60
+```
+
+If you want it as a service:
+
+- unit: `deploy/systemd/animus-link-bootstrap.service`
+- env example: `deploy/systemd/animus-link-bootstrap.env.example`
+
+Open `TCP 9999` in the VPS firewall/security group.
+
+Assume bootstrap daemon is reachable as `http://relay.example.com:9999`.
+
+#### Step 3: your machine
 
 Terminal 1, daemon:
 
@@ -176,8 +213,10 @@ Terminal 2, web:
 cd C:\Users\Red\Desktop\animus-link\messanger
 npm.cmd ci
 $env:ANIMUS_MESSENGER_STATE_FILE=".animus-link/messenger-web/a.json"
+$env:ANIMUS_MESSENGER_BOOTSTRAP_URL="http://relay.example.com:9999"
 $env:NEXT_PUBLIC_SITE_URL="http://localhost:3000"
 $env:NEXT_PUBLIC_MESSENGER_ADVANCED_UI="1"
+$env:NEXT_PUBLIC_MESSENGER_DEV_UI="1"
 npm.cmd run dev
 ```
 
@@ -193,7 +232,7 @@ Set:
 Daemon API = http://127.0.0.1:9999
 ```
 
-#### Step 3: friend machine
+#### Step 4: friend machine
 
 Terminal 1, daemon:
 
@@ -208,8 +247,10 @@ Terminal 2, web:
 cd C:\Users\Friend\Desktop\animus-link\messanger
 npm.cmd ci
 $env:ANIMUS_MESSENGER_STATE_FILE=".animus-link/messenger-web/b.json"
+$env:ANIMUS_MESSENGER_BOOTSTRAP_URL="http://relay.example.com:9999"
 $env:NEXT_PUBLIC_SITE_URL="http://localhost:3000"
 $env:NEXT_PUBLIC_MESSENGER_ADVANCED_UI="1"
+$env:NEXT_PUBLIC_MESSENGER_DEV_UI="1"
 npm.cmd run dev
 ```
 
@@ -225,16 +266,17 @@ Set:
 Daemon API = http://127.0.0.1:9999
 ```
 
-#### Step 4: chat flow
+#### Step 5: chat flow
 
-1. On your machine: click `Create Invite`
-2. Send the full invite string to your friend
-3. On friend machine: paste it into `Invite code` and click `Join Invite`
-4. On your machine: click `Start Host`
-5. On friend machine: click `Join Room`
-6. Send messages in both directions
+1. On your machine: select the target room and click `Create Invite`
+2. Confirm the invite string contains `#bootstrap=` at the end
+3. Send the full invite string to your friend
+4. On friend machine: select the target room, paste the invite into `Invite code`, and click `Join Invite`
+5. On your machine: click `Start Host`
+6. On friend machine: click `Join Room`
+7. Send messages in both directions
 
-#### Step 5: quick checks if connection fails
+#### Step 6: quick checks if connection fails
 
 On each machine:
 
@@ -247,7 +289,19 @@ On the VPS:
 ```bash
 docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml ps
 docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml logs --tail=100 relay
+curl http://127.0.0.1:9999/v1/health
 ```
+
+Extra checks:
+
+- For live relay traffic debugging:
+
+```bash
+sudo tcpdump -ni any udp port 7777
+```
+
+- If `Create Invite` does not append `#bootstrap=`, verify `ANIMUS_MESSENGER_BOOTSTRAP_URL` is set before `npm.cmd run dev`.
+- If room join stalls in `CONNECTING`, the host runtime now tries to replace placeholder `allowed peers` value `peer-b` with known mesh peer ids automatically. If that still does not happen, open `dev` mode and set the real second peer id manually, then click `Save Room` before `Start Host`.
 
 ## How To Use The App
 

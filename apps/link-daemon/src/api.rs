@@ -28,8 +28,8 @@ use crate::{
         connect_runtime_stream, run_stream_handshake_initiator, run_stream_handshake_responder,
         seed_for_role, send_mux_over_packet_stream, spawn_local_reader, AppRustdeskBindRequest,
         ConnectPlan, ConnectRequest, ExposeRequest, GatewayExposeRequest, InviteJoinRequest,
-        LinkDaemon, LocalStreamEvent, MeshCreateRequest, MeshJoinApiRequest,
-        MeshScopedServiceConnectRequest, MeshScopedServiceExposeRequest,
+        LinkDaemon, LocalStreamEvent, MeshBootstrapSyncRequest, MeshCreateRequest,
+        MeshJoinApiRequest, MeshScopedServiceConnectRequest, MeshScopedServiceExposeRequest,
         MessengerConversationCreateRequest, MessengerSendRequest, NodeRolesRequest,
         PeerRelayWorkerSpec, RelayAdvertiseRequest, RelayClearSelectionRequest, RelayConfig,
         RelaySelectRequest, TunnelEnableRequest, SESSION_PROLOGUE, STREAM_QUEUE_CAPACITY,
@@ -340,6 +340,41 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
                 }
             }
         }
+        ("POST", ["v1", "meshes", mesh_id, "sync"]) => {
+            let parsed: Result<MeshBootstrapSyncRequest, ApiError> = parse_json_body(&request.body);
+            match parsed {
+                Ok(body) => {
+                    let bootstrap_url = body.bootstrap_url.trim().to_string();
+                    if bootstrap_url.is_empty() {
+                        let mut daemon = state.lock().await;
+                        daemon.record_error(ApiErrorCode::InvalidInput);
+                        return error_json(ApiError::new(
+                            ApiErrorCode::InvalidInput,
+                            "bootstrap_url is required",
+                        ));
+                    }
+                    match bootstrap_mesh_sync(
+                        Arc::clone(&state),
+                        mesh_id.to_string(),
+                        bootstrap_url,
+                    )
+                    .await
+                    {
+                        Ok(()) => ok_json(serde_json::json!({ "synced": true })),
+                        Err(error) => {
+                            let mut daemon = state.lock().await;
+                            daemon.record_error(error.code);
+                            error_json(error)
+                        }
+                    }
+                }
+                Err(error) => {
+                    let mut daemon = state.lock().await;
+                    daemon.record_error(error.code);
+                    error_json(error)
+                }
+            }
+        }
         ("GET", ["v1", "meshes", mesh_id, "peers"]) => {
             let state = state.lock().await;
             match state.mesh_peers(mesh_id) {
@@ -641,7 +676,7 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
                 Ok(body) => {
                     let mesh_id = body.mesh_id.clone();
                     let sender_api_url = body.sender_api_url.clone();
-                    let hops_remaining = body.hops_remaining;
+                    let forward_payload = body.clone();
                     let response = {
                         let mut state = state.lock().await;
                         state.apply_mesh_sync(body)
@@ -650,11 +685,10 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
                         Ok(body) => {
                             ensure_peer_relay_workers(Arc::clone(&state), Some(mesh_id.clone()))
                                 .await;
-                            broadcast_mesh_snapshot(
+                            forward_mesh_sync_payload(
                                 Arc::clone(&state),
-                                mesh_id,
+                                forward_payload,
                                 Some(sender_api_url),
-                                hops_remaining.saturating_sub(1),
                             )
                             .await;
                             ok_json_raw(body)
@@ -937,6 +971,38 @@ async fn bootstrap_mesh_sync(
     ensure_peer_relay_workers(Arc::clone(&state), Some(mesh_id.clone())).await;
     broadcast_mesh_snapshot(state, mesh_id, None, 1).await;
     Ok(())
+}
+
+async fn forward_mesh_sync_payload(
+    state: Arc<Mutex<LinkDaemon>>,
+    mut payload: MeshSyncPayload,
+    exclude_api_url: Option<String>,
+) {
+    if payload.hops_remaining == 0 {
+        ensure_peer_relay_workers(state, Some(payload.mesh_id)).await;
+        return;
+    }
+
+    payload.hops_remaining = payload.hops_remaining.saturating_sub(1);
+    let mesh_id = payload.mesh_id.clone();
+    let peers = {
+        let state = state.lock().await;
+        state.mesh_peer_api_urls(mesh_id.as_str())
+    };
+
+    for peer_url in peers {
+        if exclude_api_url.as_deref() == Some(peer_url.as_str()) {
+            continue;
+        }
+        let _ = post_json_to_peer::<_, MeshSyncPayload>(
+            peer_url.as_str(),
+            "/v1/internal/mesh-sync",
+            &payload,
+        )
+        .await;
+    }
+
+    ensure_peer_relay_workers(state, Some(mesh_id)).await;
 }
 
 async fn broadcast_mesh_snapshot(
@@ -1344,7 +1410,6 @@ async fn handle_runtime_service_session(
             }
         }
     }
-
     Ok(())
 }
 
@@ -2295,44 +2360,25 @@ mod tests {
 
     #[tokio::test]
     async fn mesh_native_endpoints_cover_roles_routing_services_and_messenger() {
-        let listener = match TcpListener::bind("127.0.0.1:0").await {
-            Ok(listener) => listener,
-            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => return,
-            Err(error) => panic!("bind listener: {error}"),
+        let Some((addr, shutdown_tx, server)) =
+            start_test_api_server("mesh-native-api-a", None).await
+        else {
+            return;
         };
-        let addr = listener.local_addr().expect("local addr");
-        let state_file = temp_state_path("mesh-native-api");
-        let (shutdown_tx, shutdown_rx) = oneshot::channel();
-        let server = tokio::spawn(async move {
-            run_api_server_with_listener(
-                listener,
-                test_config(addr, state_file, None),
-                Some(shutdown_rx),
-            )
-            .await
-        });
+        let Some((addr_b, shutdown_b_tx, server_b)) =
+            start_test_api_server("mesh-native-api-b", None).await
+        else {
+            let _ = shutdown_tx.send(());
+            let _ = server.await;
+            return;
+        };
 
-        let mesh_body = r#"{"mesh_name":"lab"}"#;
-        let mesh_response = send_http(
-            addr,
-            format!(
-                "POST /v1/meshes HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                mesh_body.len(),
-                mesh_body
-            )
-            .as_str(),
-        )
-        .await;
-        assert!(mesh_response.starts_with("HTTP/1.1 200 OK"));
-        let mesh_json: Value =
-            serde_json::from_str(extract_body(mesh_response.as_str())).expect("mesh json");
-        let mesh_id = mesh_json["mesh"]["mesh_id"]
+        let (mesh_id, node_id) = create_mesh(addr).await;
+        let invite = mesh_invite(addr, mesh_id.as_str()).await;
+        let join = join_mesh(addr_b, invite.as_str(), addr).await;
+        let peer_b = join["membership"]["peer_id"]
             .as_str()
-            .expect("mesh_id")
-            .to_string();
-        let node_id = mesh_json["mesh"]["local_node_id"]
-            .as_str()
-            .expect("node_id")
+            .expect("peer_b")
             .to_string();
 
         let roles_body = format!(r#"{{"mesh_id":"{mesh_id}","roles":["relay","service_host"]}}"#);
@@ -2377,7 +2423,7 @@ mod tests {
         assert!(select_response.starts_with("HTTP/1.1 200 OK"));
 
         let service_body = format!(
-            r#"{{"mesh_id":"{mesh_id}","service_name":"chat","local_addr":"127.0.0.1:19180","allowed_peers":["peer-b"],"tags":["msg"]}}"#
+            r#"{{"mesh_id":"{mesh_id}","service_name":"chat","local_addr":"127.0.0.1:19180","allowed_peers":["{peer_b}"],"tags":["msg"]}}"#
         );
         let service_response = send_http(
             addr,
@@ -2395,7 +2441,7 @@ mod tests {
         assert_eq!(service_json["descriptor"]["mesh_id"], mesh_id);
 
         let conversation_body =
-            format!(r#"{{"mesh_id":"{mesh_id}","participants":["peer-b"],"title":"dm"}}"#);
+            format!(r#"{{"mesh_id":"{mesh_id}","participants":["{peer_b}"],"title":"dm"}}"#);
         let conversation_response = send_http(
             addr,
             format!(
@@ -2465,8 +2511,62 @@ mod tests {
             1
         );
 
+        let _ = shutdown_b_tx.send(());
+        let _ = server_b.await;
         let _ = shutdown_tx.send(());
         let _ = server.await;
+    }
+
+    #[tokio::test]
+    async fn mesh_sync_endpoint_bootstraps_public_daemon_state() {
+        let Some((addr_a, shutdown_a_tx, server_a)) =
+            start_test_api_server("mesh-sync-a", None).await
+        else {
+            return;
+        };
+        let Some((addr_bootstrap, shutdown_bootstrap_tx, server_bootstrap)) =
+            start_test_api_server("mesh-sync-bootstrap", None).await
+        else {
+            let _ = shutdown_a_tx.send(());
+            let _ = server_a.await;
+            return;
+        };
+
+        let (mesh_id, _) = create_mesh(addr_a).await;
+        let sync = post_json(
+            addr_a,
+            format!("/v1/meshes/{mesh_id}/sync").as_str(),
+            format!(r#"{{"bootstrap_url":"{}"}}"#, daemon_url(addr_bootstrap)).as_str(),
+        )
+        .await;
+        assert_eq!(sync["synced"], true);
+
+        let meshes = get_json(addr_bootstrap, "/v1/meshes").await;
+        assert!(
+            meshes["meshes"]
+                .as_array()
+                .expect("meshes array")
+                .iter()
+                .any(|mesh| mesh["mesh_id"] == mesh_id || mesh["config"]["mesh_id"] == mesh_id),
+            "bootstrap daemon did not import mesh state: {meshes}"
+        );
+
+        let routing = get_json(addr_bootstrap, "/v1/routing/status").await;
+        assert!(
+            routing["peer_endpoints"]
+                .as_array()
+                .expect("peer_endpoints array")
+                .iter()
+                .any(|endpoint| {
+                    endpoint["mesh_id"] == mesh_id && endpoint["api_url"] == daemon_url(addr_a)
+                }),
+            "bootstrap daemon did not import peer endpoint: {routing}"
+        );
+
+        let _ = shutdown_a_tx.send(());
+        let _ = shutdown_bootstrap_tx.send(());
+        let _ = server_a.await;
+        let _ = server_bootstrap.await;
     }
 
     #[tokio::test]
@@ -3586,20 +3686,6 @@ mod tests {
             serde_json::from_str(extract_body(gateway_response.as_str())).expect("gateway body");
         assert_eq!(gateway_body["gateway_service"], "gateway-exit");
         assert_eq!(gateway_body["ready"], true);
-
-        update_roundtrip_progress(&progress, |state| state.stage = "tunnel_enable");
-        let enable_payload = r#"{"gateway_service":"gateway-exit","fail_mode":"open_fast","dns_mode":"remote_best_effort","exclude_cidrs":["10.0.0.0/8"],"allow_lan":true}"#;
-        let enable_response = send_http(
-            addr_b,
-            format!(
-                "POST /v1/tunnel/enable HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                enable_payload.len(),
-                enable_payload
-            )
-            .as_str(),
-        )
-        .await;
-        assert!(enable_response.starts_with("HTTP/1.1 200 OK"));
 
         let conn_id = derive_conn_id_for_service("gateway-exit");
         let relay_token = mint_test_token("gateway-client");

@@ -1,0 +1,20 @@
+[Unit]
+Description=Animus Link Bootstrap Daemon
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/srv/animus-link
+Environment=RUST_LOG=info
+Environment=API_BIND=0.0.0.0:9999
+Environment=STATE_FILE=/var/lib/animus-link/bootstrap-state.json
+Environment=RELAY_ADDR=127.0.0.1:7777
+Environment=RELAY_NAME=default-relay
+EnvironmentFile=-/etc/animus-link-bootstrap.env
+ExecStart=/usr/bin/env cargo run -p link-daemon -- --api-bind ${API_BIND} --state-file ${STATE_FILE} --relay-addr ${RELAY_ADDR} --relay-name ${RELAY_NAME} --relay-token-signing-seed-hex ${RELAY_TOKEN_SIGNING_SEED_HEX}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

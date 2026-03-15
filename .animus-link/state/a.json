@@ -36,7 +36,21 @@
       ],
       "relay_offers": [],
       "services": [],
-      "service_bindings": []
+      "service_bindings": [
+        {
+          "binding_id": "binding-b94dcf948e8dc6407ec358b0c3cceac0",
+          "mesh_id": "f9cca71261a36f1c469ec4f090b76dd8",
+          "service_id": null,
+          "service_name": "chat",
+          "consumer_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "consumer_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "local_listener": null,
+          "route_mode": "direct_first_relay_second",
+          "selected_relay_node_id": null,
+          "state": "active",
+          "created_at_unix_secs": 1773580780
+        }
+      ]
     },
     {
       "config": {
@@ -719,12 +733,124 @@
       "relay_offers": [],
       "services": [],
       "service_bindings": []
+    },
+    {
+      "config": {
+        "mesh_id": "34b95d848d68d57d0ce0cf66dc0abd14",
+        "mesh_name": "General",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773580493
+      },
+      "memberships": [
+        {
+          "mesh_id": "34b95d848d68d57d0ce0cf66dc0abd14",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge",
+            "service_host"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773580493,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "af46b1056deb84c22df4d9ce276f5374"
+        }
+      ],
+      "relay_offers": [],
+      "services": [
+        {
+          "service_id": "service-b50a46bc492ab95d6e3ed18869c4e259",
+          "mesh_id": "34b95d848d68d57d0ce0cf66dc0abd14",
+          "service_name": "chat",
+          "owner_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "owner_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "local_addr": "127.0.0.1:19180",
+          "protocol": "tcp",
+          "tags": [],
+          "allowed_peers": [
+            "peer-b"
+          ],
+          "trust": "allow",
+          "app_protocol": "animus.link.messenger",
+          "published_at_unix_secs": 1773580493
+        }
+      ],
+      "service_bindings": []
+    },
+    {
+      "config": {
+        "mesh_id": "204a287ee69ad0bcdf1ba6779fc985bd",
+        "mesh_name": "General",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773581464
+      },
+      "memberships": [
+        {
+          "mesh_id": "204a287ee69ad0bcdf1ba6779fc985bd",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge",
+            "service_host"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773581464,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "2f934bb790099fdf187e38faff67fde4"
+        }
+      ],
+      "relay_offers": [],
+      "services": [
+        {
+          "service_id": "service-5ea999453927951c1544307f90c33a72",
+          "mesh_id": "204a287ee69ad0bcdf1ba6779fc985bd",
+          "service_name": "chat",
+          "owner_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "owner_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "local_addr": "127.0.0.1:19180",
+          "protocol": "tcp",
+          "tags": [],
+          "allowed_peers": [
+            "peer-b"
+          ],
+          "trust": "allow",
+          "app_protocol": "animus.link.messenger",
+          "published_at_unix_secs": 1773581464
+        }
+      ],
+      "service_bindings": []
     }
   ],
   "route_policies": [],
-  "decision_logs": [],
+  "decision_logs": [
+    {
+      "decision_id": "decision-7bd1feee0eaf50f8079c05cd71944a79",
+      "mesh_id": "f9cca71261a36f1c469ec4f090b76dd8",
+      "target_kind": "service",
+      "target_id": "chat",
+      "mode": "direct_first_relay_second",
+      "chosen_path": "managed_relay",
+      "selected_relay_node_id": null,
+      "fallback_relay_node_id": null,
+      "managed_relay_allowed": true,
+      "reason": "managed_relay_fallback",
+      "recorded_at_unix_secs": 1773580780
+    }
+  ],
   "conversations": [],
   "messages": [],
   "app_bindings": [],
-  "next_nonce": 1
+  "next_nonce": 7
 }

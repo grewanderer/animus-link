@@ -23,6 +23,7 @@ Primary local Link daemon API (`/v1`):
 - `POST /meshes`
 - `GET /meshes`
 - `POST /meshes/{mesh_id}/invite`
+- `POST /meshes/{mesh_id}/sync`
 - `POST /meshes/join`
 - `GET /meshes/{mesh_id}/peers`
 - `POST /meshes/{mesh_id}/peers/{peer_id}/revoke`
@@ -61,6 +62,8 @@ API behavior:
   - `allowed_peers` MUST be explicitly provided and non-empty.
   - Missing or empty allow policy MUST be rejected.
 - `invite` values MUST be validated and MUST NOT be logged.
+- `POST /meshes/{mesh_id}/sync` MAY be used to push the local mesh/runtime snapshot to a public bootstrap daemon.
+- Bootstrap sync endpoints MUST exchange the same redacted mesh snapshot format used by `/v1/internal/mesh-sync`.
 - Relay tokens used by daemon workers MUST be minted as signed v1 tokens (see `spec/relay.md`) and MUST NOT be logged.
 - Relay nodes forward encrypted Fabric payload only and MUST NOT terminate end-to-end secrecy.
 
