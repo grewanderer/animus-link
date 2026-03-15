@@ -4,4 +4,5 @@ pub mod daemon;
 pub mod diagnostics;
 pub mod errors;
 pub mod invite;
+pub mod mesh_runtime;
 pub mod relay_token;

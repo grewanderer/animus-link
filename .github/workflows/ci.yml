@@ -4,136 +4,16 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  path-sanity:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: workflow portability guards
-        run: |
-          set -o pipefail
-          if grep -R --line-number -E '^[[:space:]]*if[[:space:]]+\[[[:space:]]+"\\$\\{RUNNER_OS\\}"[[:space:]]*=[[:space:]]*"Windows"[[:space:]]*\\];[[:space:]]*then' .github/workflows/*.yml; then
-            echo "Workflow shell script must not branch on RUNNER_OS; use step-level if: runner.os conditions."
-            exit 1
-          fi
-          if grep -R --line-number -E '^[[:space:]]*rg[[:space:]]' .github/workflows/*.yml; then
-            echo "Workflow scripts must not depend on ripgrep (rg). Use grep/find instead."
-            exit 1
-          fi
-      - name: job diagnostics
-        run: |
-          mkdir -p ci-logs
-          {
-            echo "Runner OS: ${RUNNER_OS}"
-            echo "Shell: ${SHELL:-unknown}"
-            uname -a || true
-            rustc -V || true
-            cargo -V || true
-          } 2>&1 | tee ci-logs/path-sanity-env.log
-      - name: reject NTFS ADS artifact paths
-        run: |
-          set -o pipefail
-          {
-            ads_paths="$(find . -type f -name '*:Zone.Identifier' -print)"
-            if [ -n "${ads_paths}" ]; then
-              echo "Found forbidden ADS-like paths:"
-              echo "${ads_paths}"
-              exit 1
-            fi
-          } 2>&1 | tee ci-logs/path-sanity-ads.log
-      - name: path-sanity triage summary
-        if: failure()
-        run: |
-          {
-            echo "## Path Sanity Failure Summary"
-            echo "Command: find . -type f -name '*:Zone.Identifier' -print"
-            line="$(grep -nE "Found forbidden ADS-like paths|error:|No such file|Permission denied" ci-logs/path-sanity-ads.log 2>/dev/null | head -n1 | cut -d: -f1)"
-            if [ -n "$line" ]; then
-              start=$(( line > 20 ? line - 20 : 1 ))
-              end=$(( line + 20 ))
-              echo '```'
-              sed -n "${start},${end}p" ci-logs/path-sanity-ads.log
-              echo '```'
-            fi
-          } >> "${GITHUB_STEP_SUMMARY}"
-
-  release-integrity-config:
-    runs-on: ubuntu-latest
-    needs: path-sanity
-    steps:
-      - uses: actions/checkout@v4
-      - name: job diagnostics
-        run: |
-          mkdir -p ci-logs
-          {
-            echo "Runner OS: ${RUNNER_OS}"
-            echo "Shell: ${SHELL:-unknown}"
-            uname -a || true
-            rustc -V || true
-            cargo -V || true
-          } 2>&1 | tee ci-logs/release-integrity-env.log
-      - name: release workflow must publish checksums and sbom
-        run: |
-          set -o pipefail
-          {
-            grep -n "SHA256SUMS.txt" .github/workflows/release.yml
-            grep -n "cargo install cargo-cyclonedx --version 0.5.7 --locked" .github/workflows/release.yml
-            grep -n "sbom.cdx.json" .github/workflows/release.yml
-          } 2>&1 | tee ci-logs/release-integrity-check.log
-      - name: release-integrity triage summary
-        if: failure()
-        run: |
-          {
-            echo "## Release Integrity Failure Summary"
-            echo "Command: grep required release artifacts and SBOM lines in .github/workflows/release.yml"
-            line="$(grep -nE "No such file|not found|error" ci-logs/release-integrity-check.log 2>/dev/null | head -n1 | cut -d: -f1)"
-            if [ -n "$line" ]; then
-              start=$(( line > 20 ? line - 20 : 1 ))
-              end=$(( line + 20 ))
-              echo '```'
-              sed -n "${start},${end}p" ci-logs/release-integrity-check.log
-              echo '```'
-            fi
-          } >> "${GITHUB_STEP_SUMMARY}"
-
-  design-token-drift:
-    runs-on: ubuntu-latest
-    needs: path-sanity
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: regenerate design tokens
-        run: |
-          mkdir -p ci-logs
-          set -o pipefail
-          cargo run -p design-token-gen 2>&1 | tee ci-logs/design-token-gen.log
-      - name: fail on token drift
-        run: |
-          set -o pipefail
-          git diff --exit-code -- \
-            design/tokens.json \
-            packages/ui-web/tailwind.tokens.css \
-            packages/ui-web/tokens.ts \
-            mobile/android/app/src/main/java/com/animus/link/ui/Theme.kt \
-            mobile/ios/AnimusLinkIOS/Theme.swift 2>&1 | tee ci-logs/design-token-diff.log
-      - name: design-token triage summary
-        if: failure()
-        run: |
-          {
-            echo "## Design Token Drift Failure Summary"
-            echo "Command: git diff --exit-code on generated token outputs"
-            line="$(grep -nE "diff --git|error:|not found" ci-logs/design-token-diff.log 2>/dev/null | head -n1 | cut -d: -f1)"
-            if [ -n "$line" ]; then
-              start=$(( line > 20 ? line - 20 : 1 ))
-              end=$(( line + 20 ))
-              echo '```'
-              sed -n "${start},${end}p" ci-logs/design-token-diff.log
-              echo '```'
-            fi
-          } >> "${GITHUB_STEP_SUMMARY}"
-
-  desktop:
-    needs: path-sanity
+  workspace:
+    name: workspace-${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -144,603 +24,116 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: job diagnostics (unix)
-        if: matrix.os != 'windows-latest'
+      - uses: Swatinem/rust-cache@v2
+      - name: linux desktop deps
+        if: matrix.os == 'ubuntu-latest'
         run: |
-          mkdir -p ci-logs
-          {
-            echo "Runner OS: ${RUNNER_OS}"
-            echo "Shell: ${SHELL:-unknown}"
-            uname -a || true
-            rustc -Vv
-            cargo -Vv
-          } 2>&1 | tee ci-logs/desktop-env.log
-      - name: job diagnostics (windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Path ci-logs -Force | Out-Null
-          "Runner OS: $env:RUNNER_OS" | Tee-Object -FilePath ci-logs/desktop-env.log
-          "Shell: pwsh" | Tee-Object -FilePath ci-logs/desktop-env.log -Append
-          rustc -Vv *>&1 | Tee-Object -FilePath ci-logs/desktop-env.log -Append
-          cargo -Vv *>&1 | Tee-Object -FilePath ci-logs/desktop-env.log -Append
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
       - name: fmt
         if: matrix.os == 'ubuntu-latest'
-        run: |
-          set -o pipefail
-          cargo fmt --all -- --check 2>&1 | tee ci-logs/desktop-fmt.log
+        run: cargo fmt --all -- --check
       - name: clippy
         if: matrix.os == 'ubuntu-latest'
-        run: |
-          set -o pipefail
-          cargo clippy --workspace --all-targets -- -D warnings 2>&1 | tee ci-logs/desktop-clippy.log
-      - name: build (unix)
-        if: matrix.os != 'windows-latest'
-        run: |
-          set -o pipefail
-          cargo build --workspace 2>&1 | tee ci-logs/desktop-build.log
-      - name: build (windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          cargo build --workspace *>&1 | Tee-Object -FilePath ci-logs/desktop-build.log
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: test (unix)
-        if: matrix.os != 'windows-latest'
-        run: |
-          set -o pipefail
-          cargo test --workspace 2>&1 | tee ci-logs/desktop-test.log
-      - name: test (windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          cargo test --workspace *>&1 | Tee-Object -FilePath ci-logs/desktop-test.log
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: build
+        run: cargo build --workspace
+      - name: test
+        run: cargo test --workspace
       - name: conformance
         if: matrix.os == 'ubuntu-latest'
-        run: |
-          set -o pipefail
-          cargo run -p conformance-runner -- --run all 2>&1 | tee ci-logs/desktop-conformance.log
-      - name: relay-first signed-token e2e api smoke
+        run: cargo run -p conformance-runner -- --run all
+
+  desktop-frontend:
+    name: desktop-frontend-${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: apps/link-desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('apps/link-desktop/package.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
+      - name: install dependencies
+        run: npm install --no-fund --no-audit
+      - name: lint
+        run: npm run lint
+      - name: test
+        run: npm run test:run
+      - name: build
+        run: npm run build
+      - name: upload frontend build
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-frontend-${{ matrix.os }}
+          path: apps/link-desktop/dist
+
+  desktop-smoke:
+    name: desktop-smoke-${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target_triple: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            target_triple: aarch64-apple-darwin
+          - os: windows-latest
+            target_triple: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: apps/link-desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-smoke-${{ runner.os }}-${{ hashFiles('apps/link-desktop/package.json') }}
+          restore-keys: |
+            npm-smoke-${{ runner.os }}-
+      - name: linux desktop deps
         if: matrix.os == 'ubuntu-latest'
         run: |
-          set -o pipefail
-          cargo test -p link-daemon api::tests::relay_first_expose_connect_roundtrip_bytes -- --nocapture 2>&1 | tee ci-logs/desktop-e2e.log
-      - name: upload desktop failure logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-${{ matrix.os }}-failure-logs
-          path: ci-logs
-      - name: desktop failure summary (unix)
-        if: failure() && matrix.os != 'windows-latest'
-        run: |
-          {
-            echo "## Desktop Failure Summary (${{ matrix.os }})"
-            echo "Commands:"
-            echo "- fmt: cargo fmt --all -- --check"
-            echo "- clippy: cargo clippy --workspace --all-targets -- -D warnings"
-            echo "- build: cargo build --workspace"
-            echo "- test: cargo test --workspace"
-            echo "- conformance (linux only): cargo run -p conformance-runner -- --run all"
-            first_log=""
-            for candidate in \
-              ci-logs/desktop-fmt.log \
-              ci-logs/desktop-clippy.log \
-              ci-logs/desktop-build.log \
-              ci-logs/desktop-test.log \
-              ci-logs/desktop-conformance.log \
-              ci-logs/desktop-e2e.log; do
-              if [ -f "$candidate" ] && grep -qE "error:|FAILED|panic|test result: FAILED" "$candidate"; then
-                first_log="$candidate"
-                break
-              fi
-            done
-            if [ -n "$first_log" ]; then
-              base="$(basename "$first_log")"
-              case "$base" in
-                desktop-fmt.log) failing_step="fmt"; failing_cmd="cargo fmt --all -- --check" ;;
-                desktop-clippy.log) failing_step="clippy"; failing_cmd="cargo clippy --workspace --all-targets -- -D warnings" ;;
-                desktop-build.log) failing_step="build"; failing_cmd="cargo build --workspace" ;;
-                desktop-test.log) failing_step="test"; failing_cmd="cargo test --workspace" ;;
-                desktop-conformance.log) failing_step="conformance"; failing_cmd="cargo run -p conformance-runner -- --run all" ;;
-                desktop-e2e.log) failing_step="relay-first signed-token e2e api smoke"; failing_cmd="cargo test -p link-daemon api::tests::relay_first_expose_connect_roundtrip_bytes -- --nocapture" ;;
-                *) failing_step="$base"; failing_cmd="see job log" ;;
-              esac
-              echo ""
-              echo "First failing step: $failing_step"
-              echo "Command: $failing_cmd"
-              line="$(grep -nE "error:|FAILED|panic|test result: FAILED" "$first_log" | head -n1 | cut -d: -f1)"
-              if [ -n "$line" ]; then
-                start=$(( line > 20 ? line - 20 : 1 ))
-                end=$(( line + 20 ))
-                echo '```'
-                sed -n "${start},${end}p" "$first_log"
-                echo '```'
-              fi
-            fi
-          } >> "${GITHUB_STEP_SUMMARY}"
-      - name: desktop failure summary (windows)
-        if: failure() && matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          Add-Content $env:GITHUB_STEP_SUMMARY "## Desktop Failure Summary (${{ matrix.os }})"
-          Add-Content $env:GITHUB_STEP_SUMMARY "Commands:"
-          Add-Content $env:GITHUB_STEP_SUMMARY "- build: cargo build --workspace"
-          Add-Content $env:GITHUB_STEP_SUMMARY "- test: cargo test --workspace"
-          $ordered = @("ci-logs/desktop-build.log", "ci-logs/desktop-test.log")
-          $firstLog = $null
-          foreach ($candidate in $ordered) {
-            if (Test-Path $candidate) {
-              $match = Select-String -Path $candidate -Pattern 'error:','FAILED','panic','test result: FAILED' | Select-Object -First 1
-              if ($match) { $firstLog = $candidate; break }
-            }
-          }
-          if ($firstLog) {
-            $step = "unknown"
-            $cmd = "see job log"
-            if ($firstLog.EndsWith("desktop-build.log")) { $step = "build"; $cmd = "cargo build --workspace" }
-            if ($firstLog.EndsWith("desktop-test.log")) { $step = "test"; $cmd = "cargo test --workspace" }
-            Add-Content $env:GITHUB_STEP_SUMMARY ""
-            Add-Content $env:GITHUB_STEP_SUMMARY "First failing step: $step"
-            Add-Content $env:GITHUB_STEP_SUMMARY "Command: $cmd"
-            $first = Select-String -Path $firstLog -Pattern 'error:','FAILED','panic','test result: FAILED' | Select-Object -First 1
-            if ($first) {
-              $start = [Math]::Max(1, $first.LineNumber - 20)
-              $end = $first.LineNumber + 20
-              Add-Content $env:GITHUB_STEP_SUMMARY '```'
-              $i = 0
-              Get-Content $firstLog | ForEach-Object {
-                $i++
-                if ($i -ge $start -and $i -le $end) {
-                  Add-Content $env:GITHUB_STEP_SUMMARY $_
-                }
-              }
-              Add-Content $env:GITHUB_STEP_SUMMARY '```'
-            }
-          }
-
-  android-build:
-    runs-on: ubuntu-latest
-    needs: path-sanity
-    env:
-      ANDROID_API_LEVEL: "34"
-      ANDROID_BUILD_TOOLS: "34.0.0"
-      ANDROID_NDK_VERSION: "26.3.11579264"
-    steps:
-      - uses: actions/checkout@v4
-      - name: enforce signed relay tokens in demo script
-        run: |
-          grep -F -- '--token-issuer-pubkey-hex' scripts/demo-relay-first-e2e.sh
-          if grep -F -- '--dev-allow-unsigned-tokens' scripts/demo-relay-first-e2e.sh; then
-            echo "unsigned relay token flag must not be used in demo script"
-            exit 1
-          fi
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-      - uses: android-actions/setup-android@v3
-      - name: verify committed gradle wrapper files
-        run: |
-          mkdir -p mobile/android/ci-logs
-          set -o pipefail
-          {
-            test -f mobile/android/gradlew
-            test -f mobile/android/gradlew.bat
-            test -f mobile/android/gradle/wrapper/gradle-wrapper.jar
-            test -f mobile/android/gradle/wrapper/gradle-wrapper.properties
-            test -f mobile/android/scripts/run-gradle-with-fallback.sh
-            grep -n "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.7-bin.zip" mobile/android/gradle/wrapper/gradle-wrapper.properties
-          } 2>&1 | tee mobile/android/ci-logs/wrapper-check.log
-      - name: restore gradle wrapper cache
-        id: gradle_wrapper_cache_restore
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            mobile/android/gradle/wrapper/gradle-wrapper.jar
-            mobile/android/gradle/wrapper/gradle-8.7-bin.zip
-          key: android-gradle-wrapper-${{ runner.os }}-${{ hashFiles('mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
-      - name: resolve sdkmanager path
-        run: |
-          set -euo pipefail
-          set -o pipefail
-          {
-            SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
-            if [ -z "${SDK_ROOT}" ]; then
-              SDK_ROOT="${HOME}/android-sdk"
-            fi
-            if [ -x "${SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" ]; then
-              echo "${SDK_ROOT}/cmdline-tools/latest/bin" >> "${GITHUB_PATH}"
-            elif [ -x "${SDK_ROOT}/tools/bin/sdkmanager" ]; then
-              echo "${SDK_ROOT}/tools/bin" >> "${GITHUB_PATH}"
-            fi
-            echo "ANDROID_SDK_ROOT=${SDK_ROOT}" >> "${GITHUB_ENV}"
-            echo "ANDROID_HOME=${SDK_ROOT}" >> "${GITHUB_ENV}"
-          } 2>&1 | tee mobile/android/ci-logs/sdkmanager-path.log
-      - name: accept Android licenses
-        run: yes | sdkmanager --licenses >/dev/null || true
-      - name: install pinned Android SDK + NDK
-        run: |
-          set -o pipefail
-          yes | sdkmanager --install \
-            "platform-tools" \
-            "platforms;android-${ANDROID_API_LEVEL}" \
-            "build-tools;${ANDROID_BUILD_TOOLS}" \
-            "ndk;${ANDROID_NDK_VERSION}" 2>&1 | tee mobile/android/ci-logs/sdk-install.log
-      - name: export ndk environment
-        run: |
-          set -o pipefail
-          {
-            SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
-            if [ -z "${SDK_ROOT}" ]; then
-              echo "ANDROID_SDK_ROOT/ANDROID_HOME is not set"
-              exit 1
-            fi
-            echo "ANDROID_SDK_ROOT=${SDK_ROOT}" >> "${GITHUB_ENV}"
-            echo "ANDROID_NDK_HOME=${SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "${GITHUB_ENV}"
-            echo "NDK_HOME=${SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "${GITHUB_ENV}"
-          } 2>&1 | tee mobile/android/ci-logs/ndk-env.log
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-          targets: aarch64-linux-android,x86_64-linux-android
-      - name: android job diagnostics
-        run: |
-          mkdir -p mobile/android/ci-logs
-          {
-            echo "Runner OS: ${RUNNER_OS}"
-            echo "Shell: ${SHELL:-unknown}"
-            uname -a || true
-            rustc -Vv
-            cargo -Vv
-            java -version
-            sdkmanager --version
-            echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}"
-            echo "ANDROID_NDK_HOME=${ANDROID_NDK_HOME}"
-          } 2>&1 | tee mobile/android/ci-logs/env.log
-      - name: ensure gradlew is executable
-        run: |
-          chmod +x mobile/android/gradlew
-          chmod +x mobile/android/scripts/run-gradle-with-fallback.sh
-      - name: android gradle wrapper version
-        run: |
-          bash mobile/android/scripts/run-gradle-with-fallback.sh mobile/android/ci-logs/gradle-version.log --version
-      - name: fmt
-        run: cargo fmt --all -- --check
-      - name: clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
-      - name: test
-        run: cargo test --workspace
-      - name: install cargo-ndk
-        run: cargo install cargo-ndk --locked
-      - name: build rust android ffi
-        run: |
-          set -o pipefail
-          bash mobile/android/scripts/build-rust-android.sh 2>&1 | tee mobile/android/ci-logs/rust-ffi.log
-      - name: verify android ffi artifacts
-        run: |
-          set -o pipefail
-          {
-            test -f mobile/android/app/src/main/jniLibs/arm64-v8a/libfabric_ffi.so
-            test -f mobile/android/app/src/main/jniLibs/x86_64/libfabric_ffi.so
-            test -f mobile/android/app/src/main/kotlin/com/animus/link/bindings/animus_link.kt
-          } 2>&1 | tee mobile/android/ci-logs/verify-ffi.log
-      - name: verify android vpn service wiring
-        run: |
-          set -o pipefail
-          {
-            grep -n "AnimusVpnService" mobile/android/app/src/main/AndroidManifest.xml
-            grep -n "android.net.VpnService" mobile/android/app/src/main/AndroidManifest.xml
-          } 2>&1 | tee mobile/android/ci-logs/verify-vpn.log
-      - name: android gradle testDebugUnitTest
-        run: |
-          bash mobile/android/scripts/run-gradle-with-fallback.sh mobile/android/ci-logs/gradle-test.log :app:testDebugUnitTest
-      - name: android gradle compileDebugKotlin
-        run: |
-          bash mobile/android/scripts/run-gradle-with-fallback.sh mobile/android/ci-logs/gradle-compile.log :app:compileDebugKotlin
-      - name: android gradle assembleDebug
-        run: |
-          bash mobile/android/scripts/run-gradle-with-fallback.sh mobile/android/ci-logs/gradle-assemble.log :app:assembleDebug
-      - name: save gradle wrapper cache
-        if: always() && steps.gradle_wrapper_cache_restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            mobile/android/gradle/wrapper/gradle-wrapper.jar
-            mobile/android/gradle/wrapper/gradle-8.7-bin.zip
-          key: android-gradle-wrapper-${{ runner.os }}-${{ hashFiles('mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
-      - name: verify android apk
-        run: test -f mobile/android/app/build/outputs/apk/debug/app-debug.apk
-      - name: upload android apk
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-debug-apk
-          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
-      - name: package android rust shared libraries
-        run: |
-          cd mobile/android/app/src/main/jniLibs
-          zip -q -r ../../../../android-rust-libs.zip arm64-v8a x86_64
-      - name: upload android rust shared libraries
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-rust-libs
-          path: mobile/android/android-rust-libs.zip
-      - name: upload android failure diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-failure-diagnostics
-          path: |
-            mobile/android/ci-logs
-            mobile/android/app/build
-            mobile/android/app/src/main/jniLibs
-            mobile/android/app/src/main/kotlin/com/animus/link/bindings
-      - name: android failure summary
-        if: failure()
-        run: |
-          {
-            echo "## Android Failure Summary"
-            echo "Commands:"
-            echo "- android gradle wrapper version: ./gradlew --version (with one local-dist fallback retry)"
-            echo "- android gradle testDebugUnitTest: ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest (with one local-dist fallback retry)"
-            echo "- android gradle compileDebugKotlin: ./gradlew --no-daemon --stacktrace :app:compileDebugKotlin (with one local-dist fallback retry)"
-            echo "- android gradle assembleDebug: ./gradlew --no-daemon --stacktrace :app:assembleDebug (with one local-dist fallback retry)"
-            first_log=""
-            for candidate in \
-              mobile/android/ci-logs/wrapper-check.log \
-              mobile/android/ci-logs/sdkmanager-path.log \
-              mobile/android/ci-logs/sdk-install.log \
-              mobile/android/ci-logs/ndk-env.log \
-              mobile/android/ci-logs/verify-ffi.log \
-              mobile/android/ci-logs/verify-vpn.log \
-              mobile/android/ci-logs/gradle-version.log \
-              mobile/android/ci-logs/gradle-test.log \
-              mobile/android/ci-logs/gradle-compile.log \
-              mobile/android/ci-logs/gradle-assemble.log \
-              mobile/android/ci-logs/rust-ffi.log; do
-              if [ -f "$candidate" ] && grep -qE "FAILURE:|error:|Exception|Caused by:|No such file|not found|missing|Permission denied" "$candidate"; then
-                first_log="$candidate"
-                break
-              fi
-            done
-            if [ -n "$first_log" ]; then
-              base="$(basename "$first_log")"
-              case "$base" in
-                wrapper-check.log)
-                  failing_step="verify committed gradle wrapper files"
-                  failing_cmd="file checks + distributionUrl grep in mobile/android/gradle/wrapper/gradle-wrapper.properties"
-                  ;;
-                sdkmanager-path.log)
-                  failing_step="resolve sdkmanager path"
-                  failing_cmd="resolve ANDROID_SDK_ROOT/ANDROID_HOME and export sdkmanager path"
-                  ;;
-                sdk-install.log)
-                  failing_step="install pinned Android SDK + NDK"
-                  failing_cmd="sdkmanager --install platform-tools platforms;android-34 build-tools;34.0.0 ndk;26.3.11579264"
-                  ;;
-                ndk-env.log)
-                  failing_step="export ndk environment"
-                  failing_cmd="export ANDROID_NDK_HOME/NDK_HOME from ANDROID_SDK_ROOT"
-                  ;;
-                verify-ffi.log)
-                  failing_step="verify android ffi artifacts"
-                  failing_cmd="test generated jniLibs + Kotlin bindings files"
-                  ;;
-                verify-vpn.log)
-                  failing_step="verify android vpn service wiring"
-                  failing_cmd="grep manifest for AnimusVpnService + android.net.VpnService"
-                  ;;
-                gradle-version.log)
-                  failing_step="android gradle wrapper version"
-                  failing_cmd="./gradlew --version"
-                  ;;
-                gradle-test.log)
-                  failing_step="android gradle testDebugUnitTest"
-                  failing_cmd="./gradlew --no-daemon --stacktrace :app:testDebugUnitTest"
-                  ;;
-                gradle-compile.log)
-                  failing_step="android gradle compileDebugKotlin"
-                  failing_cmd="./gradlew --no-daemon --stacktrace :app:compileDebugKotlin"
-                  ;;
-                gradle-assemble.log)
-                  failing_step="android gradle assembleDebug"
-                  failing_cmd="./gradlew --no-daemon --stacktrace :app:assembleDebug"
-                  ;;
-                rust-ffi.log)
-                  failing_step="build rust android ffi"
-                  failing_cmd="bash mobile/android/scripts/build-rust-android.sh"
-                  ;;
-                *)
-                  failing_step="$base"
-                  failing_cmd="see job log"
-                  ;;
-              esac
-              echo ""
-              echo "First failing step: $failing_step"
-              echo "Command: $failing_cmd"
-              line="$(grep -nE "FAILURE:|error:|Exception|Caused by:|No such file|not found|missing|Permission denied" "$first_log" | head -n1 | cut -d: -f1)"
-              if [ -n "$line" ]; then
-                start=$(( line > 20 ? line - 20 : 1 ))
-                end=$(( line + 20 ))
-                echo '```'
-                sed -n "${start},${end}p" "$first_log"
-                echo '```'
-              fi
-            fi
-          } >> "${GITHUB_STEP_SUMMARY}"
-
-  ios-build:
-    runs-on: macos-latest
-    needs: path-sanity
-    steps:
-      - uses: actions/checkout@v4
-      - name: enforce signed relay tokens in demo script
-        run: |
-          grep -F -- '--token-issuer-pubkey-hex' scripts/demo-relay-first-e2e.sh
-          if grep -F -- '--dev-allow-unsigned-tokens' scripts/demo-relay-first-e2e.sh; then
-            echo "unsigned relay token flag must not be used in demo script"
-            exit 1
-          fi
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-          targets: aarch64-apple-ios,aarch64-apple-ios-sim
-      - name: ios job diagnostics
-        run: |
-          mkdir -p mobile/ios/build/ci-logs mobile/ios/build/results
-          {
-            echo "Runner OS: ${RUNNER_OS}"
-            echo "Shell: ${SHELL:-unknown}"
-            sw_vers || true
-            rustc -Vv
-            cargo -Vv
-            xcodebuild -version
-            swift --version
-          } 2>&1 | tee mobile/ios/build/ci-logs/env.log
-      - name: verify ios project targets exist
-        run: |
-          set -o pipefail
-          xcodebuild -list -project mobile/ios/AnimusLinkIOS.xcodeproj 2>&1 | tee mobile/ios/build/ci-logs/xcodebuild-list.log
-          grep -n "AnimusLinkIOS" mobile/ios/build/ci-logs/xcodebuild-list.log
-          grep -n "AnimusLinkTunnelExtension" mobile/ios/build/ci-logs/xcodebuild-list.log
-          grep -n "AnimusLinkIOS-CI" mobile/ios/build/ci-logs/xcodebuild-list.log
-      - name: verify ios source target membership
-        run: |
-          set -o pipefail
-          {
-            grep -n --fixed-strings "ContentView.swift in Sources" mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj
-            grep -n --fixed-strings "Theme.swift in Sources" mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj
-            grep -n --fixed-strings "PacketTunnelProvider.swift in Sources" mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj
-            grep -n --fixed-strings "INFOPLIST_FILE = AnimusLinkTunnelExtension/Info.plist" mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj
-          } 2>&1 | tee mobile/ios/build/ci-logs/ios-membership.log
-      - name: fmt
-        run: cargo fmt --all -- --check
-      - name: clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
-      - name: test
-        run: cargo test --workspace
-      - name: verify committed swift bindings are up-to-date
-        run: |
-          if [ -f mobile/ios/Generated/animus_link.swift ]; then
-            cargo run --quiet -p fabric-ffi --bin generate-bindings -- swift mobile/ios/Generated
-            git diff --exit-code -- mobile/ios/Generated/animus_link.swift
-          fi
-      - name: xcode build
-        run: |
-          set -o pipefail
-          xcodebuild \
-            -project mobile/ios/AnimusLinkIOS.xcodeproj \
-            -scheme AnimusLinkIOS-CI \
-            -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
-            -derivedDataPath mobile/ios/build \
-            -resultBundlePath mobile/ios/build/results/host.xcresult \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            DEVELOPMENT_TEAM="" \
-            build 2>&1 | tee mobile/ios/build/ci-logs/xcodebuild-host.log
-      - name: xcode build extension target
-        run: |
-          set -o pipefail
-          xcodebuild \
-            -project mobile/ios/AnimusLinkIOS.xcodeproj \
-            -target AnimusLinkTunnelExtension \
-            -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
-            -derivedDataPath mobile/ios/build \
-            -resultBundlePath mobile/ios/build/results/extension.xcresult \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            DEVELOPMENT_TEAM="" \
-            build 2>&1 | tee mobile/ios/build/ci-logs/xcodebuild-extension.log
-      - name: package ios xcframework
-        run: bash mobile/ios/scripts/package-xcframework.sh
-      - name: verify ios ffi artifacts
-        run: |
-          test -f mobile/ios/Generated/animus_link.swift
-          test -f mobile/ios/Generated/animus_linkFFI.h
-          test -f mobile/ios/Generated/animus_linkFFI.modulemap
-          test -f target/aarch64-apple-ios/release/libfabric_ffi.a
-          test -f target/aarch64-apple-ios-sim/release/libfabric_ffi.a
-          test -d mobile/ios/dist/AnimusLinkFFI.xcframework
-          test -d mobile/ios/build/Build/Products/Debug-iphonesimulator/AnimusLinkIOS.app
-          test -d mobile/ios/build/Build/Products/Debug-iphonesimulator/AnimusLinkTunnelExtension.appex
-      - name: upload ios app
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-debug-app
-          path: mobile/ios/build/Build/Products/Debug-iphonesimulator/AnimusLinkIOS.app
-      - name: upload ios xcframework
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-xcframework
-          path: mobile/ios/dist/AnimusLinkFFI.xcframework
-      - name: upload ios failure diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-failure-diagnostics
-          path: |
-            mobile/ios/build/ci-logs
-            mobile/ios/build/results
-            mobile/ios/build/Logs
-            mobile/ios/build/Build
-      - name: ios failure summary
-        if: failure()
-        run: |
-          {
-            echo "## iOS Failure Summary"
-            echo "Commands:"
-            echo "- xcode build host: xcodebuild -project mobile/ios/AnimusLinkIOS.xcodeproj -scheme AnimusLinkIOS-CI -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 15' ... build"
-            echo "- xcode build extension target: xcodebuild -project mobile/ios/AnimusLinkIOS.xcodeproj -target AnimusLinkTunnelExtension -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 15' ... build"
-            first_log=""
-            for candidate in \
-              mobile/ios/build/ci-logs/ios-membership.log \
-              mobile/ios/build/ci-logs/xcodebuild-host.log \
-              mobile/ios/build/ci-logs/xcodebuild-extension.log \
-              mobile/ios/build/ci-logs/xcodebuild-list.log; do
-              if [ -f "$candidate" ] && grep -qE "error:|fatal error:|Testing failed:|BUILD FAILED|No such file|not found|command not found" "$candidate"; then
-                first_log="$candidate"
-                break
-              fi
-            done
-            if [ -n "$first_log" ]; then
-              base="$(basename "$first_log")"
-              case "$base" in
-                ios-membership.log)
-                  failing_step="verify ios source target membership"
-                  failing_cmd="grep target-membership checks in mobile/ios/AnimusLinkIOS.xcodeproj/project.pbxproj"
-                  ;;
-                xcodebuild-host.log)
-                  failing_step="xcode build host scheme"
-                  failing_cmd="xcodebuild -project mobile/ios/AnimusLinkIOS.xcodeproj -scheme AnimusLinkIOS-CI ..."
-                  ;;
-                xcodebuild-extension.log)
-                  failing_step="xcode build extension target"
-                  failing_cmd="xcodebuild -project mobile/ios/AnimusLinkIOS.xcodeproj -target AnimusLinkTunnelExtension ..."
-                  ;;
-                xcodebuild-list.log)
-                  failing_step="verify ios project targets exist"
-                  failing_cmd="xcodebuild -list -project mobile/ios/AnimusLinkIOS.xcodeproj"
-                  ;;
-                *)
-                  failing_step="$base"
-                  failing_cmd="see job log"
-                  ;;
-              esac
-              echo ""
-              echo "First failing step: $failing_step"
-              echo "Command: $failing_cmd"
-              line="$(grep -nE "error:|fatal error:|Testing failed:|BUILD FAILED|No such file|not found|command not found" "$first_log" | head -n1 | cut -d: -f1)"
-              if [ -n "$line" ]; then
-                start=$(( line > 20 ? line - 20 : 1 ))
-                end=$(( line + 20 ))
-                echo '```'
-                sed -n "${start},${end}p" "$first_log"
-                echo '```'
-              fi
-            fi
-          } >> "${GITHUB_STEP_SUMMARY}"
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+      - name: install dependencies
+        run: npm install --no-fund --no-audit
+      - name: generate icons
+        run: npm exec tauri icon src/assets/app-icon.svg
+      - name: build daemon sidecar
+        working-directory: .
+        run: cargo build -p link-daemon
+      - name: prepare dev sidecar
+        working-directory: .
+        shell: bash
+        run: bash scripts/prepare-desktop-sidecar.sh ${{ matrix.target_triple }} debug
+      - name: tauri rust smoke
+        working-directory: .
+        run: cargo test --manifest-path apps/link-desktop/src-tauri/Cargo.toml

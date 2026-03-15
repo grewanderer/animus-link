@@ -1,0 +1,88 @@
+name: desktop-build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target_triple: x86_64-unknown-linux-gnu
+            platform_config: src-tauri/tauri.linux.conf.json
+          - os: windows-latest
+            target_triple: x86_64-pc-windows-msvc
+            platform_config: src-tauri/tauri.windows.conf.json
+          - os: macos-latest
+            target_triple: aarch64-apple-darwin
+            platform_config: src-tauri/tauri.macos.conf.json
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: apps/link-desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: Swatinem/rust-cache@v2
+      - name: cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: desktop-build-${{ runner.os }}-${{ hashFiles('apps/link-desktop/package.json') }}
+          restore-keys: |
+            desktop-build-${{ runner.os }}-
+      - name: linux desktop deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+      - name: install dependencies
+        run: npm install --no-fund --no-audit
+      - name: generate icons
+        run: npm exec tauri icon src/assets/app-icon.svg
+      - name: build daemon sidecar
+        working-directory: .
+        run: cargo build --release -p link-daemon
+      - name: prepare bundled sidecar
+        working-directory: .
+        shell: bash
+        run: bash scripts/prepare-desktop-sidecar.sh ${{ matrix.target_triple }} release
+      - name: build tauri bundle
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm run tauri:build -- --config src-tauri/tauri.conf.json --config ${{ matrix.platform_config }}
+      - name: verify bundled daemon presence
+        if: runner.os != 'Windows'
+        run: |
+          find src-tauri/target/release/bundle -type f | grep -E 'link-daemon' >/dev/null
+      - name: verify bundled daemon presence (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem src-tauri/target/release/bundle -Recurse -File | Where-Object { $_.Name -match 'link-daemon' }
+          if (-not $files) { throw 'Bundled daemon binary not found in desktop artifact' }
+      - name: upload desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.target_triple }}
+          path: apps/link-desktop/src-tauri/target/release/bundle

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Animus Link",
+  "version": "0.1.0",
+  "identifier": "com.animus.link.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Animus Link",
+        "width": 1480,
+        "height": 920,
+        "minWidth": 1220,
+        "minHeight": 760,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "DeveloperTool",
+    "shortDescription": "Desktop operator console for the local Animus Link daemon.",
+    "longDescription": "Animus Link Desktop supervises the local link-daemon and drives meshes, routing, services, and messenger through the daemon's local API.",
+    "externalBin": ["bin/link-daemon"],
+    "createUpdaterArtifacts": false
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "dialog": false,
+      "endpoints": [
+        "https://updates.example.invalid/animus-link/{{target}}/{{current_version}}"
+      ],
+      "pubkey": "UPDATER_PUBKEY_PLACEHOLDER"
+    }
+  }
+}

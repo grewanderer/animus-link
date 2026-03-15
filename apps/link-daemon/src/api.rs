@@ -1,27 +1,46 @@
 use std::{
+    collections::HashMap,
+    net::IpAddr,
     net::SocketAddr,
     path::{Path, PathBuf},
     sync::Arc,
+    time::Duration,
 };
 
-use serde::Serialize;
+use fabric_crypto::DeterministicPrimitives;
+use fabric_session::{
+    limits::PreAuthLimits,
+    mux::{decode_mux_frame, MuxFrame},
+    ratelimit::{PreAuthGate, SystemClock as RateLimitClock, TokenBucketPreAuthGate},
+    secure_session::{SecureSession, SessionEvent},
+};
+use serde::{de::DeserializeOwned, Serialize};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
-    sync::{oneshot, Mutex},
+    sync::{mpsc, oneshot, Mutex},
+    time::sleep,
 };
 
 use crate::{
+    control_store::MessengerMessageRecord,
     daemon::{
-        AppRustdeskBindRequest, ConnectPlan, ConnectRequest, ExposeRequest, GatewayExposeRequest,
-        InviteJoinRequest, LinkDaemon, MeshCreateRequest, MeshJoinApiRequest,
+        connect_runtime_stream, run_stream_handshake_initiator, run_stream_handshake_responder,
+        seed_for_role, send_mux_over_packet_stream, spawn_local_reader, AppRustdeskBindRequest,
+        ConnectPlan, ConnectRequest, ExposeRequest, GatewayExposeRequest, InviteJoinRequest,
+        LinkDaemon, LocalStreamEvent, MeshCreateRequest, MeshJoinApiRequest,
         MeshScopedServiceConnectRequest, MeshScopedServiceExposeRequest,
         MessengerConversationCreateRequest, MessengerSendRequest, NodeRolesRequest,
-        RelayAdvertiseRequest, RelayClearSelectionRequest, RelayConfig, RelaySelectRequest,
-        TunnelEnableRequest,
+        PeerRelayWorkerSpec, RelayAdvertiseRequest, RelayClearSelectionRequest, RelayConfig,
+        RelaySelectRequest, TunnelEnableRequest, SESSION_PROLOGUE, STREAM_QUEUE_CAPACITY,
     },
     diagnostics::{build_diagnostics, run_self_check},
     errors::{error_envelope, ApiEnvelope, ApiError, ApiErrorCode},
+    mesh_runtime::{
+        read_packet_frame, read_runtime_json, write_json_payload, write_packet_frame,
+        MeshSyncPayload, MessengerDeliveryAck, MessengerDeliveryEnvelope, RuntimeHello,
+        RuntimeHelloAck, MESSENGER_RUNTIME_SERVICE,
+    },
     relay_token::{
         RelayTokenIssuer, RelayTokenIssuerConfig, DEFAULT_SIGNING_KEY_ID, DEFAULT_TOKEN_TTL_SECS,
     },
@@ -114,8 +133,16 @@ pub async fn run_api_server_with_listener(
 ) -> anyhow::Result<()> {
     let mut state = LinkDaemon::new(config.state_file.as_path(), config.relay_config()?)?;
     let bound_addr = listener.local_addr().unwrap_or(config.api_bind);
-    state.configure_runtime(bound_addr, config.token_issuer_configured());
+    let runtime_listener = TcpListener::bind(default_runtime_bind(bound_addr)).await?;
+    let runtime_addr = runtime_listener
+        .local_addr()
+        .unwrap_or_else(|_| default_runtime_bind(bound_addr));
+    state.configure_runtime(bound_addr, runtime_addr, config.token_issuer_configured());
     let state = Arc::new(Mutex::new(state));
+    let runtime_state = Arc::clone(&state);
+    let runtime_task = tokio::spawn(async move {
+        let _ = run_runtime_server(runtime_listener, runtime_state).await;
+    });
 
     loop {
         let accept_result = if let Some(shutdown_rx) = shutdown.as_mut() {
@@ -135,6 +162,8 @@ pub async fn run_api_server_with_listener(
             let _ = handle_connection(stream, state).await;
         });
     }
+
+    runtime_task.abort();
 
     Ok(())
 }
@@ -203,10 +232,44 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
         }
         ("POST", ["v1", "invite", "join"]) => {
             let parsed: Result<InviteJoinRequest, ApiError> = parse_json_body(&request.body);
-            let mut state = state.lock().await;
-            match parsed.and_then(|body| state.invite_join(body)) {
-                Ok(()) => ok_json(serde_json::json!({ "joined": true })),
+            match parsed {
+                Ok(body) => {
+                    let bootstrap_url = body.bootstrap_url.clone();
+                    let join_result = {
+                        let mut state = state.lock().await;
+                        state.invite_join(body)
+                    };
+                    match join_result {
+                        Ok(()) => {
+                            let mesh_id = {
+                                let state = state.lock().await;
+                                state
+                                    .meshes()
+                                    .meshes
+                                    .first()
+                                    .map(|mesh| mesh.config.mesh_id.clone())
+                            };
+                            if let (Some(mesh_id), Some(bootstrap_url)) = (mesh_id, bootstrap_url) {
+                                if let Err(error) =
+                                    bootstrap_mesh_sync(Arc::clone(&state), mesh_id, bootstrap_url)
+                                        .await
+                                {
+                                    let mut state = state.lock().await;
+                                    state.record_error(error.code);
+                                    return error_json(error);
+                                }
+                            }
+                            ok_json(serde_json::json!({ "joined": true }))
+                        }
+                        Err(error) => {
+                            let mut state = state.lock().await;
+                            state.record_error(error.code);
+                            error_json(error)
+                        }
+                    }
+                }
                 Err(error) => {
+                    let mut state = state.lock().await;
                     state.record_error(error.code);
                     error_json(error)
                 }
@@ -229,10 +292,39 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
         }
         ("POST", ["v1", "meshes", "join"]) => {
             let parsed: Result<MeshJoinApiRequest, ApiError> = parse_json_body(&request.body);
-            let mut state = state.lock().await;
-            match parsed.and_then(|body| state.mesh_join(body)) {
-                Ok(body) => ok_json(body),
+            match parsed {
+                Ok(body) => {
+                    let bootstrap_url = body.bootstrap_url.clone();
+                    let join_result = {
+                        let mut state = state.lock().await;
+                        state.mesh_join(body)
+                    };
+                    match join_result {
+                        Ok(body) => {
+                            if let Some(bootstrap_url) = bootstrap_url {
+                                if let Err(error) = bootstrap_mesh_sync(
+                                    Arc::clone(&state),
+                                    body.mesh.mesh_id.clone(),
+                                    bootstrap_url,
+                                )
+                                .await
+                                {
+                                    let mut state = state.lock().await;
+                                    state.record_error(error.code);
+                                    return error_json(error);
+                                }
+                            }
+                            ok_json(body)
+                        }
+                        Err(error) => {
+                            let mut state = state.lock().await;
+                            state.record_error(error.code);
+                            error_json(error)
+                        }
+                    }
+                }
                 Err(error) => {
+                    let mut state = state.lock().await;
                     state.record_error(error.code);
                     error_json(error)
                 }
@@ -256,22 +348,32 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
             }
         }
         ("POST", ["v1", "meshes", mesh_id, "peers", peer_id, "revoke"]) => {
-            let mut state = state.lock().await;
-            match state.revoke_mesh_peer(mesh_id, peer_id) {
-                Ok(body) => ok_json(body),
+            let mut daemon = state.lock().await;
+            match daemon.revoke_mesh_peer(mesh_id, peer_id) {
+                Ok(body) => {
+                    drop(daemon);
+                    broadcast_mesh_snapshot(Arc::clone(&state), mesh_id.to_string(), None, 1).await;
+                    ok_json(body)
+                }
                 Err(error) => {
-                    state.record_error(error.code);
+                    daemon.record_error(error.code);
                     error_json(error)
                 }
             }
         }
         ("POST", ["v1", "nodes", node_id, "roles"]) => {
             let parsed: Result<NodeRolesRequest, ApiError> = parse_json_body(&request.body);
-            let mut state = state.lock().await;
-            match parsed.and_then(|body| state.set_node_roles(node_id, body)) {
-                Ok(body) => ok_json(body),
+            let mut daemon = state.lock().await;
+            match parsed.and_then(|body| daemon.set_node_roles(node_id, body)) {
+                Ok(body) => {
+                    let mesh_id = body.mesh_id.clone();
+                    drop(daemon);
+                    broadcast_mesh_snapshot(Arc::clone(&state), mesh_id.clone(), None, 1).await;
+                    ensure_peer_relay_workers(Arc::clone(&state), Some(mesh_id)).await;
+                    ok_json(body)
+                }
                 Err(error) => {
-                    state.record_error(error.code);
+                    daemon.record_error(error.code);
                     error_json(error)
                 }
             }
@@ -285,11 +387,17 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
         }
         ("POST", ["v1", "relays", "advertise"]) => {
             let parsed: Result<RelayAdvertiseRequest, ApiError> = parse_json_body(&request.body);
-            let mut state = state.lock().await;
-            match parsed.and_then(|body| state.advertise_relay(body)) {
-                Ok(body) => ok_json(body),
+            let mut daemon = state.lock().await;
+            match parsed.and_then(|body| daemon.advertise_relay(body)) {
+                Ok(body) => {
+                    let mesh_id = body.mesh_id.clone();
+                    drop(daemon);
+                    broadcast_mesh_snapshot(Arc::clone(&state), mesh_id.clone(), None, 1).await;
+                    ensure_peer_relay_workers(Arc::clone(&state), Some(mesh_id)).await;
+                    ok_json(body)
+                }
                 Err(error) => {
-                    state.record_error(error.code);
+                    daemon.record_error(error.code);
                     error_json(error)
                 }
             }
@@ -340,14 +448,20 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
             state.lock().await.metrics_handle().inc_expose_attempts();
             let parsed: Result<MeshScopedServiceExposeRequest, ApiError> =
                 parse_json_body(&request.body);
-            let mut state = state.lock().await;
-            match parsed.and_then(|body| state.expose_service(body)) {
-                Ok(body) => ok_json(body),
+            let mut daemon = state.lock().await;
+            match parsed.and_then(|body| daemon.expose_service(body)) {
+                Ok(body) => {
+                    let mesh_id = body.descriptor.mesh_id.clone();
+                    drop(daemon);
+                    broadcast_mesh_snapshot(Arc::clone(&state), mesh_id.clone(), None, 1).await;
+                    ensure_peer_relay_workers(Arc::clone(&state), Some(mesh_id)).await;
+                    ok_json(body)
+                }
                 Err(error) => {
                     if error.code == ApiErrorCode::Denied {
-                        state.metrics_handle().inc_expose_denied();
+                        daemon.metrics_handle().inc_expose_denied();
                     }
-                    state.record_error(error.code);
+                    daemon.record_error(error.code);
                     error_json(error)
                 }
             }
@@ -443,11 +557,17 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
         ("POST", ["v1", "messenger", "conversations"]) => {
             let parsed: Result<MessengerConversationCreateRequest, ApiError> =
                 parse_json_body(&request.body);
-            let mut state = state.lock().await;
-            match parsed.and_then(|body| state.messenger_create_conversation(body)) {
-                Ok(body) => ok_json(body),
+            let mut daemon = state.lock().await;
+            match parsed.and_then(|body| daemon.messenger_create_conversation(body)) {
+                Ok(body) => {
+                    let mesh_id = body.mesh_id.clone();
+                    drop(daemon);
+                    broadcast_mesh_snapshot(Arc::clone(&state), mesh_id.clone(), None, 1).await;
+                    ensure_peer_relay_workers(Arc::clone(&state), Some(mesh_id)).await;
+                    ok_json(body)
+                }
                 Err(error) => {
-                    state.record_error(error.code);
+                    daemon.record_error(error.code);
                     error_json(error)
                 }
             }
@@ -458,10 +578,39 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
         }
         ("POST", ["v1", "messenger", "send"]) => {
             let parsed: Result<MessengerSendRequest, ApiError> = parse_json_body(&request.body);
-            let mut state = state.lock().await;
-            match parsed.and_then(|body| state.messenger_send(body)) {
-                Ok(body) => ok_json(body),
+            match parsed {
+                Ok(body) => {
+                    let send_result = {
+                        let mut state = state.lock().await;
+                        state.messenger_send(body)
+                    };
+                    match send_result {
+                        Ok(body) => {
+                            if let Err(error) =
+                                deliver_messenger_message(Arc::clone(&state), body.clone()).await
+                            {
+                                let mut state = state.lock().await;
+                                state.record_error(error.code);
+                                return error_json(error);
+                            }
+                            broadcast_mesh_snapshot(
+                                Arc::clone(&state),
+                                body.mesh_id.clone(),
+                                None,
+                                1,
+                            )
+                            .await;
+                            ok_json(body)
+                        }
+                        Err(error) => {
+                            let mut state = state.lock().await;
+                            state.record_error(error.code);
+                            error_json(error)
+                        }
+                    }
+                }
                 Err(error) => {
+                    let mut state = state.lock().await;
                     state.record_error(error.code);
                     error_json(error)
                 }
@@ -484,6 +633,44 @@ async fn route_request(state: Arc<Mutex<LinkDaemon>>, request: HttpRequest) -> H
                     Err(error) => error_json(error),
                 },
                 None => error_json(ApiError::new(ApiErrorCode::NotFound, "mesh not found")),
+            }
+        }
+        ("POST", ["v1", "internal", "mesh-sync"]) => {
+            let parsed: Result<MeshSyncPayload, ApiError> = parse_json_body(&request.body);
+            match parsed {
+                Ok(body) => {
+                    let mesh_id = body.mesh_id.clone();
+                    let sender_api_url = body.sender_api_url.clone();
+                    let hops_remaining = body.hops_remaining;
+                    let response = {
+                        let mut state = state.lock().await;
+                        state.apply_mesh_sync(body)
+                    };
+                    match response {
+                        Ok(body) => {
+                            ensure_peer_relay_workers(Arc::clone(&state), Some(mesh_id.clone()))
+                                .await;
+                            broadcast_mesh_snapshot(
+                                Arc::clone(&state),
+                                mesh_id,
+                                Some(sender_api_url),
+                                hops_remaining.saturating_sub(1),
+                            )
+                            .await;
+                            ok_json_raw(body)
+                        }
+                        Err(error) => {
+                            let mut state = state.lock().await;
+                            state.record_error(error.code);
+                            error_json(error)
+                        }
+                    }
+                }
+                Err(error) => {
+                    let mut state = state.lock().await;
+                    state.record_error(error.code);
+                    error_json(error)
+                }
             }
         }
         ("POST", ["v1", "apps", "rustdesk", "bind"]) => {
@@ -707,6 +894,770 @@ fn path_segments(path: &str) -> Vec<&str> {
         .split('/')
         .filter(|segment| !segment.is_empty())
         .collect()
+}
+
+fn default_runtime_bind(api_bind: SocketAddr) -> SocketAddr {
+    match api_bind {
+        SocketAddr::V4(_) => "127.0.0.1:0"
+            .parse()
+            .expect("static loopback runtime bind must parse"),
+        SocketAddr::V6(_) => "[::1]:0"
+            .parse()
+            .expect("static loopback runtime bind must parse"),
+    }
+}
+
+#[derive(Debug, Clone)]
+struct PeerApiEndpoint {
+    authority: String,
+    host: String,
+    port: u16,
+}
+
+#[derive(Debug, Default)]
+struct RuntimeRelayRegistry {
+    pending: Mutex<HashMap<String, TcpStream>>,
+}
+
+async fn bootstrap_mesh_sync(
+    state: Arc<Mutex<LinkDaemon>>,
+    mesh_id: String,
+    bootstrap_url: String,
+) -> Result<(), ApiError> {
+    let payload = {
+        let state = state.lock().await;
+        state.mesh_sync_payload(mesh_id.as_str())?
+    };
+    let response: MeshSyncPayload =
+        post_json_to_peer(bootstrap_url.as_str(), "/v1/internal/mesh-sync", &payload).await?;
+    {
+        let mut state = state.lock().await;
+        let _ = state.apply_mesh_sync(response)?;
+    }
+    ensure_peer_relay_workers(Arc::clone(&state), Some(mesh_id.clone())).await;
+    broadcast_mesh_snapshot(state, mesh_id, None, 1).await;
+    Ok(())
+}
+
+async fn broadcast_mesh_snapshot(
+    state: Arc<Mutex<LinkDaemon>>,
+    mesh_id: String,
+    exclude_api_url: Option<String>,
+    hops_remaining: u8,
+) {
+    if hops_remaining == 0 {
+        ensure_peer_relay_workers(state, Some(mesh_id)).await;
+        return;
+    }
+    let (payload, peers) = {
+        let state = state.lock().await;
+        let Ok(mut payload) = state.mesh_sync_payload(mesh_id.as_str()) else {
+            return;
+        };
+        payload.hops_remaining = hops_remaining;
+        (payload, state.mesh_peer_api_urls(mesh_id.as_str()))
+    };
+
+    for peer_url in peers {
+        if exclude_api_url.as_deref() == Some(peer_url.as_str()) {
+            continue;
+        }
+        if let Ok(response) = post_json_to_peer::<_, MeshSyncPayload>(
+            peer_url.as_str(),
+            "/v1/internal/mesh-sync",
+            &payload,
+        )
+        .await
+        {
+            let mut state = state.lock().await;
+            let _ = state.apply_mesh_sync(response);
+        }
+    }
+
+    ensure_peer_relay_workers(state, Some(mesh_id)).await;
+}
+
+async fn ensure_peer_relay_workers(state: Arc<Mutex<LinkDaemon>>, mesh_id: Option<String>) {
+    let specs = {
+        let state = state.lock().await;
+        state.desired_peer_relay_workers(mesh_id.as_deref())
+    };
+
+    for spec in specs {
+        let should_start = {
+            let mut state = state.lock().await;
+            state.mark_peer_relay_worker_started(spec.worker_key.as_str())
+        };
+        if !should_start {
+            continue;
+        }
+        let worker_state = Arc::clone(&state);
+        tokio::spawn(async move {
+            run_peer_relay_bind_worker(worker_state, spec).await;
+        });
+    }
+}
+
+async fn run_peer_relay_bind_worker(state: Arc<Mutex<LinkDaemon>>, spec: PeerRelayWorkerSpec) {
+    loop {
+        let (source_peer_id, source_node_id) = {
+            let state = state.lock().await;
+            (
+                state.local_peer_id().to_string(),
+                state.local_node_id().to_string(),
+            )
+        };
+        let hello = RuntimeHello::RelayBind {
+            mesh_id: spec.mesh_id.clone(),
+            source_peer_id,
+            source_node_id,
+            remote_peer_id: spec.remote_peer_id.clone(),
+            conn_id: spec.conn_id,
+        };
+        let stream = match connect_runtime_stream(spec.relay_runtime_addr, &hello).await {
+            Ok(stream) => stream,
+            Err(_) => {
+                sleep(Duration::from_millis(100)).await;
+                continue;
+            }
+        };
+        let _ = handle_runtime_service_session(
+            Arc::clone(&state),
+            stream,
+            spec.mesh_id.clone(),
+            spec.remote_peer_id.clone(),
+            spec.conn_id,
+        )
+        .await;
+        sleep(Duration::from_millis(100)).await;
+    }
+}
+
+async fn run_runtime_server(
+    listener: TcpListener,
+    state: Arc<Mutex<LinkDaemon>>,
+) -> Result<(), ApiError> {
+    let registry = Arc::new(RuntimeRelayRegistry::default());
+    loop {
+        let (stream, _) = listener
+            .accept()
+            .await
+            .map_err(|_| ApiError::new(ApiErrorCode::Internal, "runtime accept failed"))?;
+        let state = Arc::clone(&state);
+        let registry = Arc::clone(&registry);
+        tokio::spawn(async move {
+            let _ = handle_runtime_connection(stream, state, registry).await;
+        });
+    }
+}
+
+async fn handle_runtime_connection(
+    mut stream: TcpStream,
+    state: Arc<Mutex<LinkDaemon>>,
+    registry: Arc<RuntimeRelayRegistry>,
+) -> Result<(), ApiError> {
+    let hello: RuntimeHello = read_runtime_json(&mut stream)
+        .await
+        .map_err(|_| ApiError::new(ApiErrorCode::InvalidInput, "invalid runtime hello"))?;
+    match hello {
+        RuntimeHello::Direct {
+            mesh_id,
+            source_peer_id,
+            target_peer_id,
+            conn_id,
+            ..
+        } => {
+            let allowed = {
+                let state = state.lock().await;
+                target_peer_id == state.local_peer_id()
+                    && state.has_direct_peer_path(mesh_id.as_str(), source_peer_id.as_str())
+            };
+            write_json_payload(
+                &mut stream,
+                &RuntimeHelloAck {
+                    ok: allowed,
+                    reason: (!allowed).then(|| "direct_path_unavailable".to_string()),
+                },
+            )
+            .await
+            .map_err(|_| ApiError::new(ApiErrorCode::Internal, "runtime ack failed"))?;
+            if !allowed {
+                return Ok(());
+            }
+            handle_runtime_service_session(state, stream, mesh_id, source_peer_id, conn_id).await
+        }
+        RuntimeHello::RelayBind {
+            mesh_id,
+            source_peer_id,
+            conn_id,
+            ..
+        } => {
+            let allowed = {
+                let state = state.lock().await;
+                state.is_local_relay_available(mesh_id.as_str())
+                    && state.has_direct_peer_path(mesh_id.as_str(), source_peer_id.as_str())
+            };
+            write_json_payload(
+                &mut stream,
+                &RuntimeHelloAck {
+                    ok: allowed,
+                    reason: (!allowed).then(|| "relay_not_available".to_string()),
+                },
+            )
+            .await
+            .map_err(|_| ApiError::new(ApiErrorCode::Internal, "runtime ack failed"))?;
+            if !allowed {
+                return Ok(());
+            }
+            registry
+                .pending
+                .lock()
+                .await
+                .insert(relay_binding_key(mesh_id.as_str(), conn_id), stream);
+            Ok(())
+        }
+        RuntimeHello::RelayConnect {
+            mesh_id,
+            source_peer_id,
+            conn_id,
+            ..
+        } => {
+            let allowed = {
+                let state = state.lock().await;
+                state.is_local_relay_available(mesh_id.as_str())
+                    && state.has_direct_peer_path(mesh_id.as_str(), source_peer_id.as_str())
+            };
+            if !allowed {
+                write_json_payload(
+                    &mut stream,
+                    &RuntimeHelloAck {
+                        ok: false,
+                        reason: Some("relay_not_available".to_string()),
+                    },
+                )
+                .await
+                .map_err(|_| ApiError::new(ApiErrorCode::Internal, "runtime ack failed"))?;
+                return Ok(());
+            }
+
+            let binding_key = relay_binding_key(mesh_id.as_str(), conn_id);
+            let pending = registry.pending.lock().await.remove(binding_key.as_str());
+            let Some(mut bound_stream) = pending else {
+                write_json_payload(
+                    &mut stream,
+                    &RuntimeHelloAck {
+                        ok: false,
+                        reason: Some("relay_binding_unavailable".to_string()),
+                    },
+                )
+                .await
+                .map_err(|_| ApiError::new(ApiErrorCode::Internal, "runtime ack failed"))?;
+                return Ok(());
+            };
+
+            write_json_payload(
+                &mut stream,
+                &RuntimeHelloAck {
+                    ok: true,
+                    reason: None,
+                },
+            )
+            .await
+            .map_err(|_| ApiError::new(ApiErrorCode::Internal, "runtime ack failed"))?;
+            tokio::io::copy_bidirectional(&mut bound_stream, &mut stream)
+                .await
+                .map_err(|_| ApiError::new(ApiErrorCode::Internal, "relay forward failed"))?;
+            Ok(())
+        }
+    }
+}
+
+fn relay_binding_key(mesh_id: &str, conn_id: u64) -> String {
+    format!("{mesh_id}:{conn_id}")
+}
+
+async fn handle_runtime_service_session(
+    state: Arc<Mutex<LinkDaemon>>,
+    stream: TcpStream,
+    mesh_id: String,
+    remote_peer_id: String,
+    conn_id: u64,
+) -> Result<(), ApiError> {
+    let peer_ip = stream
+        .peer_addr()
+        .map(|addr| addr.ip())
+        .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::LOCALHOST));
+    let (mut reader, mut writer) = stream.into_split();
+    let seed = seed_for_role("responder", conn_id);
+    let mut session = SecureSession::new_responder(
+        conn_id,
+        SESSION_PROLOGUE,
+        DeterministicPrimitives::new(seed),
+    );
+    let mut gate = TokenBucketPreAuthGate::new(PreAuthLimits::default(), RateLimitClock);
+    run_stream_handshake_responder(&mut reader, &mut writer, peer_ip, &mut gate, &mut session)
+        .await?;
+
+    let (local_tx, mut local_rx) = mpsc::channel::<LocalStreamEvent>(STREAM_QUEUE_CAPACITY);
+    let mut stream_writes: HashMap<u32, tokio::net::tcp::OwnedWriteHalf> = HashMap::new();
+    let mut messenger_streams: HashMap<u32, ()> = HashMap::new();
+
+    loop {
+        tokio::select! {
+            recv = read_packet_frame(&mut reader) => {
+                let Ok(packet) = recv else {
+                    break;
+                };
+                if !gate.allow_packet(peer_ip, packet.len()) {
+                    continue;
+                }
+                let Ok(handled) = session.handle_incoming(packet.as_slice()) else {
+                    continue;
+                };
+                for outbound in handled.outbound {
+                    let _ = write_packet_frame(&mut writer, outbound.as_slice()).await;
+                }
+                for event in handled.events {
+                    match event {
+                        SessionEvent::Data { stream_id, payload } => {
+                            let Ok(frame) = decode_mux_frame(payload.as_slice()) else {
+                                continue;
+                            };
+                            match frame {
+                                MuxFrame::Open { service } => {
+                                    if service == MESSENGER_RUNTIME_SERVICE {
+                                        messenger_streams.insert(stream_id, ());
+                                        continue;
+                                    }
+                                    let descriptor = {
+                                        let state = state.lock().await;
+                                        state.accessible_service(mesh_id.as_str(), service.as_str(), remote_peer_id.as_str())
+                                    };
+                                    let Ok(descriptor) = descriptor else {
+                                        let _ = send_mux_over_packet_stream(
+                                            &mut writer,
+                                            &mut session,
+                                            stream_id,
+                                            MuxFrame::Close,
+                                        ).await;
+                                        continue;
+                                    };
+                                    let Ok(local_addr) = descriptor.local_addr.parse::<SocketAddr>() else {
+                                        let _ = send_mux_over_packet_stream(
+                                            &mut writer,
+                                            &mut session,
+                                            stream_id,
+                                            MuxFrame::Close,
+                                        ).await;
+                                        continue;
+                                    };
+                                    match TcpStream::connect(local_addr).await {
+                                        Ok(stream) => {
+                                            let (read_half, write_half) = stream.into_split();
+                                            stream_writes.insert(stream_id, write_half);
+                                            spawn_local_reader(stream_id, read_half, local_tx.clone());
+                                        }
+                                        Err(_) => {
+                                            let _ = send_mux_over_packet_stream(
+                                                &mut writer,
+                                                &mut session,
+                                                stream_id,
+                                                MuxFrame::Close,
+                                            ).await;
+                                        }
+                                    }
+                                }
+                                MuxFrame::Data { bytes } => {
+                                    if messenger_streams.contains_key(&stream_id) {
+                                        let Ok(delivery) = serde_json::from_slice::<MessengerDeliveryEnvelope>(bytes.as_slice()) else {
+                                            let _ = send_mux_over_packet_stream(
+                                                &mut writer,
+                                                &mut session,
+                                                stream_id,
+                                                MuxFrame::Close,
+                                            ).await;
+                                            continue;
+                                        };
+                                        let received = {
+                                            let mut state = state.lock().await;
+                                            state.receive_messenger_delivery(delivery).is_ok()
+                                        };
+                                        let ack = serde_json::to_vec(&MessengerDeliveryAck { received })
+                                            .unwrap_or_else(|_| b"{\"received\":false}".to_vec());
+                                        let _ = send_mux_over_packet_stream(
+                                            &mut writer,
+                                            &mut session,
+                                            stream_id,
+                                            MuxFrame::Data { bytes: ack },
+                                        ).await;
+                                        continue;
+                                    }
+                                    if let Some(write_half) = stream_writes.get_mut(&stream_id) {
+                                        if write_half.write_all(bytes.as_slice()).await.is_err() {
+                                            stream_writes.remove(&stream_id);
+                                            let _ = send_mux_over_packet_stream(
+                                                &mut writer,
+                                                &mut session,
+                                                stream_id,
+                                                MuxFrame::Close,
+                                            ).await;
+                                        }
+                                    }
+                                }
+                                MuxFrame::Close => {
+                                    stream_writes.remove(&stream_id);
+                                    messenger_streams.remove(&stream_id);
+                                }
+                            }
+                        }
+                        SessionEvent::Close { stream_id } => {
+                            stream_writes.remove(&stream_id);
+                            messenger_streams.remove(&stream_id);
+                        }
+                        SessionEvent::HandshakeComplete => {}
+                    }
+                }
+            }
+            local_event = local_rx.recv() => {
+                let Some(local_event) = local_event else {
+                    break;
+                };
+                match local_event {
+                    LocalStreamEvent::Data { stream_id, bytes } => {
+                        let _ = send_mux_over_packet_stream(
+                            &mut writer,
+                            &mut session,
+                            stream_id,
+                            MuxFrame::Data { bytes },
+                        ).await;
+                    }
+                    LocalStreamEvent::Close { stream_id } => {
+                        stream_writes.remove(&stream_id);
+                        let _ = send_mux_over_packet_stream(
+                            &mut writer,
+                            &mut session,
+                            stream_id,
+                            MuxFrame::Close,
+                        ).await;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn deliver_messenger_message(
+    state: Arc<Mutex<LinkDaemon>>,
+    message: MessengerMessageRecord,
+) -> Result<(), ApiError> {
+    let conversation = {
+        let state = state.lock().await;
+        state.conversation_record(message.conversation_id.as_str())?
+    };
+    for remote_peer_id in conversation
+        .participants
+        .iter()
+        .filter(|peer_id| **peer_id != message.sender_peer_id)
+        .cloned()
+        .collect::<Vec<_>>()
+    {
+        deliver_messenger_to_peer(
+            Arc::clone(&state),
+            conversation.clone(),
+            message.clone(),
+            remote_peer_id,
+        )
+        .await?;
+    }
+    Ok(())
+}
+
+async fn deliver_messenger_to_peer(
+    state: Arc<Mutex<LinkDaemon>>,
+    conversation: crate::control_store::MessengerConversationRecord,
+    message: crate::control_store::MessengerMessageRecord,
+    remote_peer_id: String,
+) -> Result<(), ApiError> {
+    let (mesh_id, source_peer_id, source_node_id, conn_id, hello, runtime_addr, route_path) = {
+        let mut state = state.lock().await;
+        let route = state.decide_conversation_route(
+            conversation.mesh_id.as_str(),
+            conversation.conversation_id.as_str(),
+            remote_peer_id.as_str(),
+        )?;
+        let mesh_id = conversation.mesh_id.clone();
+        let source_peer_id = state.local_peer_id().to_string();
+        let source_node_id = state.local_node_id().to_string();
+        let conn_id = crate::daemon::derive_peer_conn_id(
+            Some(mesh_id.as_str()),
+            source_peer_id.as_str(),
+            remote_peer_id.as_str(),
+        );
+        let (hello, runtime_addr) = match route.path {
+            fabric_service::RoutePath::Direct => {
+                let runtime_addr = state
+                    .peer_runtime_addr(mesh_id.as_str(), remote_peer_id.as_str())
+                    .ok_or_else(|| {
+                        ApiError::new(ApiErrorCode::NotReady, "messenger path unavailable")
+                    })?;
+                (
+                    RuntimeHello::Direct {
+                        mesh_id: mesh_id.clone(),
+                        source_peer_id: source_peer_id.clone(),
+                        source_node_id: source_node_id.clone(),
+                        target_peer_id: remote_peer_id.clone(),
+                        conn_id,
+                    },
+                    runtime_addr,
+                )
+            }
+            fabric_service::RoutePath::PeerRelay => {
+                let relay_node_id = route.selected_relay_node_id.clone().ok_or_else(|| {
+                    ApiError::new(ApiErrorCode::NotReady, "messenger path unavailable")
+                })?;
+                let (_relay_peer_id, relay_runtime_addr) = state
+                    .selected_relay_runtime(mesh_id.as_str(), relay_node_id.as_str())
+                    .ok_or_else(|| {
+                        ApiError::new(ApiErrorCode::NotReady, "messenger path unavailable")
+                    })?;
+                (
+                    RuntimeHello::RelayConnect {
+                        mesh_id: mesh_id.clone(),
+                        source_peer_id: source_peer_id.clone(),
+                        source_node_id: source_node_id.clone(),
+                        remote_peer_id: remote_peer_id.clone(),
+                        conn_id,
+                    },
+                    relay_runtime_addr,
+                )
+            }
+            fabric_service::RoutePath::ManagedRelay => {
+                return Err(ApiError::new(
+                    ApiErrorCode::NotReady,
+                    "managed relay messenger path unavailable",
+                ));
+            }
+        };
+        (
+            mesh_id,
+            source_peer_id,
+            source_node_id,
+            conn_id,
+            hello,
+            runtime_addr,
+            route.path,
+        )
+    };
+
+    let stream = connect_runtime_stream(runtime_addr, &hello).await?;
+    let peer_ip = stream
+        .peer_addr()
+        .map(|addr| addr.ip())
+        .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::LOCALHOST));
+    let (mut reader, mut writer) = stream.into_split();
+    let mut gate = TokenBucketPreAuthGate::new(PreAuthLimits::default(), RateLimitClock);
+    let mut session = SecureSession::new_initiator(
+        conn_id,
+        SESSION_PROLOGUE,
+        DeterministicPrimitives::new(seed_for_role("initiator", conn_id)),
+    );
+    run_stream_handshake_initiator(&mut reader, &mut writer, peer_ip, &mut gate, &mut session)
+        .await?;
+    send_mux_over_packet_stream(
+        &mut writer,
+        &mut session,
+        1,
+        MuxFrame::Open {
+            service: MESSENGER_RUNTIME_SERVICE.to_string(),
+        },
+    )
+    .await?;
+    let payload = serde_json::to_vec(&MessengerDeliveryEnvelope {
+        conversation,
+        message,
+    })
+    .map_err(|_| ApiError::new(ApiErrorCode::Internal, "messenger encode failure"))?;
+    send_mux_over_packet_stream(
+        &mut writer,
+        &mut session,
+        1,
+        MuxFrame::Data { bytes: payload },
+    )
+    .await?;
+
+    let packet = read_packet_frame(&mut reader)
+        .await
+        .map_err(|_| ApiError::new(ApiErrorCode::NotReady, "messenger path unavailable"))?;
+    if !gate.allow_packet(peer_ip, packet.len()) {
+        return Err(ApiError::new(
+            ApiErrorCode::NotReady,
+            "messenger path unavailable",
+        ));
+    }
+    let handled = session
+        .handle_incoming(packet.as_slice())
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "messenger receive failed"))?;
+    for outbound in handled.outbound {
+        let _ = crate::mesh_runtime::write_packet_frame(&mut writer, outbound.as_slice()).await;
+    }
+    let mut received = false;
+    for event in handled.events {
+        if let SessionEvent::Data { stream_id, payload } = event {
+            if stream_id != 1 {
+                continue;
+            }
+            if let Ok(MuxFrame::Data { bytes }) = decode_mux_frame(payload.as_slice()) {
+                if let Ok(ack) = serde_json::from_slice::<MessengerDeliveryAck>(bytes.as_slice()) {
+                    received = ack.received;
+                }
+            }
+        }
+    }
+    let _ = send_mux_over_packet_stream(&mut writer, &mut session, 1, MuxFrame::Close).await;
+    let _ = (mesh_id, source_peer_id, source_node_id, route_path);
+    if !received {
+        return Err(ApiError::new(
+            ApiErrorCode::NotReady,
+            "messenger delivery failed",
+        ));
+    }
+    Ok(())
+}
+
+async fn post_json_to_peer<T, R>(base_url: &str, path: &str, value: &T) -> Result<R, ApiError>
+where
+    T: Serialize,
+    R: DeserializeOwned,
+{
+    let endpoint = parse_peer_api_endpoint(base_url)?;
+    let body = serde_json::to_vec(value)
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "peer sync encode failed"))?;
+    let mut request = format!(
+        "POST {path} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
+        endpoint.authority,
+        body.len()
+    )
+    .into_bytes();
+    request.extend_from_slice(body.as_slice());
+
+    let mut stream = TcpStream::connect((endpoint.host.as_str(), endpoint.port))
+        .await
+        .map_err(|_| ApiError::new(ApiErrorCode::NotReady, "peer sync unavailable"))?;
+    stream
+        .write_all(request.as_slice())
+        .await
+        .map_err(|_| ApiError::new(ApiErrorCode::NotReady, "peer sync unavailable"))?;
+    stream
+        .flush()
+        .await
+        .map_err(|_| ApiError::new(ApiErrorCode::NotReady, "peer sync unavailable"))?;
+    stream
+        .shutdown()
+        .await
+        .map_err(|_| ApiError::new(ApiErrorCode::NotReady, "peer sync unavailable"))?;
+    let mut response = Vec::new();
+    stream
+        .read_to_end(&mut response)
+        .await
+        .map_err(|_| ApiError::new(ApiErrorCode::NotReady, "peer sync unavailable"))?;
+    let (status_code, body) = parse_peer_response(response)?;
+    if status_code >= 400 {
+        return Err(ApiError::new(
+            ApiErrorCode::NotReady,
+            "peer sync unavailable",
+        ));
+    }
+    serde_json::from_slice(body.as_slice())
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "peer sync decode failed"))
+}
+
+fn parse_peer_api_endpoint(base_url: &str) -> Result<PeerApiEndpoint, ApiError> {
+    let trimmed = base_url.trim();
+    let rest = trimmed
+        .strip_prefix("http://")
+        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidInput, "invalid bootstrap_url"))?;
+    let (authority, path) = match rest.split_once('/') {
+        Some((authority, path)) => (authority, path),
+        None => (rest, ""),
+    };
+    if authority.is_empty() || !path.is_empty() {
+        return Err(ApiError::new(
+            ApiErrorCode::InvalidInput,
+            "invalid bootstrap_url",
+        ));
+    }
+    if let Some(host) = authority.strip_prefix('[') {
+        let end = host
+            .find(']')
+            .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidInput, "invalid bootstrap_url"))?;
+        let host_value = host[..end].to_string();
+        let remainder = &host[end + 1..];
+        let port = if remainder.is_empty() {
+            80
+        } else if let Some(port) = remainder.strip_prefix(':') {
+            port.parse::<u16>()
+                .map_err(|_| ApiError::new(ApiErrorCode::InvalidInput, "invalid bootstrap_url"))?
+        } else {
+            return Err(ApiError::new(
+                ApiErrorCode::InvalidInput,
+                "invalid bootstrap_url",
+            ));
+        };
+        return Ok(PeerApiEndpoint {
+            authority: if port == 80 {
+                format!("[{host_value}]")
+            } else {
+                format!("[{host_value}]:{port}")
+            },
+            host: host_value,
+            port,
+        });
+    }
+    let (host, port) = match authority.rsplit_once(':') {
+        Some((host, port)) if !host.is_empty() && !host.contains(':') => (
+            host.to_string(),
+            port.parse::<u16>()
+                .map_err(|_| ApiError::new(ApiErrorCode::InvalidInput, "invalid bootstrap_url"))?,
+        ),
+        Some(_) => {
+            return Err(ApiError::new(
+                ApiErrorCode::InvalidInput,
+                "invalid bootstrap_url",
+            ))
+        }
+        None => (authority.to_string(), 80),
+    };
+    Ok(PeerApiEndpoint {
+        authority: if port == 80 {
+            host.clone()
+        } else {
+            format!("{host}:{port}")
+        },
+        host,
+        port,
+    })
+}
+
+fn parse_peer_response(bytes: Vec<u8>) -> Result<(u16, Vec<u8>), ApiError> {
+    let header_end = bytes
+        .windows(4)
+        .position(|window| window == b"\r\n\r\n")
+        .ok_or_else(|| ApiError::new(ApiErrorCode::Internal, "peer sync decode failed"))?;
+    let header_text = std::str::from_utf8(&bytes[..header_end])
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "peer sync decode failed"))?;
+    let mut lines = header_text.split("\r\n");
+    let status_line = lines
+        .next()
+        .ok_or_else(|| ApiError::new(ApiErrorCode::Internal, "peer sync decode failed"))?;
+    let status_code = status_line
+        .split_whitespace()
+        .nth(1)
+        .ok_or_else(|| ApiError::new(ApiErrorCode::Internal, "peer sync decode failed"))?
+        .parse::<u16>()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "peer sync decode failed"))?;
+    Ok((status_code, bytes[header_end + 4..].to_vec()))
 }
 
 #[cfg(test)]
@@ -1786,6 +2737,708 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn mesh_service_roundtrip_direct_with_path_diagnostics() {
+        let Some((echo_addr, echo_task)) = start_echo_server("mesh-direct-echo").await else {
+            return;
+        };
+        let Some((addr_a, shutdown_a_tx, server_a)) =
+            start_test_api_server("mesh-direct-a", None).await
+        else {
+            echo_task.abort();
+            return;
+        };
+        let Some((addr_b, shutdown_b_tx, server_b)) =
+            start_test_api_server("mesh-direct-b", None).await
+        else {
+            let _ = shutdown_a_tx.send(());
+            let _ = server_a.await;
+            echo_task.abort();
+            return;
+        };
+
+        let (mesh_id, _) = create_mesh(addr_a).await;
+        let invite = mesh_invite(addr_a, mesh_id.as_str()).await;
+        let join = join_mesh(addr_b, invite.as_str(), addr_a).await;
+        let peer_b = join["membership"]["peer_id"]
+            .as_str()
+            .expect("peer_b")
+            .to_string();
+
+        let _ = post_json(
+            addr_a,
+            "/v1/services/expose",
+            format!(
+                r#"{{"mesh_id":"{mesh_id}","service_name":"echo","local_addr":"{echo_addr}","allowed_peers":["{peer_b}"]}}"#
+            )
+            .as_str(),
+        )
+        .await;
+        sleep(Duration::from_millis(100)).await;
+
+        let connect = post_json(
+            addr_b,
+            "/v1/services/connect",
+            format!(r#"{{"mesh_id":"{mesh_id}","service_name":"echo"}}"#).as_str(),
+        )
+        .await;
+        assert_eq!(connect["route_path"], "direct");
+        let local_proxy = connect["local_addr"]
+            .as_str()
+            .expect("direct proxy")
+            .parse::<SocketAddr>()
+            .expect("proxy addr");
+        let mut client = TcpStream::connect(local_proxy)
+            .await
+            .expect("connect proxy");
+        client
+            .write_all(b"mesh-direct")
+            .await
+            .expect("write direct");
+        let mut echoed = vec![0u8; "mesh-direct".len()];
+        client
+            .read_exact(echoed.as_mut_slice())
+            .await
+            .expect("read direct");
+        assert_eq!(echoed, b"mesh-direct");
+
+        let routing = get_json(addr_b, "/v1/routing/status").await;
+        assert!(routing["active_connections"]
+            .as_array()
+            .expect("active connections")
+            .iter()
+            .any(|connection| connection["route_path"] == "direct"));
+
+        let _ = shutdown_a_tx.send(());
+        let _ = shutdown_b_tx.send(());
+        let _ = server_a.await;
+        let _ = server_b.await;
+        echo_task.abort();
+    }
+
+    #[tokio::test]
+    async fn mesh_service_roundtrip_via_selected_peer_relay() {
+        let Some((echo_addr, echo_task)) = start_echo_server("mesh-relay-echo").await else {
+            return;
+        };
+        let Some((addr_a, shutdown_a_tx, server_a)) =
+            start_test_api_server("mesh-relay-a", None).await
+        else {
+            echo_task.abort();
+            return;
+        };
+        let Some((addr_b, shutdown_b_tx, server_b)) =
+            start_test_api_server("mesh-relay-b", None).await
+        else {
+            let _ = shutdown_a_tx.send(());
+            let _ = server_a.await;
+            echo_task.abort();
+            return;
+        };
+        let Some((addr_c, shutdown_c_tx, server_c)) =
+            start_test_api_server("mesh-relay-c", None).await
+        else {
+            let _ = shutdown_a_tx.send(());
+            let _ = shutdown_b_tx.send(());
+            let _ = server_a.await;
+            let _ = server_b.await;
+            echo_task.abort();
+            return;
+        };
+
+        let (mesh_id, _) = create_mesh(addr_a).await;
+        let invite_b = mesh_invite(addr_a, mesh_id.as_str()).await;
+        let join_b = join_mesh(addr_b, invite_b.as_str(), addr_a).await;
+        let peer_b = join_b["membership"]["peer_id"]
+            .as_str()
+            .expect("peer_b")
+            .to_string();
+
+        let invite_c = mesh_invite(addr_a, mesh_id.as_str()).await;
+        let join_c = join_mesh(addr_c, invite_c.as_str(), addr_a).await;
+        let node_c = join_c["membership"]["node_id"]
+            .as_str()
+            .expect("node_c")
+            .to_string();
+
+        let _ = post_json(
+            addr_c,
+            format!("/v1/nodes/{node_c}/roles",).as_str(),
+            format!(r#"{{"mesh_id":"{mesh_id}","roles":["relay"]}}"#).as_str(),
+        )
+        .await;
+        let _ = post_json(
+            addr_c,
+            "/v1/relays/advertise",
+            format!(r#"{{"mesh_id":"{mesh_id}","tags":["mesh"]}}"#).as_str(),
+        )
+        .await;
+
+        let expose = post_json(
+            addr_a,
+            "/v1/services/expose",
+            format!(
+                r#"{{"mesh_id":"{mesh_id}","service_name":"echo","local_addr":"{echo_addr}","allowed_peers":["{peer_b}"]}}"#
+            )
+            .as_str(),
+        )
+        .await;
+        let service_id = expose["descriptor"]["service_id"]
+            .as_str()
+            .expect("service_id");
+
+        let _ = post_json(
+            addr_b,
+            "/v1/relays/select",
+            format!(
+                r#"{{"mesh_id":"{mesh_id}","target_kind":"service","target_id":"{service_id}","relay_node_id":"{node_c}"}}"#
+            )
+            .as_str(),
+        )
+        .await;
+        sleep(Duration::from_millis(100)).await;
+
+        let connect = post_json(
+            addr_b,
+            "/v1/services/connect",
+            format!(r#"{{"mesh_id":"{mesh_id}","service_name":"echo"}}"#).as_str(),
+        )
+        .await;
+        assert_eq!(connect["route_path"], "peer_relay");
+        assert_eq!(connect["selected_relay_node_id"], node_c);
+        let local_proxy = connect["local_addr"]
+            .as_str()
+            .expect("relay proxy")
+            .parse::<SocketAddr>()
+            .expect("proxy addr");
+        let mut client = TcpStream::connect(local_proxy)
+            .await
+            .expect("connect proxy");
+        client.write_all(b"mesh-relay").await.expect("write relay");
+        let mut echoed = vec![0u8; "mesh-relay".len()];
+        client
+            .read_exact(echoed.as_mut_slice())
+            .await
+            .expect("read relay");
+        assert_eq!(echoed, b"mesh-relay");
+
+        let routing = get_json(addr_b, "/v1/routing/status").await;
+        assert!(routing["active_connections"]
+            .as_array()
+            .expect("active connections")
+            .iter()
+            .any(|connection| connection["route_path"] == "peer_relay"
+                && connection["selected_relay_node_id"] == node_c));
+
+        let _ = shutdown_a_tx.send(());
+        let _ = shutdown_b_tx.send(());
+        let _ = shutdown_c_tx.send(());
+        let _ = server_a.await;
+        let _ = server_b.await;
+        let _ = server_c.await;
+        echo_task.abort();
+    }
+
+    #[tokio::test]
+    async fn service_connect_path_proves_selected_peer_relay_usage() {
+        let Some((echo_addr, echo_task)) = start_echo_server("mesh-relay-proof-echo").await else {
+            return;
+        };
+        let Some((addr_a, shutdown_a_tx, server_a)) =
+            start_test_api_server("mesh-relay-proof-a", None).await
+        else {
+            echo_task.abort();
+            return;
+        };
+        let Some((addr_b, shutdown_b_tx, server_b)) =
+            start_test_api_server("mesh-relay-proof-b", None).await
+        else {
+            let _ = shutdown_a_tx.send(());
+            let _ = server_a.await;
+            echo_task.abort();
+            return;
+        };
+        let Some((addr_c, shutdown_c_tx, server_c)) =
+            start_test_api_server("mesh-relay-proof-c", None).await
+        else {
+            let _ = shutdown_a_tx.send(());
+            let _ = shutdown_b_tx.send(());
+            let _ = server_a.await;
+            let _ = server_b.await;
+            echo_task.abort();
+            return;
+        };
+
+        let (mesh_id, _) = create_mesh(addr_a).await;
+        let invite_b = mesh_invite(addr_a, mesh_id.as_str()).await;
+        let join_b = join_mesh(addr_b, invite_b.as_str(), addr_a).await;
+        let peer_b = join_b["membership"]["peer_id"]
+            .as_str()
+            .expect("peer_b")
+            .to_string();
+        let invite_c = mesh_invite(addr_a, mesh_id.as_str()).await;
+        let join_c = join_mesh(addr_c, invite_c.as_str(), addr_a).await;
+        let node_c = join_c["membership"]["node_id"]
+            .as_str()
+            .expect("node_c")
+            .to_string();
+
+        let _ = post_json(
+            addr_c,
+            format!("/v1/nodes/{node_c}/roles").as_str(),
+            format!(r#"{{"mesh_id":"{mesh_id}","roles":["relay"]}}"#).as_str(),
+        )
+        .await;
+        let _ = post_json(
+            addr_c,
+            "/v1/relays/advertise",
+            format!(r#"{{"mesh_id":"{mesh_id}","tags":["proof"]}}"#).as_str(),
+        )
+        .await;
+
+        let expose = post_json(
+            addr_a,
+            "/v1/services/expose",
+            format!(
+                r#"{{"mesh_id":"{mesh_id}","service_name":"echo","local_addr":"{echo_addr}","allowed_peers":["{peer_b}"]}}"#
+            )
+            .as_str(),
+        )
+        .await;
+        let service_id = expose["descriptor"]["service_id"]
+            .as_str()
+            .expect("service_id");
+
+        let _ = post_json(
+            addr_b,
+            "/v1/relays/select",
+            format!(
+                r#"{{"mesh_id":"{mesh_id}","target_kind":"service","target_id":"{service_id}","relay_node_id":"{node_c}"}}"#
+            )
+            .as_str(),
+        )
+        .await;
+        sleep(Duration::from_millis(100)).await;
+
+        let connect = post_json(
+            addr_b,
+            "/v1/services/connect",
+            format!(r#"{{"mesh_id":"{mesh_id}","service_name":"echo"}}"#).as_str(),
+        )
+        .await;
+        assert_eq!(connect["route_path"], "peer_relay");
+        assert_eq!(connect["selected_relay_node_id"], node_c);
+
+        let routing = get_json(addr_b, "/v1/routing/status").await;
+        assert!(routing["active_connections"]
+            .as_array()
+            .expect("active connections")
+            .iter()
+            .any(|connection| connection["route_path"] == "peer_relay"
+                && connection["selected_relay_node_id"] == node_c
+                && connection["peer_id"] == expose["descriptor"]["owner_peer_id"]));
+
+        let log = get_json(addr_b, "/v1/routing/decision-log").await;
+        assert!(log["decisions"]
+            .as_array()
+            .expect("decisions")
+            .iter()
+            .any(|decision| decision["chosen_path"] == "peer_relay"
+                && decision["selected_relay_node_id"] == node_c));
+
+        let local_proxy = connect["local_addr"]
+            .as_str()
+            .expect("relay proof proxy")
+            .parse::<SocketAddr>()
+            .expect("proxy addr");
+        let mut client = TcpStream::connect(local_proxy)
+            .await
+            .expect("connect proxy");
+        client.write_all(b"relay-proof").await.expect("write proof");
+        let mut echoed = vec![0u8; "relay-proof".len()];
+        client
+            .read_exact(echoed.as_mut_slice())
+            .await
+            .expect("read proof");
+        assert_eq!(echoed, b"relay-proof");
+
+        let _ = shutdown_a_tx.send(());
+        let _ = shutdown_b_tx.send(());
+        let _ = shutdown_c_tx.send(());
+        let _ = server_a.await;
+        let _ = server_b.await;
+        let _ = server_c.await;
+        echo_task.abort();
+    }
+
+    #[tokio::test]
+    async fn forced_peer_relay_bypasses_direct_path() {
+        let Some((echo_addr, echo_task)) = start_echo_server("mesh-forced-relay-echo").await else {
+            return;
+        };
+        let Some((addr_a, shutdown_a_tx, server_a)) =
+            start_test_api_server("mesh-forced-a", None).await
+        else {
+            echo_task.abort();
+            return;
+        };
+        let Some((addr_b, shutdown_b_tx, server_b)) =
+            start_test_api_server("mesh-forced-b", None).await
+        else {
+            let _ = shutdown_a_tx.send(());
+            let _ = server_a.await;
+            echo_task.abort();
+            return;
+        };
+        let Some((addr_c, shutdown_c_tx, server_c)) =
+            start_test_api_server("mesh-forced-c", None).await
+        else {
+            let _ = shutdown_a_tx.send(());
+            let _ = shutdown_b_tx.send(());
+            let _ = server_a.await;
+            let _ = server_b.await;
+            echo_task.abort();
+            return;
+        };
+
+        let (mesh_id, _) = create_mesh(addr_a).await;
+        let invite_b = mesh_invite(addr_a, mesh_id.as_str()).await;
+        let join_b = join_mesh(addr_b, invite_b.as_str(), addr_a).await;
+        let peer_b = join_b["membership"]["peer_id"]
+            .as_str()
+            .expect("peer_b")
+            .to_string();
+        let invite_c = mesh_invite(addr_a, mesh_id.as_str()).await;
+        let join_c = join_mesh(addr_c, invite_c.as_str(), addr_a).await;
+        let node_c = join_c["membership"]["node_id"]
+            .as_str()
+            .expect("node_c")
+            .to_string();
+        let _ = post_json(
+            addr_c,
+            format!("/v1/nodes/{node_c}/roles").as_str(),
+            format!(r#"{{"mesh_id":"{mesh_id}","roles":["relay"]}}"#).as_str(),
+        )
+        .await;
+        let _ = post_json(
+            addr_c,
+            "/v1/relays/advertise",
+            format!(r#"{{"mesh_id":"{mesh_id}"}}"#).as_str(),
+        )
+        .await;
+        let expose = post_json(
+            addr_a,
+            "/v1/services/expose",
+            format!(
+                r#"{{"mesh_id":"{mesh_id}","service_name":"echo","local_addr":"{echo_addr}","allowed_peers":["{peer_b}"]}}"#
+            )
+            .as_str(),
+        )
+        .await;
+        let service_id = expose["descriptor"]["service_id"]
+            .as_str()
+            .expect("service_id");
+        let _ = post_json(
+            addr_b,
+            "/v1/relays/select",
+            format!(
+                r#"{{"mesh_id":"{mesh_id}","target_kind":"service","target_id":"{service_id}","relay_node_id":"{node_c}","forced":true}}"#
+            )
+            .as_str(),
+        )
+        .await;
+
+        let connect = post_json(
+            addr_b,
+            "/v1/services/connect",
+            format!(r#"{{"mesh_id":"{mesh_id}","service_name":"echo"}}"#).as_str(),
+        )
+        .await;
+        assert_eq!(connect["route_path"], "peer_relay");
+        let local_proxy = connect["local_addr"]
+            .as_str()
+            .expect("proxy")
+            .parse::<SocketAddr>()
+            .expect("proxy addr");
+        let mut client = TcpStream::connect(local_proxy)
+            .await
+            .expect("connect proxy");
+        client.write_all(b"forced-relay").await.expect("write");
+        let mut echoed = vec![0u8; "forced-relay".len()];
+        client
+            .read_exact(echoed.as_mut_slice())
+            .await
+            .expect("read");
+        assert_eq!(echoed, b"forced-relay");
+
+        let log = get_json(addr_b, "/v1/routing/decision-log").await;
+        assert!(log["decisions"]
+            .as_array()
+            .expect("decisions")
+            .iter()
+            .any(|decision| decision["chosen_path"] == "peer_relay"
+                && decision["reason"] == "policy_forced_relay"));
+
+        let _ = shutdown_a_tx.send(());
+        let _ = shutdown_b_tx.send(());
+        let _ = shutdown_c_tx.send(());
+        let _ = server_a.await;
+        let _ = server_b.await;
+        let _ = server_c.await;
+        echo_task.abort();
+    }
+
+    #[tokio::test]
+    async fn messenger_delivery_roundtrips_over_direct_path() {
+        let Some((addr_a, shutdown_a_tx, server_a)) =
+            start_test_api_server("messenger-direct-a", None).await
+        else {
+            return;
+        };
+        let Some((addr_b, shutdown_b_tx, server_b)) =
+            start_test_api_server("messenger-direct-b", None).await
+        else {
+            let _ = shutdown_a_tx.send(());
+            let _ = server_a.await;
+            return;
+        };
+
+        let (mesh_id, _) = create_mesh(addr_a).await;
+        let invite = mesh_invite(addr_a, mesh_id.as_str()).await;
+        let join = join_mesh(addr_b, invite.as_str(), addr_a).await;
+        let peer_b = join["membership"]["peer_id"]
+            .as_str()
+            .expect("peer_b")
+            .to_string();
+
+        let conversation = post_json(
+            addr_a,
+            "/v1/messenger/conversations",
+            format!(r#"{{"mesh_id":"{mesh_id}","participants":["{peer_b}"],"title":"dm"}}"#)
+                .as_str(),
+        )
+        .await;
+        let conversation_id = conversation["conversation_id"]
+            .as_str()
+            .expect("conversation_id")
+            .to_string();
+        let send = post_json(
+            addr_a,
+            "/v1/messenger/send",
+            format!(r#"{{"conversation_id":"{conversation_id}","body":"hello-direct"}}"#).as_str(),
+        )
+        .await;
+        assert_eq!(send["body"], "hello-direct");
+        sleep(Duration::from_millis(100)).await;
+
+        let stream = get_json(addr_b, "/v1/messenger/stream").await;
+        assert!(stream["messages"]
+            .as_array()
+            .expect("messages")
+            .iter()
+            .any(|message| message["body"] == "hello-direct"));
+        let log = get_json(addr_a, "/v1/routing/decision-log").await;
+        assert!(log["decisions"]
+            .as_array()
+            .expect("decisions")
+            .iter()
+            .any(|decision| decision["chosen_path"] == "direct"));
+        let presence = get_json(addr_a, "/v1/messenger/presence").await;
+        assert!(presence["peers"]
+            .as_array()
+            .expect("presence peers")
+            .iter()
+            .any(|peer| peer["peer_id"] == peer_b && peer["online"] == true));
+
+        let _ = shutdown_a_tx.send(());
+        let _ = shutdown_b_tx.send(());
+        let _ = server_a.await;
+        let _ = server_b.await;
+    }
+
+    #[tokio::test]
+    async fn messenger_delivery_roundtrips_over_selected_peer_relay() {
+        let Some((addr_a, shutdown_a_tx, server_a)) =
+            start_test_api_server("messenger-relay-a", None).await
+        else {
+            return;
+        };
+        let Some((addr_b, shutdown_b_tx, server_b)) =
+            start_test_api_server("messenger-relay-b", None).await
+        else {
+            let _ = shutdown_a_tx.send(());
+            let _ = server_a.await;
+            return;
+        };
+        let Some((addr_c, shutdown_c_tx, server_c)) =
+            start_test_api_server("messenger-relay-c", None).await
+        else {
+            let _ = shutdown_a_tx.send(());
+            let _ = shutdown_b_tx.send(());
+            let _ = server_a.await;
+            let _ = server_b.await;
+            return;
+        };
+
+        let (mesh_id, _) = create_mesh(addr_a).await;
+        let invite_b = mesh_invite(addr_a, mesh_id.as_str()).await;
+        let join_b = join_mesh(addr_b, invite_b.as_str(), addr_a).await;
+        let peer_b = join_b["membership"]["peer_id"]
+            .as_str()
+            .expect("peer_b")
+            .to_string();
+        let invite_c = mesh_invite(addr_a, mesh_id.as_str()).await;
+        let join_c = join_mesh(addr_c, invite_c.as_str(), addr_a).await;
+        let node_c = join_c["membership"]["node_id"]
+            .as_str()
+            .expect("node_c")
+            .to_string();
+
+        let _ = post_json(
+            addr_c,
+            format!("/v1/nodes/{node_c}/roles").as_str(),
+            format!(r#"{{"mesh_id":"{mesh_id}","roles":["relay"]}}"#).as_str(),
+        )
+        .await;
+        let _ = post_json(
+            addr_c,
+            "/v1/relays/advertise",
+            format!(r#"{{"mesh_id":"{mesh_id}"}}"#).as_str(),
+        )
+        .await;
+
+        let conversation = post_json(
+            addr_a,
+            "/v1/messenger/conversations",
+            format!(r#"{{"mesh_id":"{mesh_id}","participants":["{peer_b}"],"title":"dm"}}"#)
+                .as_str(),
+        )
+        .await;
+        let conversation_id = conversation["conversation_id"]
+            .as_str()
+            .expect("conversation_id")
+            .to_string();
+        let _ = post_json(
+            addr_a,
+            "/v1/relays/select",
+            format!(
+                r#"{{"mesh_id":"{mesh_id}","target_kind":"conversation","target_id":"{conversation_id}","relay_node_id":"{node_c}"}}"#
+            )
+            .as_str(),
+        )
+        .await;
+        let send = post_json(
+            addr_a,
+            "/v1/messenger/send",
+            format!(r#"{{"conversation_id":"{conversation_id}","body":"hello-relay"}}"#).as_str(),
+        )
+        .await;
+        assert_eq!(send["body"], "hello-relay");
+        sleep(Duration::from_millis(100)).await;
+
+        let stream = get_json(addr_b, "/v1/messenger/stream").await;
+        assert!(stream["messages"]
+            .as_array()
+            .expect("messages")
+            .iter()
+            .any(|message| message["body"] == "hello-relay"));
+        let log = get_json(addr_a, "/v1/routing/decision-log").await;
+        assert!(log["decisions"]
+            .as_array()
+            .expect("decisions")
+            .iter()
+            .any(|decision| decision["chosen_path"] == "peer_relay"
+                && decision["selected_relay_node_id"] == node_c));
+
+        let _ = shutdown_a_tx.send(());
+        let _ = shutdown_b_tx.send(());
+        let _ = shutdown_c_tx.send(());
+        let _ = server_a.await;
+        let _ = server_b.await;
+        let _ = server_c.await;
+    }
+
+    #[tokio::test]
+    async fn revoke_peer_invalidates_service_and_messenger_access() {
+        let Some((echo_addr, echo_task)) = start_echo_server("mesh-revoke-echo").await else {
+            return;
+        };
+        let Some((addr_a, shutdown_a_tx, server_a)) =
+            start_test_api_server("mesh-revoke-a", None).await
+        else {
+            echo_task.abort();
+            return;
+        };
+        let Some((addr_b, shutdown_b_tx, server_b)) =
+            start_test_api_server("mesh-revoke-b", None).await
+        else {
+            let _ = shutdown_a_tx.send(());
+            let _ = server_a.await;
+            echo_task.abort();
+            return;
+        };
+
+        let (mesh_id, _) = create_mesh(addr_a).await;
+        let invite = mesh_invite(addr_a, mesh_id.as_str()).await;
+        let join = join_mesh(addr_b, invite.as_str(), addr_a).await;
+        let peer_b = join["membership"]["peer_id"]
+            .as_str()
+            .expect("peer_b")
+            .to_string();
+
+        let _ = post_json(
+            addr_a,
+            "/v1/services/expose",
+            format!(
+                r#"{{"mesh_id":"{mesh_id}","service_name":"echo","local_addr":"{echo_addr}","allowed_peers":["{peer_b}"]}}"#
+            )
+            .as_str(),
+        )
+        .await;
+        let conversation = post_json(
+            addr_a,
+            "/v1/messenger/conversations",
+            format!(r#"{{"mesh_id":"{mesh_id}","participants":["{peer_b}"],"title":"dm"}}"#)
+                .as_str(),
+        )
+        .await;
+        let conversation_id = conversation["conversation_id"]
+            .as_str()
+            .expect("conversation_id")
+            .to_string();
+        let _ = post_json(
+            addr_a,
+            format!("/v1/meshes/{mesh_id}/peers/{peer_b}/revoke").as_str(),
+            "{}",
+        )
+        .await;
+        sleep(Duration::from_millis(100)).await;
+
+        let denied_service = post_expect_status(
+            addr_b,
+            "/v1/services/connect",
+            format!(r#"{{"mesh_id":"{mesh_id}","service_name":"echo"}}"#).as_str(),
+            403,
+        )
+        .await;
+        assert_eq!(denied_service["error"]["code"], "denied");
+
+        let denied_message = post_expect_status(
+            addr_b,
+            "/v1/messenger/send",
+            format!(r#"{{"conversation_id":"{conversation_id}","body":"after-revoke"}}"#).as_str(),
+            403,
+        )
+        .await;
+        assert_eq!(denied_message["error"]["code"], "denied");
+
+        let _ = shutdown_a_tx.send(());
+        let _ = shutdown_b_tx.send(());
+        let _ = server_a.await;
+        let _ = server_b.await;
+        echo_task.abort();
+    }
+
+    #[tokio::test]
     async fn relay_gateway_tunnel_roundtrip_http_via_ip_packets() {
         let progress = Arc::new(Mutex::new(GatewayRoundtripProgress::default()));
         let progress_for_run = Arc::clone(&progress);
@@ -2193,6 +3846,152 @@ mod tests {
             .split_once("\r\n\r\n")
             .map(|(_, body)| body)
             .expect("response body")
+    }
+
+    fn daemon_url(addr: SocketAddr) -> String {
+        format!("http://{}", addr)
+    }
+
+    async fn start_test_api_server(
+        name: &str,
+        relay_addr: Option<SocketAddr>,
+    ) -> Option<(
+        SocketAddr,
+        oneshot::Sender<()>,
+        tokio::task::JoinHandle<anyhow::Result<()>>,
+    )> {
+        let listener = match TcpListener::bind("127.0.0.1:0").await {
+            Ok(listener) => listener,
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => return None,
+            Err(error) => panic!("bind test listener {name}: {error}"),
+        };
+        let addr = listener.local_addr().expect("api local addr");
+        let state_file = temp_state_path(name);
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let server = tokio::spawn(async move {
+            run_api_server_with_listener(
+                listener,
+                test_config(addr, state_file, relay_addr),
+                Some(shutdown_rx),
+            )
+            .await
+        });
+        Some((addr, shutdown_tx, server))
+    }
+
+    async fn get_json(addr: SocketAddr, path: &str) -> Value {
+        let response = send_http(
+            addr,
+            format!("GET {path} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n").as_str(),
+        )
+        .await;
+        assert!(response.starts_with("HTTP/1.1 200 OK"), "{response}");
+        serde_json::from_str(extract_body(response.as_str())).expect("json body")
+    }
+
+    async fn post_json(addr: SocketAddr, path: &str, body: &str) -> Value {
+        let response = send_http(
+            addr,
+            format!(
+                "POST {path} HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                body.len(),
+                body
+            )
+            .as_str(),
+        )
+        .await;
+        assert!(response.starts_with("HTTP/1.1 200 OK"), "{response}");
+        serde_json::from_str(extract_body(response.as_str())).expect("json body")
+    }
+
+    async fn post_expect_status(addr: SocketAddr, path: &str, body: &str, status: u16) -> Value {
+        let response = send_http(
+            addr,
+            format!(
+                "POST {path} HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                body.len(),
+                body
+            )
+            .as_str(),
+        )
+        .await;
+        assert!(
+            response.starts_with(format!("HTTP/1.1 {status} ").as_str()),
+            "{response}"
+        );
+        serde_json::from_str(extract_body(response.as_str())).expect("json body")
+    }
+
+    async fn create_mesh(addr: SocketAddr) -> (String, String) {
+        let mesh = post_json(addr, "/v1/meshes", r#"{"mesh_name":"lab"}"#).await;
+        (
+            mesh["mesh"]["mesh_id"]
+                .as_str()
+                .expect("mesh_id")
+                .to_string(),
+            mesh["mesh"]["local_node_id"]
+                .as_str()
+                .expect("node_id")
+                .to_string(),
+        )
+    }
+
+    async fn mesh_invite(addr: SocketAddr, mesh_id: &str) -> String {
+        let response = send_http(
+            addr,
+            format!(
+                "POST /v1/meshes/{mesh_id}/invite HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            )
+            .as_str(),
+        )
+        .await;
+        assert!(response.starts_with("HTTP/1.1 200 OK"), "{response}");
+        let body: Value = serde_json::from_str(extract_body(response.as_str())).expect("invite");
+        body["invite"].as_str().expect("invite").to_string()
+    }
+
+    async fn join_mesh(addr: SocketAddr, invite: &str, bootstrap_addr: SocketAddr) -> Value {
+        post_json(
+            addr,
+            "/v1/meshes/join",
+            format!(
+                r#"{{"invite":"{invite}","bootstrap_url":"{}"}}"#,
+                daemon_url(bootstrap_addr)
+            )
+            .as_str(),
+        )
+        .await
+    }
+
+    async fn start_echo_server(name: &str) -> Option<(SocketAddr, tokio::task::JoinHandle<()>)> {
+        let listener = match TcpListener::bind("127.0.0.1:0").await {
+            Ok(listener) => listener,
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => return None,
+            Err(error) => panic!("bind echo listener {name}: {error}"),
+        };
+        let addr = listener.local_addr().expect("echo addr");
+        let task = tokio::spawn(async move {
+            loop {
+                let Ok((mut stream, _)) = listener.accept().await else {
+                    break;
+                };
+                tokio::spawn(async move {
+                    let mut buf = [0u8; 2048];
+                    loop {
+                        match stream.read(&mut buf).await {
+                            Ok(0) => break,
+                            Ok(n) => {
+                                if stream.write_all(&buf[..n]).await.is_err() {
+                                    break;
+                                }
+                            }
+                            Err(_) => break,
+                        }
+                    }
+                });
+            }
+        });
+        Some((addr, task))
     }
 
     async fn reserve_udp_addr() -> io::Result<SocketAddr> {

@@ -1,11 +1,10 @@
 use clap::{Args, Subcommand};
 use serde::Serialize;
-use serde_json::json;
 
 use crate::{
     client::DaemonClient,
     errors::CliError,
-    output::{number_at, optional_string_at, string_at, CommandOutput},
+    output::{array_len_at, number_at, optional_string_at, CommandOutput},
 };
 
 #[derive(Debug, Subcommand)]
@@ -17,6 +16,8 @@ pub enum ServiceCommand {
 
 #[derive(Debug, Args)]
 pub struct ServiceExposeArgs {
+    #[arg(long)]
+    pub mesh_id: Option<String>,
     pub service_name: String,
     pub local_addr: String,
     #[arg(long = "allowed-peer", required = true)]
@@ -25,6 +26,8 @@ pub struct ServiceExposeArgs {
 
 #[derive(Debug, Args)]
 pub struct ServiceConnectArgs {
+    #[arg(long)]
+    pub mesh_id: Option<String>,
     pub service_name: String,
 }
 
@@ -36,7 +39,23 @@ struct ExposeRequest<'a> {
 }
 
 #[derive(Debug, Serialize)]
+struct MeshExposeRequest<'a> {
+    mesh_id: &'a str,
+    service_name: &'a str,
+    local_addr: &'a str,
+    allowed_peers: Vec<String>,
+    #[serde(default)]
+    tags: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
 struct ConnectRequest<'a> {
+    service_name: &'a str,
+}
+
+#[derive(Debug, Serialize)]
+struct MeshConnectRequest<'a> {
+    mesh_id: &'a str,
     service_name: &'a str,
 }
 
@@ -61,20 +80,41 @@ async fn expose(
         ));
     }
 
+    let body = match args.mesh_id.as_deref() {
+        Some(mesh_id) => serde_json::to_value(MeshExposeRequest {
+            mesh_id,
+            service_name: args.service_name.as_str(),
+            local_addr: args.local_addr.as_str(),
+            allowed_peers: args.allowed_peers.clone(),
+            tags: Vec::new(),
+        })
+        .map_err(|error| {
+            CliError::invalid_response(format!("failed to encode request body: {error}"))
+        })?,
+        None => serde_json::to_value(ExposeRequest {
+            service_name: args.service_name.as_str(),
+            local_addr: args.local_addr.as_str(),
+            allowed_peers: args.allowed_peers.clone(),
+        })
+        .map_err(|error| {
+            CliError::invalid_response(format!("failed to encode request body: {error}"))
+        })?,
+    };
     let json = client
         .post_json(
-            "/v1/expose",
-            &ExposeRequest {
-                service_name: args.service_name.as_str(),
-                local_addr: args.local_addr.as_str(),
-                allowed_peers: args.allowed_peers.clone(),
+            if args.mesh_id.is_some() {
+                "/v1/services/expose"
+            } else {
+                "/v1/expose"
             },
+            &body,
         )
         .await?;
     let human = format!(
-        "service_name: {}\nstream_id: {}",
+        "service_name: {}\nstream_id: {}\nservice_id: {}",
         args.service_name,
-        number_at(&json, &["stream_id"])
+        number_at(&json, &["stream_id"]),
+        optional_string_at(&json, &["descriptor", "service_id"]),
     );
     Ok(CommandOutput::new(json, human))
 }
@@ -83,40 +123,49 @@ async fn connect(
     client: &DaemonClient,
     args: &ServiceConnectArgs,
 ) -> Result<CommandOutput, CliError> {
+    let body = match args.mesh_id.as_deref() {
+        Some(mesh_id) => serde_json::to_value(MeshConnectRequest {
+            mesh_id,
+            service_name: args.service_name.as_str(),
+        })
+        .map_err(|error| {
+            CliError::invalid_response(format!("failed to encode request body: {error}"))
+        })?,
+        None => serde_json::to_value(ConnectRequest {
+            service_name: args.service_name.as_str(),
+        })
+        .map_err(|error| {
+            CliError::invalid_response(format!("failed to encode request body: {error}"))
+        })?,
+    };
     let json = client
         .post_json(
-            "/v1/connect",
-            &ConnectRequest {
-                service_name: args.service_name.as_str(),
+            if args.mesh_id.is_some() {
+                "/v1/services/connect"
+            } else {
+                "/v1/connect"
             },
+            &body,
         )
         .await?;
     let human = format!(
-        "service_name: {}\nconnection_id: {}\nstream_id: {}\nlocal_addr: {}",
+        "service_name: {}\nconnection_id: {}\nstream_id: {}\nlocal_addr: {}\nroute_path: {}\nselected_relay_node_id: {}",
         args.service_name,
         number_at(&json, &["connection_id"]),
         number_at(&json, &["stream_id"]),
-        optional_string_at(&json, &["local_addr"])
+        optional_string_at(&json, &["local_addr"]),
+        optional_string_at(&json, &["route_path"]),
+        optional_string_at(&json, &["selected_relay_node_id"]),
     );
     Ok(CommandOutput::new(json, human))
 }
 
 async fn list(client: &DaemonClient) -> Result<CommandOutput, CliError> {
-    let status = client.get_json("/v1/status").await?;
-    let diagnostics = client.get_json("/v1/diagnostics").await?;
-    let json = json!({
-        "api_version": "v1",
-        "service_listing_supported": false,
-        "services": [],
-        "status": status,
-        "diagnostics": diagnostics,
-    });
-
+    let json = client.get_json("/v1/services").await?;
     let human = format!(
-        "service_listing_supported: false\nrunning: {}\npath: {}\nnamespace_count: {}\nsource: status+diagnostics fallback",
-        crate::output::bool_at(&json["status"], &["running"]),
-        string_at(&json["status"], &["path"]),
-        number_at(&json["diagnostics"], &["config_summary", "namespace_count"]),
+        "service_count: {}\nbinding_count: {}",
+        array_len_at(&json, &["services"]),
+        array_len_at(&json, &["bindings"]),
     );
     Ok(CommandOutput::new(json, human))
 }
