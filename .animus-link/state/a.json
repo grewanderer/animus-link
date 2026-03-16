@@ -831,6 +831,295 @@
         }
       ],
       "service_bindings": []
+    },
+    {
+      "config": {
+        "mesh_id": "012123961896703150ef6d5eb0bc6b06",
+        "mesh_name": "General",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773603509
+      },
+      "memberships": [
+        {
+          "mesh_id": "012123961896703150ef6d5eb0bc6b06",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773603509,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "67f47d19bf08a2cf6b9409d8121bff04"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
+    },
+    {
+      "config": {
+        "mesh_id": "7d02008aeec04d0c7f4a3be8b2d0aced",
+        "mesh_name": "General",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773603511
+      },
+      "memberships": [
+        {
+          "mesh_id": "7d02008aeec04d0c7f4a3be8b2d0aced",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge",
+            "service_host"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773603511,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "fd878644598b25c1fb25228e70084481"
+        }
+      ],
+      "relay_offers": [],
+      "services": [
+        {
+          "service_id": "service-c710443a8efec9a1bfbc8333dc3e3ff5",
+          "mesh_id": "7d02008aeec04d0c7f4a3be8b2d0aced",
+          "service_name": "chat",
+          "owner_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "owner_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "local_addr": "127.0.0.1:19180",
+          "protocol": "tcp",
+          "tags": [],
+          "allowed_peers": [
+            "058c44b2e81f8cbbbd03eb9f5fb166df"
+          ],
+          "trust": "allow",
+          "app_protocol": "animus.link.messenger",
+          "published_at_unix_secs": 1773603511
+        }
+      ],
+      "service_bindings": []
+    },
+    {
+      "config": {
+        "mesh_id": "668b9f2e587cfa1a9352ea08b4842ea9",
+        "mesh_name": "General",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773604181
+      },
+      "memberships": [
+        {
+          "mesh_id": "668b9f2e587cfa1a9352ea08b4842ea9",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773604181,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "a006ffd9f1d822e745a2b799df3b1e7c"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
+    },
+    {
+      "config": {
+        "mesh_id": "55a335ae6c38d375a3a9b4cf78bb2c03",
+        "mesh_name": "General",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773604193
+      },
+      "memberships": [
+        {
+          "mesh_id": "55a335ae6c38d375a3a9b4cf78bb2c03",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773604193,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "d1e20085e570de1d94f2b9455775c73b"
+        }
+      ],
+      "relay_offers": [],
+      "services": [],
+      "service_bindings": []
+    },
+    {
+      "config": {
+        "mesh_id": "691cba07be47ab657311d392865a722a",
+        "mesh_name": "General",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773604195
+      },
+      "memberships": [
+        {
+          "mesh_id": "691cba07be47ab657311d392865a722a",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge",
+            "service_host"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773604195,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "cb8529a2057a620dbafd4582f319fa9b"
+        }
+      ],
+      "relay_offers": [],
+      "services": [
+        {
+          "service_id": "service-5ae91e7862cb59955b33fd2bea319480",
+          "mesh_id": "691cba07be47ab657311d392865a722a",
+          "service_name": "chat",
+          "owner_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "owner_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "local_addr": "127.0.0.1:19180",
+          "protocol": "tcp",
+          "tags": [],
+          "allowed_peers": [
+            "058c44b2e81f8cbbbd03eb9f5fb166df"
+          ],
+          "trust": "allow",
+          "app_protocol": "animus.link.messenger",
+          "published_at_unix_secs": 1773604195
+        }
+      ],
+      "service_bindings": []
+    },
+    {
+      "config": {
+        "mesh_id": "057998294ad6c6cd20f359ca17ab9769",
+        "mesh_name": "General",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773604196
+      },
+      "memberships": [
+        {
+          "mesh_id": "057998294ad6c6cd20f359ca17ab9769",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge",
+            "service_host"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773604196,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "cd221984d34953d7c4c9c263de7cfef2"
+        }
+      ],
+      "relay_offers": [],
+      "services": [
+        {
+          "service_id": "service-143478afd1c3626b9f0d94d1bad98ec3",
+          "mesh_id": "057998294ad6c6cd20f359ca17ab9769",
+          "service_name": "chat",
+          "owner_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "owner_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "local_addr": "127.0.0.1:19180",
+          "protocol": "tcp",
+          "tags": [],
+          "allowed_peers": [
+            "058c44b2e81f8cbbbd03eb9f5fb166df"
+          ],
+          "trust": "allow",
+          "app_protocol": "animus.link.messenger",
+          "published_at_unix_secs": 1773604196
+        }
+      ],
+      "service_bindings": []
+    },
+    {
+      "config": {
+        "mesh_id": "59ac7598b8260dd3ca4d5c31e54242e2",
+        "mesh_name": "General",
+        "created_by_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+        "local_device_id": "794294c391a82023bad685c88d044bba",
+        "local_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+        "invite_ttl_secs": 3600,
+        "created_at_unix_secs": 1773604197
+      },
+      "memberships": [
+        {
+          "mesh_id": "59ac7598b8260dd3ca4d5c31e54242e2",
+          "peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "device_id": "794294c391a82023bad685c88d044bba",
+          "node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "root_identity_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "roles": [
+            "edge",
+            "service_host"
+          ],
+          "trust": "allow",
+          "joined_at_unix_secs": 1773604197,
+          "revoked_at_unix_secs": null,
+          "membership_signature": "1e943265345ddae01ee39f21db1d5d86"
+        }
+      ],
+      "relay_offers": [],
+      "services": [
+        {
+          "service_id": "service-d8a026cb1433141ddb52f0aa2105338b",
+          "mesh_id": "59ac7598b8260dd3ca4d5c31e54242e2",
+          "service_name": "chat",
+          "owner_peer_id": "058c44b2e81f8cbbbd03eb9f5fb166df",
+          "owner_node_id": "eda97994eb0445df035d0c9eb9ef3ff0",
+          "local_addr": "127.0.0.1:19180",
+          "protocol": "tcp",
+          "tags": [],
+          "allowed_peers": [
+            "058c44b2e81f8cbbbd03eb9f5fb166df"
+          ],
+          "trust": "allow",
+          "app_protocol": "animus.link.messenger",
+          "published_at_unix_secs": 1773604197
+        }
+      ],
+      "service_bindings": []
     }
   ],
   "route_policies": [],
@@ -852,5 +1141,5 @@
   "conversations": [],
   "messages": [],
   "app_bindings": [],
-  "next_nonce": 7
+  "next_nonce": 18
 }

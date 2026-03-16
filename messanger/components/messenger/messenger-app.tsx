@@ -26,6 +26,7 @@ import {
 import { cn } from '@/lib/utils';
 
 type ConnectionMode = 'idle' | 'host' | 'joined';
+type DesiredConnection = 'host' | 'joined' | null;
 
 type MessengerMessage = {
   seq: number;
@@ -44,6 +45,7 @@ type MessengerRoom = {
   serviceName: string;
   listenAddr: string;
   allowedPeersCsv: string;
+  desiredConnection: DesiredConnection;
   connection: ConnectionMode;
   connected: boolean;
   lastError: string | null;
@@ -108,6 +110,8 @@ const MAX_TERMINAL_LINES = 240;
 const ADVANCED_UI_ENABLED = process.env.NEXT_PUBLIC_MESSENGER_ADVANCED_UI === '1';
 const DEV_UI_ENABLED = process.env.NEXT_PUBLIC_MESSENGER_DEV_UI === '1';
 const SHOW_ADVANCED_UI = ADVANCED_UI_ENABLED || DEV_UI_ENABLED;
+const AUTO_ROOM_FLOW_ENABLED = process.env.NEXT_PUBLIC_MESSENGER_AUTO_ROOM_FLOW === '1';
+const SHOW_MANUAL_ROOM_CONTROLS = SHOW_ADVANCED_UI || !AUTO_ROOM_FLOW_ENABLED;
 const MESSENGER_SITE_LOCALES: SiteLocale[] = ['en', 'ru'];
 
 const TIME_SHORT = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' });
@@ -143,6 +147,12 @@ function statusMeta(room: MessengerRoom): { label: string; tone: 'idle' | 'live'
   if (room.connection === 'joined' && room.connected) {
     return { label: 'JOINED', tone: 'live' };
   }
+  if (room.desiredConnection === 'host') {
+    return { label: 'WAITING', tone: 'warn' };
+  }
+  if (room.desiredConnection === 'joined') {
+    return { label: 'CONNECTING', tone: 'warn' };
+  }
   if (room.connection !== 'idle' && !room.connected) {
     return { label: 'CONNECTING', tone: 'warn' };
   }
@@ -171,12 +181,61 @@ function explainError(errorText: string): string {
     return 'This service is already exposed. Click Disconnect on host or adjust room settings.';
   }
   if (normalized.includes('room is not connected')) {
-    return 'Room is not connected. Click Start Host or Join Room.';
+    return AUTO_ROOM_FLOW_ENABLED
+      ? 'Room is not connected yet. Invite flow will retry automatically.'
+      : 'Room is not connected. Click Start Host or Join Room.';
   }
   if (normalized.includes('missing field')) {
     return 'A required field is missing.';
   }
+  if (normalized.includes('waiting for another peer to join the network')) {
+    return 'Invite created. The room will start automatically after another peer joins.';
+  }
   return normalized || 'Unknown error';
+}
+
+function disconnectedRoomHint(room: MessengerRoom): string {
+  if (AUTO_ROOM_FLOW_ENABLED) {
+    if (room.desiredConnection === 'host') {
+      return 'Invite shared. Waiting for another peer to join the network.';
+    }
+    if (room.desiredConnection === 'joined') {
+      return 'Invite accepted. Waiting for the host room to become available.';
+    }
+  }
+  return 'Join the room to see messages.';
+}
+
+function composerPlaceholder(room: MessengerRoom | null): string {
+  if (!room) {
+    return 'Select a room first...';
+  }
+  if (room.connected) {
+    return 'Type message...';
+  }
+  if (AUTO_ROOM_FLOW_ENABLED && room.desiredConnection === 'host') {
+    return 'Waiting for another peer to join...';
+  }
+  if (AUTO_ROOM_FLOW_ENABLED && room.desiredConnection === 'joined') {
+    return 'Connecting to the host room...';
+  }
+  return 'Connect to a room first...';
+}
+
+function roomConnectionCopy(room: MessengerRoom | null): string {
+  if (!room) {
+    return 'No room selected';
+  }
+  if (room.connected) {
+    return 'Connected';
+  }
+  if (AUTO_ROOM_FLOW_ENABLED && room.desiredConnection === 'host') {
+    return 'Waiting for peer';
+  }
+  if (AUTO_ROOM_FLOW_ENABLED && room.desiredConnection === 'joined') {
+    return 'Connecting through Link';
+  }
+  return 'Disconnected';
 }
 
 function initials(name: string): string {
@@ -656,7 +715,11 @@ export function MessengerApp() {
       throw new Error('invite is missing');
     }
     setInviteDraft(result.invite);
-    setNotice('Invite created');
+    setNotice(
+      AUTO_ROOM_FLOW_ENABLED
+        ? 'Invite created. The room will start automatically after the guest joins.'
+        : 'Invite created',
+    );
   }, [activeRoom, callAction]);
 
   const handleJoinInvite = useCallback(async () => {
@@ -666,7 +729,7 @@ export function MessengerApp() {
       return;
     }
     await callAction('invite_join', activeRoom ? { invite, roomId: activeRoom.id } : { invite });
-    setNotice('Invite accepted');
+    setNotice(AUTO_ROOM_FLOW_ENABLED ? 'Invite accepted. Connecting to room automatically.' : 'Invite accepted');
   }, [activeRoom, callAction, inviteDraft]);
 
   const handleCreateRoom = useCallback(async () => {
@@ -1331,7 +1394,7 @@ export function MessengerApp() {
                       <div className={cn(screen, 'min-h-[66px]')}>
                         <p className="truncate text-sm font-semibold">{activeRoom?.title ?? 'Room'}</p>
                         <p className={cn('mt-1 truncate text-xs', textDim)}>
-                          {activeRoom?.connected ? 'Connected' : 'Disconnected'}
+                          {roomConnectionCopy(activeRoom)}
                         </p>
                       </div>
 
@@ -1346,22 +1409,26 @@ export function MessengerApp() {
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        className={buttonPrimary}
-                        disabled={busyAction === 'host_room'}
-                        onClick={() => void handleHostRoom().catch(() => {})}
-                      >
-                        Start Host
-                      </button>
-                      <button
-                        type="button"
-                        className={buttonPrimary}
-                        disabled={busyAction === 'join_room'}
-                        onClick={() => void handleJoinRoom().catch(() => {})}
-                      >
-                        Join Room
-                      </button>
+                      {SHOW_MANUAL_ROOM_CONTROLS ? (
+                        <>
+                          <button
+                            type="button"
+                            className={buttonPrimary}
+                            disabled={busyAction === 'host_room'}
+                            onClick={() => void handleHostRoom().catch(() => {})}
+                          >
+                            Start Host
+                          </button>
+                          <button
+                            type="button"
+                            className={buttonPrimary}
+                            disabled={busyAction === 'join_room'}
+                            onClick={() => void handleJoinRoom().catch(() => {})}
+                          >
+                            Join Room
+                          </button>
+                        </>
+                      ) : null}
                       <button
                         type="button"
                         className={buttonSoft}
@@ -1370,14 +1437,16 @@ export function MessengerApp() {
                       >
                         Disconnect
                       </button>
-                      <button
-                        type="button"
-                        className={buttonSoft}
-                        disabled={!roomDirty || busyAction === 'update_room'}
-                        onClick={() => void persistRoomDraft().catch(() => {})}
-                      >
-                        Save Room
-                      </button>
+                      {SHOW_ADVANCED_UI ? (
+                        <button
+                          type="button"
+                          className={buttonSoft}
+                          disabled={!roomDirty || busyAction === 'update_room'}
+                          onClick={() => void persistRoomDraft().catch(() => {})}
+                        >
+                          Save Room
+                        </button>
+                      ) : null}
                     </div>
 
                     <div
@@ -1503,7 +1572,7 @@ export function MessengerApp() {
                                   : 'border-slate-400/40 bg-slate-100 text-slate-700',
                               )}
                             >
-                              Join the room to see messages.
+                              {disconnectedRoomHint(activeRoom)}
                             </div>
                           )
                         ) : (
@@ -1537,7 +1606,7 @@ export function MessengerApp() {
                         value={composer}
                         onChange={(event) => setComposer(event.target.value)}
                         onKeyDown={handleComposerKeyDown}
-                        placeholder={activeRoom?.connected ? 'Type message...' : 'Connect to a room first...'}
+                        placeholder={composerPlaceholder(activeRoom)}
                         disabled={!activeRoom?.connected || busyAction === 'send_message'}
                       />
                       <button

@@ -38,7 +38,8 @@ Backend actions use local `link-daemon` HTTP API. The runtime prefers mesh-aware
 Optional env:
 
 - `ANIMUS_MESSENGER_STATE_FILE` (default `.animus-link/messenger-web/state.json`)
-- `ANIMUS_MESSENGER_BOOTSTRAP_URL` appends `#bootstrap=...` to generated invites and makes `Create Invite` / `Start Host` push mesh state to a public bootstrap daemon API
+- `ANIMUS_MESSENGER_BOOTSTRAP_URL` appends `#bootstrap=...` to generated invites and lets the messenger push/pull mesh state through the public bootstrap daemon API
+- `NEXT_PUBLIC_MESSENGER_AUTO_ROOM_FLOW=1` hides manual room-connect controls in the end-user UI and enables the automatic invite flow messaging
 - `NEXT_PUBLIC_MESSENGER_ADVANCED_UI=1` enables advanced fields (`Daemon API`, service name inputs)
 - `NEXT_PUBLIC_MESSENGER_DEV_UI=1` enables developer fields (`listen address`, `allowed peers`, `SSH Terminal`) and also turns on advanced fields
 
@@ -178,7 +179,11 @@ docker compose --env-file deploy/.env.relay -f deploy/docker-compose.yml up -d -
 
 Open `UDP 7777` in the VPS firewall/security group.
 
-Assume relay is reachable as `relay.example.com:7777`.
+Current VPS relay address used by the project setup:
+
+```text
+45.12.70.107:7777
+```
 
 #### Step 2: start public bootstrap daemon on VPS
 
@@ -194,17 +199,75 @@ If you want it as a service:
 - unit: `deploy/systemd/animus-link-bootstrap.service`
 - env example: `deploy/systemd/animus-link-bootstrap.env.example`
 
+Useful systemd commands:
+
+```bash
+sudo systemctl stop animus-link-bootstrap
+sudo systemctl start animus-link-bootstrap
+sudo systemctl restart animus-link-bootstrap
+sudo systemctl status animus-link-bootstrap
+journalctl -u animus-link-bootstrap -f
+```
+
 Open `TCP 9999` in the VPS firewall/security group.
 
-Assume bootstrap daemon is reachable as `http://relay.example.com:9999`.
+Current VPS bootstrap daemon URL used by the project setup:
 
-#### Step 3: your machine
+```text
+http://45.12.70.107:9999
+```
+
+Important:
+
+- `bootstrap_url` must be exactly `http://host:port`
+- valid example: `http://45.12.70.107:9999`
+- invalid examples:
+  - `45.12.70.107:9999`
+  - `https://45.12.70.107:9999`
+  - `http://45.12.70.107:9999/v1/health`
+
+#### Step 3: start the client on each local machine
+
+Fastest local start: run one PowerShell script per user.
+
+Your machine:
+
+```powershell
+cd C:\Users\Red\Desktop\animus-link
+powershell -ExecutionPolicy Bypass -File .\messanger\scripts\start-client.ps1 -StateName a
+```
+
+Friend machine:
+
+```powershell
+cd C:\Users\Friend\Desktop\animus-link
+powershell -ExecutionPolicy Bypass -File .\messanger\scripts\start-client.ps1 -StateName b
+```
+
+What the script does:
+
+- starts local `link-daemon` on `127.0.0.1:9999`
+- points it to VPS relay `45.12.70.107:7777`
+- configures messenger bootstrap URL as `http://45.12.70.107:9999`
+- enables automatic invite flow (`Create Invite` -> auto host, `Join Invite` -> auto join)
+- launches web messenger on `http://localhost:3000/link`
+
+Optional script modes:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\messanger\scripts\start-client.ps1 -StateName a -UiMode advanced
+powershell -ExecutionPolicy Bypass -File .\messanger\scripts\start-client.ps1 -StateName a -UiMode dev
+```
+
+Manual commands are still available if you need them for debugging:
+
+Your machine daemon:
 
 Terminal 1, daemon:
 
 ```powershell
 cd C:\Users\Red\Desktop\animus-link
-cargo run -p link-daemon -- --api-bind 127.0.0.1:9999 --state-file .animus-link/state/a.json --relay-addr relay.example.com:7777 --relay-name default-relay --relay-token-signing-seed-hex 9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60
+cargo run -p link-daemon -- --api-bind 127.0.0.1:9999 --state-file .animus-link/state/a.json --relay-addr 45.12.70.107:7777 --relay-name default-relay --relay-token-signing-seed-hex 9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60
 ```
 
 Terminal 2, web:
@@ -213,10 +276,9 @@ Terminal 2, web:
 cd C:\Users\Red\Desktop\animus-link\messanger
 npm.cmd ci
 $env:ANIMUS_MESSENGER_STATE_FILE=".animus-link/messenger-web/a.json"
-$env:ANIMUS_MESSENGER_BOOTSTRAP_URL="http://relay.example.com:9999"
+$env:ANIMUS_MESSENGER_BOOTSTRAP_URL="http://45.12.70.107:9999"
+$env:NEXT_PUBLIC_MESSENGER_AUTO_ROOM_FLOW="1"
 $env:NEXT_PUBLIC_SITE_URL="http://localhost:3000"
-$env:NEXT_PUBLIC_MESSENGER_ADVANCED_UI="1"
-$env:NEXT_PUBLIC_MESSENGER_DEV_UI="1"
 npm.cmd run dev
 ```
 
@@ -232,13 +294,13 @@ Set:
 Daemon API = http://127.0.0.1:9999
 ```
 
-#### Step 4: friend machine
+Friend machine daemon:
 
 Terminal 1, daemon:
 
 ```powershell
 cd C:\Users\Friend\Desktop\animus-link
-cargo run -p link-daemon -- --api-bind 127.0.0.1:9999 --state-file .animus-link/state/b.json --relay-addr relay.example.com:7777 --relay-name default-relay --relay-token-signing-seed-hex 9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60
+cargo run -p link-daemon -- --api-bind 127.0.0.1:9999 --state-file .animus-link/state/b.json --relay-addr 45.12.70.107:7777 --relay-name default-relay --relay-token-signing-seed-hex 9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60
 ```
 
 Terminal 2, web:
@@ -247,10 +309,9 @@ Terminal 2, web:
 cd C:\Users\Friend\Desktop\animus-link\messanger
 npm.cmd ci
 $env:ANIMUS_MESSENGER_STATE_FILE=".animus-link/messenger-web/b.json"
-$env:ANIMUS_MESSENGER_BOOTSTRAP_URL="http://relay.example.com:9999"
+$env:ANIMUS_MESSENGER_BOOTSTRAP_URL="http://45.12.70.107:9999"
+$env:NEXT_PUBLIC_MESSENGER_AUTO_ROOM_FLOW="1"
 $env:NEXT_PUBLIC_SITE_URL="http://localhost:3000"
-$env:NEXT_PUBLIC_MESSENGER_ADVANCED_UI="1"
-$env:NEXT_PUBLIC_MESSENGER_DEV_UI="1"
 npm.cmd run dev
 ```
 
@@ -266,17 +327,23 @@ Set:
 Daemon API = http://127.0.0.1:9999
 ```
 
-#### Step 5: chat flow
+#### Step 4: chat flow
 
-1. On your machine: select the target room and click `Create Invite`
-2. Confirm the invite string contains `#bootstrap=` at the end
-3. Send the full invite string to your friend
-4. On friend machine: select the target room, paste the invite into `Invite code`, and click `Join Invite`
-5. On your machine: click `Start Host`
-6. On friend machine: click `Join Room`
+1. On your machine: open the app and choose the target room
+2. Click `Create Invite`
+3. Confirm the invite string contains `#bootstrap=` at the end
+4. Send the full invite string to your friend
+5. On friend machine: open the app, choose the target room, paste the invite into `Invite code`, and click `Join Invite`
+6. Wait a few seconds while the app automatically:
+   - syncs mesh state through VPS bootstrap daemon
+   - starts hosting on the inviter side
+   - connects on the joiner side
 7. Send messages in both directions
 
-#### Step 6: quick checks if connection fails
+In the end-user flow you no longer need to click `Start Host` or `Join Room`.
+Those controls remain available only in `advanced` / `dev` mode.
+
+#### Step 5: quick checks if connection fails
 
 On each machine:
 
@@ -301,7 +368,7 @@ sudo tcpdump -ni any udp port 7777
 ```
 
 - If `Create Invite` does not append `#bootstrap=`, verify `ANIMUS_MESSENGER_BOOTSTRAP_URL` is set before `npm.cmd run dev`.
-- If room join stalls in `CONNECTING`, the host runtime now tries to replace placeholder `allowed peers` value `peer-b` with known mesh peer ids automatically. If that still does not happen, open `dev` mode and set the real second peer id manually, then click `Save Room` before `Start Host`.
+- If room join stalls in `CONNECTING`, the host runtime now tries to replace placeholder `allowed peers` value `peer-b` with known mesh peer ids automatically. If that still does not happen, open `dev` mode and set the real second peer id manually, then click `Save Room` and retry the invite flow.
 
 ## How To Use The App
 
@@ -344,8 +411,10 @@ UI modes:
 1. In browser A, set `Daemon API` to daemon A and click `Create Invite`.
 2. Copy invite text to browser B.
 3. In browser B, set `Daemon API` to daemon B, paste invite, click `Join Invite`.
-4. In browser A, choose room and click `Start Host`.
-5. In browser B, choose same room/service and click `Join Room`.
+4. If `NEXT_PUBLIC_MESSENGER_AUTO_ROOM_FLOW=1` is enabled, wait a few seconds for automatic host/join.
+5. If auto room flow is disabled, use manual room controls:
+   - A: `Start Host`
+   - B: `Join Room`
 6. Wait for status badge:
    - A: `HOST`
    - B: `JOINED`
@@ -361,12 +430,13 @@ UI modes:
 - `Save Room`: persists selected room settings.
 - `Delete`: removes selected room and local history (at least one room must remain).
 - `Disconnect`: closes current host/join connection for selected room.
+- `Start Host` / `Join Room`: visible in `advanced` / `dev` mode or when auto room flow is disabled.
 
 ### Message timeline
 
 - Outgoing messages are styled differently from incoming.
 - Message list auto-refreshes periodically.
-- If room is disconnected, the message area shows a join notice (`Join the room to see messages.`).
+- If auto room flow is enabled, the message area shows waiting hints while host/join is resolving in the background.
 - Lower `SSH Terminal` panel shows API/network events and recent warnings/errors.
   - Visible only in `dev` mode.
 
@@ -380,7 +450,11 @@ UI modes:
 
 - One active runtime connection is expected at a time.
 - If daemon is unreachable, invite/host/join actions return API errors in the UI.
-- `Start Host` calls daemon `expose`; `Join Room` calls daemon `connect`.
+- `Create Invite` always creates an invite for the active room.
+- With VPS bootstrap enabled, `Create Invite` marks the room for automatic host startup.
+- `Join Invite` accepts the invite and, with VPS bootstrap enabled, marks the room for automatic join.
+- Automatic room flow is driven by the snapshot poll loop: the runtime keeps reconciling mesh state with the public bootstrap daemon until host/join succeeds.
+- `Start Host` still calls daemon `expose`; `Join Room` still calls daemon `connect`, but in the normal VPS flow they are fallback/debug controls rather than the main user path.
 
 ## Windows Notes
 

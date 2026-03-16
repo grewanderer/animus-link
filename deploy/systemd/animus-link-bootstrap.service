@@ -5,10 +5,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/srv/animus-link
+WorkingDirectory=/opt/animus-link
 Environment=RUST_LOG=info
 Environment=API_BIND=0.0.0.0:9999
-Environment=STATE_FILE=/var/lib/animus-link/bootstrap-state.json
+Environment=STATE_FILE=/opt/animus-link/.animus-link/state/bootstrap.json
 Environment=RELAY_ADDR=127.0.0.1:7777
 Environment=RELAY_NAME=default-relay
 EnvironmentFile=-/etc/animus-link-bootstrap.env

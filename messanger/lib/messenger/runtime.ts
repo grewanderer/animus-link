@@ -12,6 +12,7 @@ const MAX_MESSAGE_TEXT = 1024;
 const MAX_AVATAR_DATA_URL_LENGTH = 256 * 1024;
 
 export type ConnectionMode = 'idle' | 'host' | 'joined';
+type DesiredConnection = Exclude<ConnectionMode, 'idle'> | null;
 
 export type MessengerMessage = {
   seq: number;
@@ -31,6 +32,7 @@ export type MessengerRoom = {
   listenAddr: string;
   allowedPeersCsv: string;
   meshId: string | null;
+  desiredConnection: DesiredConnection;
   connection: ConnectionMode;
   connected: boolean;
   lastError: string | null;
@@ -63,6 +65,7 @@ type PersistedRoom = {
   listenAddr: string;
   allowedPeersCsv: string;
   meshId: string | null;
+  desiredConnection: DesiredConnection;
   currentSeq: number;
   messages: PersistedMessage[];
 };
@@ -177,6 +180,14 @@ function normalizeOptionalString(value: unknown): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
+function bootstrapUrlFromEnv(): string | null {
+  return normalizeOptionalString(process.env.ANIMUS_MESSENGER_BOOTSTRAP_URL);
+}
+
+function autoRoomFlowEnabled(): boolean {
+  return Boolean(bootstrapUrlFromEnv());
+}
+
 function parseInviteInput(value: string): { invite: string; bootstrapUrl: string | null } {
   const trimmed = value.trim();
   const marker = '#bootstrap=';
@@ -199,7 +210,7 @@ function parseInviteInput(value: string): { invite: string; bootstrapUrl: string
 }
 
 function formatInviteOutput(invite: string): string {
-  const bootstrapUrl = normalizeOptionalString(process.env.ANIMUS_MESSENGER_BOOTSTRAP_URL);
+  const bootstrapUrl = bootstrapUrlFromEnv();
   if (!bootstrapUrl) {
     return invite;
   }
@@ -218,6 +229,7 @@ function makeDefaultRoom(): MessengerRoom {
     listenAddr: '127.0.0.1:19180',
     allowedPeersCsv: 'peer-b',
     meshId: null,
+    desiredConnection: null,
     connection: 'idle',
     connected: false,
     lastError: null,
@@ -278,6 +290,7 @@ export class MessengerRuntime {
   private state: MessengerSnapshot;
   private roomRuntime = new Map<string, RoomRuntime>();
   private persistTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconcilePromise: Promise<void> | null = null;
   private readonly persistedPath: string;
 
   constructor() {
@@ -286,6 +299,7 @@ export class MessengerRuntime {
   }
 
   snapshot(): MessengerSnapshot {
+    this.queueReconcile();
     return {
       profileName: this.state.profileName,
       profileAvatar: this.state.profileAvatar,
@@ -345,6 +359,10 @@ export class MessengerRuntime {
       listenAddr: room.listenAddr || '127.0.0.1:19180',
       allowedPeersCsv: room.allowedPeersCsv || 'peer-b',
       meshId: normalizeOptionalString(room.meshId),
+      desiredConnection:
+        room.desiredConnection === 'host' || room.desiredConnection === 'joined'
+          ? room.desiredConnection
+          : null,
       connection: 'idle',
       connected: false,
       lastError: null,
@@ -411,6 +429,7 @@ export class MessengerRuntime {
         listenAddr: room.listenAddr,
         allowedPeersCsv: room.allowedPeersCsv,
         meshId: room.meshId,
+        desiredConnection: room.desiredConnection,
         currentSeq: room.currentSeq,
         messages: room.messages.slice(-MAX_ROOM_MESSAGES),
       })),
@@ -420,6 +439,32 @@ export class MessengerRuntime {
     const tempPath = `${this.persistedPath}.tmp`;
     fs.writeFileSync(tempPath, JSON.stringify(persisted), 'utf8');
     fs.renameSync(tempPath, this.persistedPath);
+  }
+
+  private queueReconcile(): void {
+    if (!autoRoomFlowEnabled() || this.reconcilePromise) {
+      return;
+    }
+    this.reconcilePromise = this.reconcileRooms()
+      .catch(() => {
+        // Keep snapshot reads resilient; room-level errors are stored in room state.
+      })
+      .finally(() => {
+        this.reconcilePromise = null;
+      });
+  }
+
+  private async reconcileRooms(): Promise<void> {
+    for (const room of this.state.rooms) {
+      if (!room.desiredConnection || room.connected) {
+        continue;
+      }
+      if (room.desiredConnection === 'host') {
+        await this.tryAutoHostRoom(room);
+        continue;
+      }
+      await this.tryAutoJoinRoom(room);
+    }
   }
 
   private getRoom(roomId: string): MessengerRoom {
@@ -467,6 +512,7 @@ export class MessengerRuntime {
       listenAddr: '127.0.0.1:19180',
       allowedPeersCsv: 'peer-b',
       meshId: null,
+      desiredConnection: null,
       connection: 'idle',
       connected: false,
       lastError: null,
@@ -517,6 +563,12 @@ export class MessengerRuntime {
         if (typeof invite !== 'string' || invite.length === 0) {
           throw new Error('daemon returned invalid invite');
         }
+        if (autoRoomFlowEnabled()) {
+          room.desiredConnection = 'host';
+          room.lastError = null;
+          this.queuePersist();
+          await this.tryAutoHostRoom(room);
+        }
         return formatInviteOutput(invite);
       }
     }
@@ -546,6 +598,12 @@ export class MessengerRuntime {
       if (meshId && roomId) {
         const room = this.getRoom(roomId);
         room.meshId = meshId;
+        if (parsedInvite.bootstrapUrl) {
+          room.desiredConnection = 'joined';
+          room.lastError = null;
+          this.queuePersist();
+          await this.tryAutoJoinRoom(room);
+        }
         this.queuePersist();
       }
       return;
@@ -620,7 +678,7 @@ export class MessengerRuntime {
   }
 
   private async syncMeshToBootstrap(meshId: string): Promise<void> {
-    const bootstrapUrl = normalizeOptionalString(process.env.ANIMUS_MESSENGER_BOOTSTRAP_URL);
+    const bootstrapUrl = bootstrapUrlFromEnv();
     if (!bootstrapUrl) {
       return;
     }
@@ -629,16 +687,17 @@ export class MessengerRuntime {
     });
   }
 
-  private async resolveAllowedPeers(room: MessengerRoom, meshId: string | null): Promise<string[]> {
+  private async resolveAllowedPeers(room: MessengerRoom, meshId: string | null): Promise<string[] | null> {
     const raw = room.allowedPeersCsv.trim();
     const isPlaceholder = raw.length === 0 || raw === 'peer-b';
     if (meshId && isPlaceholder) {
       const peerIds = await this.listMeshPeerIds(meshId);
-      if (peerIds.length > 0) {
+      if (peerIds.length > 1) {
         room.allowedPeersCsv = peerIds.join(',');
         this.queuePersist();
         return peerIds;
       }
+      return null;
     }
     return parseAllowedPeers(room.allowedPeersCsv);
   }
@@ -805,15 +864,47 @@ export class MessengerRuntime {
     }
   }
 
-  private async hostRoom(payload: Record<string, unknown>): Promise<void> {
-    const roomId = this.getPayloadString(payload, 'roomId');
-    const room = this.getRoom(roomId);
+  private async tryAutoHostRoom(room: MessengerRoom): Promise<boolean> {
+    try {
+      return await this.startHostRoom(room, { auto: true });
+    } catch (error) {
+      room.lastError = error instanceof Error ? error.message : 'auto host failed';
+      this.queuePersist();
+      return false;
+    }
+  }
 
-    await this.closeAllRuntimesExcept(roomId);
-    await this.closeRuntime(roomId);
+  private async tryAutoJoinRoom(room: MessengerRoom): Promise<boolean> {
+    try {
+      return await this.startJoinRoom(room, { auto: true });
+    } catch (error) {
+      room.lastError = error instanceof Error ? error.message : 'auto join failed';
+      this.queuePersist();
+      return false;
+    }
+  }
+
+  private async startHostRoom(
+    room: MessengerRoom,
+    options?: { auto?: boolean },
+  ): Promise<boolean> {
+    await this.closeAllRuntimesExcept(room.id);
+    await this.closeRuntime(room.id);
 
     const meshId = await this.ensureRoomMesh(room, { createIfMissing: true });
+    if (meshId && autoRoomFlowEnabled()) {
+      await this.syncMeshToBootstrap(meshId);
+    }
     const allowedPeers = await this.resolveAllowedPeers(room, meshId);
+    if (!allowedPeers) {
+      room.lastError = null;
+      this.queuePersist();
+      if (options?.auto) {
+        return false;
+      }
+      throw new Error('Room is waiting for another peer to join the network.');
+    }
+
     const { host, port } = parseHostPort(room.listenAddr);
     const runtime: HostRuntime = {
       mode: 'host',
@@ -825,7 +916,7 @@ export class MessengerRuntime {
     };
 
     runtime.server.on('connection', (socket) => {
-      this.handleHostSocket(roomId, runtime, socket);
+      this.handleHostSocket(room.id, runtime, socket);
     });
 
     await new Promise<void>((resolve, reject) => {
@@ -876,22 +967,27 @@ export class MessengerRuntime {
       throw error;
     }
 
-    this.roomRuntime.set(roomId, runtime);
+    this.roomRuntime.set(room.id, runtime);
     this.setRoomConnection(room, 'host', true);
-    this.appendMessage(roomId, 'system', 'host mode started', {
+    room.desiredConnection = 'host';
+    this.appendMessage(room.id, 'system', 'host mode started', {
       outgoing: false,
       system: true,
     });
+    return true;
   }
 
-  private async joinRoom(payload: Record<string, unknown>): Promise<void> {
-    const roomId = this.getPayloadString(payload, 'roomId');
-    const room = this.getRoom(roomId);
-
-    await this.closeAllRuntimesExcept(roomId);
-    await this.closeRuntime(roomId);
+  private async startJoinRoom(
+    room: MessengerRoom,
+    options?: { auto?: boolean },
+  ): Promise<boolean> {
+    await this.closeAllRuntimesExcept(room.id);
+    await this.closeRuntime(room.id);
 
     const meshId = await this.ensureRoomMesh(room);
+    if (meshId && autoRoomFlowEnabled()) {
+      await this.syncMeshToBootstrap(meshId);
+    }
     let connect: Record<string, unknown> | null = null;
     if (meshId) {
       try {
@@ -910,13 +1006,19 @@ export class MessengerRuntime {
     }
     const localAddr = connect.local_addr;
     if (typeof localAddr !== 'string' || localAddr.length === 0) {
+      if (options?.auto) {
+        room.lastError = 'daemon returned no local_addr';
+        this.queuePersist();
+        return false;
+      }
       throw new Error('daemon returned no local_addr');
     }
     const endpoint = parseHostPort(localAddr);
     const socket = net.createConnection({ host: endpoint.host, port: endpoint.port });
     const runtime: JoinedRuntime = { mode: 'joined', socket, buffer: '' };
-    this.roomRuntime.set(roomId, runtime);
+    this.roomRuntime.set(room.id, runtime);
     this.setRoomConnection(room, 'joined', false);
+    room.desiredConnection = 'joined';
 
     socket.on('connect', () => {
       this.setRoomConnection(room, 'joined', true);
@@ -925,7 +1027,7 @@ export class MessengerRuntime {
         name: this.state.profileName,
         avatar: this.state.profileAvatar,
       });
-      this.appendMessage(roomId, 'system', 'joined room', {
+      this.appendMessage(room.id, 'system', 'joined room', {
         outgoing: false,
         system: true,
       });
@@ -955,7 +1057,7 @@ export class MessengerRuntime {
           if (!text) {
             continue;
           }
-          this.appendMessage(roomId, sender, text, {
+          this.appendMessage(room.id, sender, text, {
             outgoing: sender === this.state.profileName,
             system: false,
             avatar: senderAvatar,
@@ -967,7 +1069,7 @@ export class MessengerRuntime {
           if (!text) {
             continue;
           }
-          this.appendMessage(roomId, 'system', text, {
+          this.appendMessage(room.id, 'system', text, {
             outgoing: false,
             system: true,
           });
@@ -983,20 +1085,39 @@ export class MessengerRuntime {
 
     socket.on('close', () => {
       room.connected = false;
-      if (this.roomRuntime.get(roomId) === runtime) {
-        this.roomRuntime.delete(roomId);
+      if (this.roomRuntime.get(room.id) === runtime) {
+        this.roomRuntime.delete(room.id);
         this.setRoomConnection(room, 'idle', false);
       }
-      this.appendMessage(roomId, 'system', 'connection closed', {
+      this.appendMessage(room.id, 'system', 'connection closed', {
         outgoing: false,
         system: true,
       });
     });
+    return true;
+  }
+
+  private async hostRoom(payload: Record<string, unknown>): Promise<void> {
+    const room = this.getRoom(this.getPayloadString(payload, 'roomId'));
+    room.desiredConnection = 'host';
+    room.lastError = null;
+    this.queuePersist();
+    await this.startHostRoom(room);
+  }
+
+  private async joinRoom(payload: Record<string, unknown>): Promise<void> {
+    const room = this.getRoom(this.getPayloadString(payload, 'roomId'));
+    room.desiredConnection = 'joined';
+    room.lastError = null;
+    this.queuePersist();
+    await this.startJoinRoom(room);
   }
 
   private async disconnectRoom(payload: Record<string, unknown>): Promise<void> {
-    const roomId = this.getPayloadString(payload, 'roomId');
-    await this.closeRuntime(roomId);
+    const room = this.getRoom(this.getPayloadString(payload, 'roomId'));
+    room.desiredConnection = null;
+    room.lastError = null;
+    await this.closeRuntime(room.id);
   }
 
   private async sendMessage(payload: Record<string, unknown>): Promise<void> {
